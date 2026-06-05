@@ -1,0 +1,3 @@
+{
+  "extends": "@cashrio-rn/config/tsconfig.base.json"
+}
