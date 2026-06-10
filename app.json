@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "scheme": "unmiser",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "Unmiser",
+    "slug": "unmiser",
+    "plugins": ["expo-font"],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "android": {
+      "package": "com.vijayabaskar56.unmiser"
+    }
+  }
+}

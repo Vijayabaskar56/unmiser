@@ -1,0 +1,20 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["cashriosms"],
+  "ios": {
+    "iosModuleName": "NitroCashrioSms"
+  },
+  "android": {
+    "androidNamespace": ["cashriosms"],
+    "androidCxxLibName": "NitroCashrioSms"
+  },
+  "autolinking": {
+    "CashrioSms": {
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "CashrioSms"
+      }
+    }
+  },
+  "ignorePaths": ["**/node_modules"]
+}

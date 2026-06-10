@@ -1,0 +1,18 @@
+{
+  "controls": [
+    {
+      "id": "dev",
+      "title": "Android Dev Server",
+      "command": "./.cmux/dock-session.sh dev 'bunx expo prebuild --clean --platform android && bunx expo run:android 2>&1 | tee /tmp/unmiser-dev.log'",
+      "cwd": ".",
+      "height": 220
+    },
+    {
+      "id": "scrcpy",
+      "title": "Device Cast (scrcpy)",
+      "command": "./.cmux/dock-session.sh scrcpy 'scrcpy --video-codec=h265 --max-size=1920 --max-fps=60 --no-audio --keyboard=uhid -w --stay-awake 2>&1 | tee /tmp/unmiser-scrcpy.log'",
+      "cwd": ".",
+      "height": 220
+    }
+  ]
+}

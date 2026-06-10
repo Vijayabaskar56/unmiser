@@ -1,109 +1,65 @@
-# cashrio-rn
+# Unmiser
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Self, and more.
+**Change your relationship with money.**
 
-## Features
+A miser fears money. An unmiser understands it. Unmiser is a local-first expense
+tracker for Android that reads your bank SMS **on-device** — nothing ever leaves
+your phone — and turns the noise of transaction messages into a clear picture of
+where your money goes, so you can change the habits behind it.
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **React Native** - Build mobile apps using React
-- **Expo** - Tools for React Native development
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Drizzle** - TypeScript-first ORM
-- **SQLite/Turso** - Database engine
-- **Husky** - Git hooks for code quality
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
-- **Turborepo** - Optimized monorepo build system
+Unmiser is a React Native (Expo) port of the Cashiro Android app, rebuilt
+around two pillars:
 
-## Getting Started
+1. **A plugin-based SMS parser.** Every bank parser is a plain JSON manifest
+   bundled with the SMS fixtures that prove it. A small default set ships in
+   `lib/parser/manifests/`; the full community store (99+ banks) lives in the
+   separate [unmiser-extensions](https://github.com/Vijayabaskar56/unmiser-extensions)
+   repo — anyone can author a bank without writing code.
+2. **Behavior change, not just tracking.** Budgets, review queues, and spending
+   insight are framed around changing your money habits.
 
-First, install the dependencies:
+## Privacy
+
+SMS parsing happens entirely on-device. There is no telemetry, no phone-home,
+no account. Unrecognized messages are kept locally so _you_ can choose to
+report them (one tap pre-fills a GitHub issue you submit yourself). See
+`docs/adr/0015-unrecognized-sms-minimal-local-capture.md`.
+
+## Stack
+
+- **Expo / React Native** (New Architecture), expo-router, Reanimated, uniwind
+- **expo-sqlite + Drizzle ORM** — schema 1:1 with the original Android Room DB
+- **TanStack DB** — reactive collections + incremental live queries
+- **Nitro Modules** — the native SMS adapter (`packages/react-native-cashrio-sms`)
+- **Vitest, oxlint/oxfmt, Husky**
+
+## Getting started
 
 ```bash
 bun install
+bun android        # expo run:android (dev client, physical device/emulator)
 ```
 
-## Database Setup
-
-This project uses SQLite with Drizzle ORM.
-
-1. Start the local SQLite database (optional):
+## Tests & checks
 
 ```bash
-bun run db:local
+bun run test       # vitest — includes fixture validation for the bundled parser plugins
+bun run check      # oxlint + oxfmt
+bunx tsc --noEmit
 ```
 
-2. Update your `.env` file in the `apps/web` directory with the appropriate connection details if needed.
+## Authoring a bank parser plugin
 
-3. Apply the schema to your database:
+Contribute banks to the
+[unmiser-extensions](https://github.com/Vijayabaskar56/unmiser-extensions)
+store — a plugin is one JSON file (manifest + fixtures) validated against the
+same engine this app runs. The engine source of truth is `lib/parser/` here;
+`bun scripts/generate-manifest-schema.ts` regenerates the authoring JSON
+Schema, and `bun scripts/validate-manifest.ts <file>` validates a single
+bundle locally.
 
-```bash
-bun run db:push
-```
+## Project docs
 
-Then, run the development server:
-
-```bash
-bun run dev
-```
-
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
-Use the Expo Go app to run the mobile application.
-
-## UI Customization
-
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
-
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
-
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
-
-```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
-```
-
-Import shared components like this:
-
-```tsx
-import { Button } from "@cashrio-rn/ui/components/button";
-```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
-
-## Git Hooks and Formatting
-
-- Initialize hooks: `bun run prepare`
-- Format and lint fix: `bun run check`
-
-## Project Structure
-
-```
-cashrio-rn/
-├── apps/
-│   └── web/         # Fullstack application (React + TanStack Start)
-│   ├── native/      # Mobile application (React Native, Expo)
-├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   └── db/          # Database schema & queries
-```
-
-## Available Scripts
-
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run dev:native`: Start the React Native/Expo development server
-- `bun run db:push`: Push schema changes to database
-- `bun run db:generate`: Generate database client/types
-- `bun run db:migrate`: Run database migrations
-- `bun run db:studio`: Open database studio UI
-- `bun run db:local`: Start the local SQLite database
-- `bun run check`: Run Oxlint and Oxfmt
+- `ROADMAP.md` — sequenced plan and product pillars
+- `docs/adr/` — architecture decision records
+- `CLAUDE.md` / `AGENTS.md` — agent and contributor working notes
