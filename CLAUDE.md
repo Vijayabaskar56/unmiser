@@ -42,16 +42,16 @@ The Android dev server and scrcpy device cast run via cmux Dock controls (`.cmux
 each wrapped in a persistent tmux session by `.cmux/dock-session.sh` so they survive cmux
 workspace switches (the Dock panel only detaches the tmux client; the process keeps running).
 
-- tmux session: named after the git root folder — currently `cashrio-rn` (the project was
-  rebranded to Unmiser but the directory hasn't been renamed). One window per process:
+- tmux session: `unmiser` (named after the git root folder, `~/work/unmiser`; a compatibility
+  symlink `~/work/cashrio-rn -> unmiser` exists for stale tooling). One window per process:
   - window `dev` — `bunx expo prebuild --clean --platform android && bunx expo run:android`,
     logs tee'd to `/tmp/unmiser-dev.log`
   - window `scrcpy` — device cast to the test phone, logs tee'd to `/tmp/unmiser-scrcpy.log`
 - **Check dev/Metro logs**: `tail -f /tmp/unmiser-dev.log` (or
-  `tmux capture-pane -p -t cashrio-rn:dev` for the live pane).
-- **Don't start a second dev server** — if `tmux has-session -t cashrio-rn` succeeds, the dev
+  `tmux capture-pane -p -t unmiser:dev` for the live pane).
+- **Don't start a second dev server** — if `tmux has-session -t unmiser` succeeds, the dev
   server is already running there. To restart it, kill the window's process inside tmux
-  (e.g. `tmux send-keys -t cashrio-rn:dev C-c` then re-run), not a fresh terminal.
+  (e.g. `tmux send-keys -t unmiser:dev C-c` then re-run), not a fresh terminal.
 - **Known dev-log noise**: on every dev-client launch Metro logs one ERROR —
   "Can't perform a React state update on a component that hasn't mounted yet" from
   `expo-router/build/fork/useLinking.native.js` (`onUnhandledLinking` setState on the unhandled
