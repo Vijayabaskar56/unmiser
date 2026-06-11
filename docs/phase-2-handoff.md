@@ -1,60 +1,75 @@
 # Phase 2 Handoff
 
-Status as of 2026-06-09 (post Nitro-migration QA session):
+Status as of 2026-06-12: **Phase 2 complete and device-verified.** `ROADMAP.md` Phase 2 section
+holds the full decided design (registry, wizard, bundled allowlist, scan hardening) and the
+verification evidence; this doc keeps only the operational knowledge a future session needs.
 
-- Parser engine, manifest schema, bundled parser fixtures, and SMS-processing service are in place.
-- Android SMS ingestion now goes through a **Nitro module** (`packages/react-native-cashrio-sms`,
-  hybrid object `CashrioSms`): permissions, paged historical reads, notifications, and a
-  callback-based realtime listener (`startSmsListener`/`stopSmsListener` backed by a dynamically
-  registered `SMS_RECEIVED` BroadcastReceiver). The old `NativeModules`/`NativeEventEmitter` bridge
-  is gone; `lib/android-sms-adapter.ts` is the only JS boundary.
-- Extensions UI exists for install/enable, account linking, paste parsing, historical scan,
-  realtime listening, and SMS review.
+## What shipped (pointers, not duplication)
 
-Fixed in this session (each was breaking Phase 2 on device):
+- **Registry:** `lib/registry/` (catalog fetch via jsDelivr, SHA-256-verified install,
+  trust-by-install-source, throttled update check, reprocess-review-queue-on-update). Catalog CI
+  lives in `unmiser-extensions` (`scripts/generate-catalog.ts` + `.github/workflows/catalog.yml`
+  → `index.json`, 99 entries). Store tab: `app/(tabs)/store.tsx`.
+- **Wizard:** `app/(onboarding)/sms-setup/` + first-run gate in `app/_layout.tsx`
+  (`smsSetupCompletedAt` KV pref). Re-entry from the Store tab.
+- **Scan:** `lib/scan/` — singleton task store, worklet executor on a dedicated
+  `createWorkletRuntime`, chunked RN-thread fallback, KV checkpoint/resume, native coarse
+  pre-screen in the Nitro module (`SmsPreScreen.kt`, mirrors `lib/parser/sms-filter.ts`).
+- **Engine split:** `prepareManifests` (zod, RN-side, once per run) →
+  `parsePreparedSms*` (worklet-safe core) → `attachTransactionHash` (js-md5/decimal, RN-side).
+- **Auto-create:** `processSms` auto-creates accounts on HIGH-confidence parses (ADR-0006);
+  only ambiguous multi-suffix matches go to `ACCOUNT_RESOLUTION_REQUIRED`.
+- **Bundled manifests:** `bun run sync:manifests` copies the 12-bank allowlist byte-identical
+  from `../unmiser-extensions/manifests/`. Never hand-edit `lib/parser/manifests/*.json` — fix
+  in the store repo and re-sync.
 
-1. **Extensions screen freeze/crash** — the SMS Review list rendered all rows unvirtualized inside
-   a ScrollView; after a real scan stored 5k+ review rows, mounting the screen pegged the JS thread
-   (heap 30→158MB, eventual Fabric SIGSEGV in `MountingCoordinator::pullTransaction`). Now capped
-   via `REVIEW_RENDER_LIMIT` (25) with a "showing latest N" header.
-2. **Nitro hybrid object never registered** — `nitro.json` had an empty `autolinking {}` block, so
-   `createHybridObject("CashrioSms")` threw and the adapter reported unavailable. Autolinking entry
-   added, nitrogen re-run.
-3. **SMS permissions missing from the APK** — no manifest declared `READ_SMS`/`RECEIVE_SMS`/
-   `POST_NOTIFICATIONS`, so requests were auto-denied. Now declared in the library manifest.
-4. **Realtime listening was dead code** — no BroadcastReceiver existed and the JS emitter pointed
-   at a removed module. Implemented natively in the Nitro module (see above).
-5. **HDFC manifest gaps vs the original `HDFCBankParser.kt`** — added `HDFCB` sender + DLT
-   patterns, lowercase `A/C x1234` / `HDFC Bank XX1234` / `BLOCK DC` account patterns,
-   `To <payee> On <date>` (incl. VPA) / `Info:` / salary merchant patterns, more balance/reference
-   patterns, and the original's exclusion filters (future debits, e-mandate, promos, requests).
-   Real-device fixtures added (157 tests pass).
-6. **Filter-rejected SMS were mislabeled** — `processSms` routed them to `UNRECOGNIZED/NO_PARSER`
-   because the rejected branch was unreachable (`fields` is unset on filter rejection). Now stored
-   as `REJECTED/FILTER_REJECTED`.
-7. **Stale review rows** — review items whose SMS later saved as a transaction stayed in the queue
-   forever (910 of 912 ACCOUNT_RESOLUTION rows were stale after linking the real account).
-   `processSms` now stamps `resolvedAt` on the matching review row whenever an SMS saves (fresh or
-   hash-dedup on rescan), and `smsReviewCollection` filters resolved rows out.
+## Device verification evidence (I2223, real ~5.3k inbox, 2026-06-12)
 
-Verified on device (iQOO I2223, real inbox):
+- Wizard gate → country/providers from the **live** jsDelivr catalog → `in.boi.bank` installed
+  with `trust=registry`, stored checksum byte-identical to the catalog `sha256`.
+- Worklet scan ran **without** the chunked fallback (no `[scan]` WARN), UI responsive throughout;
+  checkpoint resume from 3,250/5,345 worked after an interrupted run.
+- Outcome: **161 SMS transactions saved**, 4 accounts auto-created (HDFC ····7672, IOB ····1999,
+  HDFC ····7087 **as credit card**, SBI ····7672), **92 open review rows** (53 acct-resolution,
+  13 low-confidence, 10 rejected, 16 unrecognized) — exit criterion "low hundreds, not
+  thousands" met (previously 4k+).
+- Update check against live catalog: "Everything is up to date". Paste sheet: HDFC SMS saved
+  against the auto-created ····7672 account.
 
-- Adapter reports available; permission request shows the system dialog and resolves granted.
-- Historical full scan over ~5.3k messages saves transactions automatically once a provider
-  account is linked (HDFC ····7672): hundreds of SMS-sourced transactions written to `transactions`
-  with dedup on rescan (review items deduped via the `(sender, smsBody)` unique index).
-- Tab navigation and the Extensions screen are stable with thousands of review rows in the DB.
+## Hard-won operational knowledge (do not lose)
 
-Known gaps / follow-ups:
+1. **Worklet functions are NOT hoisted.** The worklets babel plugin rewrites every
+   `"worklet"`-directive function into a non-hoisted binding whose closure is captured at the
+   DEFINITION point. A worklet calling a helper defined later in the file captures `undefined`
+   and crashes on-device with `undefined is not a function` / `Property 'X' doesn't exist` —
+   **invisible to vitest** (untransformed) and to tsc. `lib/parser/engine.ts` is therefore in
+   strict topological order (leaf worklets → mid-tier → parse cores); see the in-file comment.
+   Any new worklet code must follow definition-before-use ordering.
+2. **Test runner:** `bun run test` (vitest). Bun's own `bun test` cannot dlopen better-sqlite3
+   and fails the DB suites spuriously.
+3. **Native rebuild triggers:** any change to `packages/react-native-cashrio-sms/src/specs/*`
+   (run nitrogen first), `SmsPreScreen.kt`/`CashrioSms.kt`, or babel config ⇒ full
+   `prebuild --clean` + `run:android` cycle. JS-only changes: `agent-device metro reload`.
+4. **Pre-screen aggressiveness watch-item:** `preScreen=true` drops messages natively before
+   manifest dispatch. If a real bank's sender has no DLT-style shape, its SMS dies pre-bridge
+   even though the manifest would match. Symptom: missing transactions with clean logs. Fix is
+   one line in `lib/scan/index.ts` (pass `false`). Realtime listener currently runs
+   `preScreen=false`.
+5. **Known pre-existing edge:** two same-account SMS with identical `receivedAt` + stated
+   balances collide on the `account_balances (accountId, timestamp)` unique index inside
+   `addTransaction`'s cascade (surfaced in A4 tests; real inboxes have distinct timestamps).
+   Fix would live in balance-persistence/transaction-ops.
 
-- `loadEnabledParserManifests` and `enabledPluginAssetCollection` join `plugin_assets` on
-  `pluginId` only — a future manifest **version bump** would load both versions. Join on
-  `(pluginId, version)` against the plugin row before shipping reversible updates.
-- Realtime path needs a real incoming SMS to fully verify end-to-end (receiver + callback wiring
-  is in place; notification hook returns false until POST_NOTIFICATIONS is granted on Android 13+).
-- The scan summary counts review-status REJECTED outcomes in the "review" bucket; consider a
-  separate rejected counter in the UI.
-- Pre-existing lint failures (unused imports) in `db/services/balance-persistence.test.ts` and
-  `db/test-support/harness.smoke.test.ts` make `bun run check` fail.
-- The bundled HDFC/SBI/Slice manifests still review-queue every non-financial SMS from unmatched
-  senders (4k+ UNRECOGNIZED rows on a real inbox) — consider dropping or aging these out.
+## Deferred (intentionally, see ROADMAP "Not built")
+
+- Realtime `RECEIVE_SMS` end-to-end device test (wiring verified; needs a real incoming SMS).
+- On-device update-apply with a real manifest version bump (e2e unit-tested in
+  `lib/registry/updates.test.ts`; needs a v2 manifest in the store to exercise live).
+- Manifest signing (catalog `signature: null` reserved; checksum-only in v1).
+- Processed-records persistence split: scan triage parses off-thread, then `processSms`
+  re-parses the small persisted fraction RN-side. Optimization: split `processSms` into
+  parse + `processParsedSms` so worklet results persist directly.
+- Store-repo branch protection: the catalog CI commit-back uses the default `GITHUB_TOKEN`;
+  needs a PAT/exemption if branch protection is ever enabled.
+- Wizard country names: `lib/onboarding-state.ts` has a small hardcoded map; unknown catalog
+  countries render as raw ISO codes.

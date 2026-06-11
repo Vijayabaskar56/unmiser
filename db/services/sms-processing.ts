@@ -8,6 +8,7 @@ import {
   type SmsReviewStatus,
   unrecognizedSms,
 } from "@/db/schema";
+import { createAccount } from "@/db/services/account-ops";
 import { addTransaction } from "@/db/services/transaction-ops";
 import { resolveAccount } from "@/lib/account-resolver";
 import { nowIso, parseIso, toIso } from "@/lib/dates";
@@ -82,7 +83,10 @@ export async function processSms(
     })),
   );
 
-  if (resolved.kind !== "matched") {
+  // ADR-0006: only a genuinely ambiguous partial suffix (several same-bank
+  // accounts end with the fragment) still needs a human. "No match" auto-creates
+  // below instead of hoarding ACCOUNT_RESOLUTION_REQUIRED rows.
+  if (resolved.kind === "many") {
     const reviewId = await captureSmsReview(
       db,
       input,
@@ -104,28 +108,36 @@ export async function processSms(
     return { kind: "review", reviewId, result, status: "LOW_CONFIDENCE" };
   }
 
-  const account = existingAccounts.find((row) => row.id === resolved.accountId);
-  if (!account) {
-    const reviewId = await captureSmsReview(
-      db,
-      input,
-      result,
-      "ACCOUNT_RESOLUTION_REQUIRED",
-      "UNKNOWN_ACCOUNT_LAST4",
-    );
-    return { kind: "review", reviewId, result, status: "ACCOUNT_RESOLUTION_REQUIRED" };
+  let accountId: number;
+  let isCreditCard: boolean;
+  if (resolved.kind === "matched") {
+    const account = existingAccounts.find((row) => row.id === resolved.accountId)!;
+    accountId = account.id;
+    isCreditCard = account.isCreditCard;
+  } else {
+    // ADR-0006 auto-create: a confident parse with no matching account upserts
+    // one keyed on the canonical bank (manifest pluginId) + last4. The unique
+    // (bankName, accountLast4) index guarantees one row per bank+last4.
+    isCreditCard = result.fields.isFromCard === true;
+    accountId = await autoCreateSmsAccount(db, {
+      pluginId: result.matchedManifest.pluginId,
+      bankName: result.matchedManifest.name,
+      accountLast4,
+      currency: result.fields.currency,
+      isCreditCard,
+    });
   }
 
   const categoryId = await resolveSmsCategory(db, result.fields.transactionType);
   const dateTime = normalizeReceivedAt(input.receivedAt);
   const transactionId = await addTransaction(db, {
-    accountId: account.id,
+    accountId,
     amount: result.fields.amount!,
     merchantName: result.fields.merchant ?? "Transfer",
     categoryId,
     transactionType: result.fields.transactionType!,
     dateTime,
-    isCreditCard: account.isCreditCard,
+    isCreditCard,
     smsSender: input.sender,
     smsBody: null,
     balanceAfter: result.fields.balance ?? null,
@@ -142,6 +154,44 @@ export async function processSms(
   await resolveReviewRow(db, input);
 
   return { kind: "saved", transactionId, result };
+}
+
+/**
+ * Auto-create the ADR-0006 account for a confident SMS parse. The unique
+ * (bankName, accountLast4) index is the dedup authority: if a concurrent insert
+ * (e.g. two messages for the same new account inside one scan batch) loses the
+ * race, the violation is caught and the surviving row's id is returned instead.
+ */
+async function autoCreateSmsAccount(
+  db: Db,
+  input: {
+    pluginId: string;
+    bankName: string;
+    accountLast4: string;
+    currency: string;
+    isCreditCard: boolean;
+  },
+): Promise<number> {
+  try {
+    return await createAccount(db, {
+      bankName: input.bankName,
+      accountLast4: input.accountLast4,
+      currency: input.currency,
+      kind: input.isCreditCard ? "credit" : "bank",
+      canonicalBank: input.pluginId,
+      iconName: "type_finance_bank",
+    });
+  } catch (error) {
+    const existing = await db
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(
+        and(eq(accounts.bankName, input.bankName), eq(accounts.accountLast4, input.accountLast4)),
+      )
+      .limit(1);
+    if (existing.length > 0) return existing[0].id;
+    throw error;
+  }
 }
 
 /**

@@ -15,14 +15,16 @@
 
 // Forward declaration of `SmsPermissionState` to properly resolve imports.
 namespace margelo::nitro::cashriosms { struct SmsPermissionState; }
+// Forward declaration of `SmsPageResult` to properly resolve imports.
+namespace margelo::nitro::cashriosms { struct SmsPageResult; }
 // Forward declaration of `NativeSmsRecord` to properly resolve imports.
 namespace margelo::nitro::cashriosms { struct NativeSmsRecord; }
 
 #include "SmsPermissionState.hpp"
 #include <NitroModules/Promise.hpp>
-#include "NativeSmsRecord.hpp"
-#include <vector>
+#include "SmsPageResult.hpp"
 #include <string>
+#include "NativeSmsRecord.hpp"
 #include <functional>
 
 namespace margelo::nitro::cashriosms {
@@ -58,9 +60,10 @@ namespace margelo::nitro::cashriosms {
       // Methods
       virtual SmsPermissionState hasSmsPermissions() = 0;
       virtual std::shared_ptr<Promise<SmsPermissionState>> requestSmsPermissions() = 0;
-      virtual std::shared_ptr<Promise<std::vector<NativeSmsRecord>>> getHistoricalSmsPage(double offset, double limit) = 0;
+      virtual std::shared_ptr<Promise<double>> getHistoricalSmsCount() = 0;
+      virtual std::shared_ptr<Promise<SmsPageResult>> getHistoricalSmsPage(double offset, double limit, bool preScreen) = 0;
       virtual std::shared_ptr<Promise<bool>> showNotification(const std::string& title, const std::string& body) = 0;
-      virtual void startSmsListener(const std::function<void(const NativeSmsRecord& /* sms */)>& onSms) = 0;
+      virtual void startSmsListener(const std::function<void(const NativeSmsRecord& /* sms */)>& onSms, bool preScreen) = 0;
       virtual void stopSmsListener() = 0;
 
     protected:

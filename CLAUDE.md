@@ -61,8 +61,6 @@ workspace switches (the Dock panel only detaches the tmux client; the process ke
 
 ## RN port current state
 
-Phase 0 + Phase 1 built: full Drizzle schema (`db/schema/*`, 1:1 with Android Room v51), relations,
-migrations, the TanStack DB collection factory + per-table collections, the balance-cascade service,
-and the manual-tracker UI — categories/subcategories CRUD, accounts CRUD, and transactions
-(add/edit/transfer/soft-delete, search/filter/bulk). 152 tests. The starter todos demo has been
-removed. SMS/parser engine (Phase 2) and beyond not yet built. See `ROADMAP.md` and `docs/`.
+`ROADMAP.md` is the single source of truth for phase/feature status (§2 "Where We Are Now" and the
+per-phase sections) — check it there rather than duplicating it here. Architecture detail lives in
+`docs/` and `docs/adr/`.

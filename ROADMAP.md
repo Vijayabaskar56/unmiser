@@ -1,6 +1,6 @@
 # Unmiser — Product Roadmap
 
-> Status as of 2026-06-08. This roadmap turns the Cashiro (Android/Kotlin) audit into a sequenced plan for the React Native port. It is anchored by two non-negotiable product pillars and the owner's fixed product decisions.
+> Status as of 2026-06-12. This roadmap turns the Cashiro (Android/Kotlin) audit into a sequenced plan for the React Native port. It is anchored by two non-negotiable product pillars and the owner's fixed product decisions.
 >
 > **Scope: v1 targets Android only. iOS is deferred to a later release.** The plugin _engine_ stays platform-agnostic (it accepts `(sender, body)` from any source), so iOS support later is an ingestion-adapter add-on — but no iOS work is in the v1 plan.
 
@@ -16,17 +16,15 @@
 
 ## 2. Where We Are Now
 
-The RN port (Expo SDK 56, Drizzle ORM 1.0-rc, TanStack DB 0.6.5, React 19, RN 0.85.3, TypeScript 6, Bun) has **foundations done, zero financial features built**.
+The RN port (Expo SDK 56, Drizzle ORM 1.0-rc, TanStack DB 0.6.5, React 19, RN 0.85.3, TypeScript 6, Bun) has **Phases 0–2 done** — foundations, the manual tracker, and the full SMS-parser plugin layer (the USP) — and everything from Phase 3 onward unstarted.
 
-| Built                            | Detail                                                                                                                                                                                                                                                                                                                                                                                                                |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Full DB schema**               | 1:1 Drizzle port of Android Room v51 — 13 tables, ~527 LOC (`db/schema/*`): transactions, categories/subcategories, merchantMappings, accounts, accountBalances, cards, budgets, budgetCategoryLimits, subscriptions, transactionRules/ruleApplications, exchangeRates, unrecognizedSms, chatMessages, webhooks (profiles/logs/cursors). Amounts as TEXT (BigDecimal strings), dates ISO-8601 TEXT, booleans INTEGER. |
-| **Relations**                    | `db/relations.ts` (176 LOC) — all FKs mapped for Drizzle v1 relational queries.                                                                                                                                                                                                                                                                                                                                       |
-| **Migrations**                   | `useMigrations` hook runs bundled migrations on startup; dev-only auto-reset on baseline conflict. Baseline (288 LOC) + todos extension.                                                                                                                                                                                                                                                                              |
-| **TanStack DB optimistic layer** | Working `todoCollection` demo (`db/collections/todos.ts`) — optimistic insert/update/delete over Drizzle persistence with rollback. Crypto polyfill (`lib/polyfills.ts`) wired for `randomUUID`.                                                                                                                                                                                                                      |
-| **App skeleton**                 | expo-router drawer+tabs (~395 LOC), theme system (heroui-native + uniwind), Drizzle Studio dev plugin. One demo screen (todos).                                                                                                                                                                                                                                                                                       |
+| Phase                        | State   | Detail                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Phase 0 — Foundations**    | ✅ Done | Full 1:1 Drizzle port of Android Room v51 (`db/schema/*`), relations (`db/relations.ts`), bundled migrations (`useMigrations`, dev-only auto-reset), generalized TanStack DB collection factory + per-table collections, balance-cascade service, money/date helpers, `isSample` utility. Crypto polyfill (`lib/polyfills.ts`) for `randomUUID`.                                     |
+| **Phase 1 — Manual tracker** | ✅ Done | Categories/subcategories CRUD, accounts/cards CRUD (card↔account linking, default Cash wallet, main-account), account balance time-series + recalculate-after-edit cascade, transactions (add/edit/transfer/soft-delete + undo, per-txn currency, search/filter/bulk select). expo-router drawer+tabs, theme system (heroui-native + uniwind), Drizzle Studio dev plugin. 152 tests. |
+| **Phase 2 — SMS-parser USP** | ✅ Done | Engine (worklet-safe core), manifest schema/validation, fixtures, extension storage, Android Nitro SMS module (+ native coarse pre-screen), registry (jsDelivr catalog + checksum install + update model), onboarding wizard, off-thread worklet scan with checkpoint/resume, ADR-0006 auto-create, paste-SMS production fallback, 12 bundled manifests via store allowlist. Device-verified 2026-06-12 on a real ~5.3k inbox: 161 SMS transactions auto-saved, 92 open review rows (exit criterion: low hundreds ✅), worklet runtime confirmed (no JS-thread fallback). |
 
-**Not built:** every financial feature — no transactions UI, no SMS/parser engine, no accounts, no categories/seed data, no budgets, no subscriptions, no rules engine, no exchange rates, no webhooks, no behavior-change features, no icon mapping (Android `iconResId` ints need mapping to RN icon names).
+**Not built:** Phase 3+ — no rules engine, no subscriptions/mandates pipeline, no budgets, no behavior-change features, no analytics/reports, no exchange rates, no webhooks/sync/export, no `api-source` plugins. Phase 2 nice-to-haves deferred: realtime `RECEIVE_SMS` end-to-end device test (wiring verified; needs a real incoming SMS), on-device update-apply with a real version bump (unit-tested e2e), manifest signing (checksum-only in v1; catalog `signature` field reserved).
 
 ---
 
@@ -185,19 +183,19 @@ Secrets (`accessToken`, `apiSecret`) live in **expo-secure-store / Keychain**, n
 
 Ordering: foundations (done) → sms-parser plugin layer (USP) early → core financial features → behavior change → exchange rates + webhooks/sync → api-source (later). Two behavior-change features are pulled forward into Phase 4 so the second pillar is never fully deferred.
 
-| Phase | Goal (one line)                                                                |
-| ----- | ------------------------------------------------------------------------------ |
-| **0** | Foundations & data primitives (mostly done; finish the cross-cutting plumbing) |
-| **1** | Core data UI: categories (+seed), accounts/cards, manual transactions          |
-| **2** | **The `sms-parser` plugin engine + ingestion (the USP)**                       |
-| **3** | Rules engine + subscriptions/mandates                                          |
-| **4** | Budgets + first behavior-change nudges                                         |
-| **5** | Analytics/reports + full behavior-change pillar                                |
-| **6** | Multi-currency exchange rates                                                  |
-| **7** | Webhooks / sync / export                                                       |
-| **8** | `api-source` plugins (vetted)                                                  |
+| Phase | Goal (one line)                                                       | Status         |
+| ----- | --------------------------------------------------------------------- | -------------- |
+| **0** | Foundations & data primitives                                         | ✅ Done        |
+| **1** | Core data UI: categories (+seed), accounts/cards, manual transactions | ✅ Done        |
+| **2** | **The `sms-parser` plugin engine + ingestion (the USP)**              | ✅ Done        |
+| **3** | Rules engine + subscriptions/mandates                                 | ⬜ Not started |
+| **4** | Budgets + first behavior-change nudges                                | ⬜ Not started |
+| **5** | Analytics/reports + full behavior-change pillar                       | ⬜ Not started |
+| **6** | Multi-currency exchange rates                                         | ⬜ Not started |
+| **7** | Webhooks / sync / export                                              | ⬜ Not started |
+| **8** | `api-source` plugins (vetted)                                         | ⬜ Not started |
 
-### Phase 0 — Foundations & Data Primitives
+### Phase 0 — Foundations & Data Primitives ✅ Done
 
 - **GOAL:** Make the schema usable by every feature: money/date helpers, icon mapping, TanStack DB collection pattern, sample-data flag.
 - **SCOPE:**
@@ -210,7 +208,7 @@ Ordering: foundations (done) → sms-parser plugin layer (USP) early → core fi
 - **DEPENDENCIES:** None (builds on existing schema/migrations/TanStack layer).
 - **WHY NOW:** Every downstream feature reads money/dates/icons; doing it once avoids per-feature drift.
 
-### Phase 1 — Categories, Accounts & Manual Transactions
+### Phase 1 — Categories, Accounts & Manual Transactions ✅ Done
 
 - **GOAL:** A usable manual expense tracker before any SMS work.
 - **SCOPE:**
@@ -223,7 +221,44 @@ Ordering: foundations (done) → sms-parser plugin layer (USP) early → core fi
 - **DEPENDENCIES:** Phase 0.
 - **WHY NOW:** This is the manual-entry core (no SMS needed) and the data substrate the parser engine writes into; it also covers Android users who decline the SMS permission.
 
-### Phase 2 — The `sms-parser` Plugin Engine (USP)
+### Phase 2 — The `sms-parser` Plugin Engine (USP) ✅ Done
+
+- **STATUS (device-verified 2026-06-12):** All three milestones complete. Real-inbox verification on I2223 (~5.3k messages): wizard first-run gate → live-catalog country/provider selection → registry install with checksum verify (`in.boi.bank`, trust=registry, sha256 matches catalog) → permission flow → off-thread worklet scan (no JS-thread fallback; UI responsive throughout) with checkpoint **resume** mid-inbox → **161 SMS transactions auto-saved**, 4 accounts auto-created per ADR-0006 (incl. credit-card detection), **92 open review rows (exit criterion "low hundreds" ✅)** → update check against live catalog → production paste sheet saves against the auto-created account. One on-device bug found+fixed during verification: worklet-marked functions are NOT hoisted (closure capture at definition point), so `lib/parser/engine.ts` is now in strict topological order — see the in-file warning comment. Per-deliverable:
+  - ✅ **Interpreter engine** — dispatch, filter, named-capture extraction, classification, cleaning, card-vs-account, dedup hash, confidence/reasons, mandate emit. `lib/parser/engine.ts` (344 LOC), `types.ts`, `sms-filter.ts` (ADR-0015 capture gate), `lib/dedup-hash.ts`.
+  - ✅ **Manifest schema + validation** — Zod schema + generated JSON Schema + declarative pipeline primitives (`rejectWhen`, `extractFieldWhen`, `setFieldWhen`, `fallbackField`, `confidenceWhen`). `lib/parser/manifest-schema.ts`, `manifest.schema.json`, `scripts/{generate-manifest-schema,validate-manifest}.ts`.
+  - ✅ **Fixtures + fixture runner** — `lib/parser/fixtures.ts`; 18 fixtures across the 5 bundled manifests run through the real engine.
+  - ✅ **Extension storage + CRUD** — `plugins`/`plugin_assets` tables (`db/schema/sms.ts`), TanStack DB collections (`db/collections/extensions.ts`), install/update/enable/disable (`db/services/extensions.ts`).
+  - ✅ **Android SMS adapter** — Nitro module (`packages/react-native-cashrio-sms/`): `RECEIVE_SMS` realtime (multipart), `READ_SMS` historical scan with pagination, permission flow, notifications. JS wrapper `lib/android-sms-adapter.ts`.
+  - ✅ **Parser orchestration** — `db/services/sms-processing.ts` (266 LOC, 23 tests): batching, dedup-before-save, last4 resolution (`lib/account-resolver.ts`), transaction + `SMS_BALANCE` + review writes, notifications, scan summary. (Cancel is a basic ref-flag, not full async task mgmt.)
+  - ✅ **Auto-save / SMS Review split** — HIGH confidence auto-saves; REVIEW/REJECTED/NO_PARSER captured in `unrecognizedSms` with status + reason.
+  - ✅ **Manual paste-SMS harness** — `app/(tabs)/extensions.tsx`, runs the same `processSms()` path.
+  - ✅ **SMS Setup Onboarding** — guided wizard `app/(onboarding)/sms-setup/` (country → providers from live catalog → optional account enrichment → per-permission degradation → scan with resume), first-run gate on `smsSetupCompletedAt` (ADR-0005 KV), re-runnable from the Store tab; the dev harness stays on `app/(tabs)/extensions.tsx`.
+  - ✅ **Owner-maintained registry** — `lib/registry/` (jsDelivr catalog fetch, checksum-verified install, trust-by-install-source, 24h-throttled update check, reprocess-review-queue-on-update), Store tab browse/search/install/update UI; CI catalog pipeline live in `unmiser-extensions` (`index.json`, 99 entries).
+  - ✅ **Seed manifests (12 bundled + 99 in store)** — `scripts/sync-bundled-manifests.ts` allowlist pulls byte-identical files from the store: HDFC, IOB, SBI, JioPay, Slice, ICICI, Axis, Kotak, PNB, BoB, Airtel Payments Bank, CRED. Other 87 install on demand from the registry.
+  - ✅ **Scan hardening** — `lib/scan/`: singleton observable scan task, dedicated `createWorkletRuntime` executor (chunked RN-thread fallback retained as a guarded escape hatch), native Kotlin coarse pre-screen (manifest-independent, drops ~95% pre-bridge), KV checkpoint with resume, `AbortController` cancel.
+- **DECIDED DESIGN (grilling 2026-06-11; all shipped as decided).** Four workstreams; kept as the design record. Exit criterion at the end — met on device 2026-06-12.
+
+  **A. Owner-maintained registry (jsDelivr + catalog).**
+  - **Distribution:** the existing `unmiser-extensions` GitHub repo (99 manifests) is the registry. The app reads it over **jsDelivr CDN**, not GitHub raw (CDN caching, no rate limits, immutable `@<commit>` pinning).
+  - **Catalog:** a CI step in `unmiser-extensions` generates `index.json` on every push to `main` — one entry per bank (`pluginId`, `name`, `country`, `currency`, `version`, `sha256`, byte size). The app fetches `index.json` to populate the browse list, then fetches `manifests/<bank>.json` only on install. Browse needs network; installed extensions cache to the DB and work offline after download.
+  - **Integrity:** **SHA-256 checksum only for v1.** CI puts `sha256` per manifest in the catalog; on install/update the app re-hashes the body, rejects on mismatch, stores the verified hash in `plugin_assets.checksum`. **Signing deferred** — reserve a catalog `signature` field + keep the DB column; implement when community submissions or `api-source` arrive.
+  - **Trust by install source, not manifest field:** the install path sets the DB `trust` value (`bundled` when installed from `bundledParserBundles`, `registry` when fetched). The manifest's own `trust` field is non-authoritative. In-app copy is provenance, not a scare badge ("Built-in" vs "Installed from store"); both are owner-authored + fixture-validated. `community`/`vetted` stay reserved enum values (third-party submissions; `api-source`).
+  - **Update model:** keep **both** `plugin_assets` rows on a version bump; `plugins.version` is the single active-version pointer, and **every load joins `plugin_assets` on `(pluginId, version)`** — this fixes the handoff bug where a version bump loaded both versions and double-dispatched. Rollback = flip the pointer (no re-download); prune to last 2 lazily. **Detection is pull-based:** on app foreground (throttled ≤ once/24h) + a manual "Check for updates" tap, diff catalog `version` vs installed; surface "Updates available (N)"; **never auto-apply.** **Reprocess-on-update:** updating re-runs only the **open review queue** (`unrecognized_sms` where `pluginId` matches and `resolvedAt is null`) through the new manifest; it **never** edits already-saved `transactions` (they keep their `sourcePluginVersion` stamp). This is why saved transactions don't retain the raw SMS body — only the review queue does.
+
+  **B. Guided onboarding wizard.**
+  - Dedicated route group `app/(onboarding)/sms-setup/`, both a **first-run gate** (prefs flag `smsSetupCompletedAt`, ADR-0005 KV; Android-only; skippable "set up later") and **re-runnable** from Settings → "SMS & Extensions." Steps are idempotent.
+  - **Keep `app/(tabs)/extensions.tsx` as the power-user/management surface** (toggles, review queue, dev paste harness). The wizard is the guided path; the tab is the management path.
+  - **Account step is optional enrichment, not a gate** — per **ADR-0006 auto-create**. Flip `sms-processing.ts` to auto-create accounts on confident parses (fixes the current ADR/implementation drift that produced the 910 stale `ACCOUNT_RESOLUTION_REQUIRED` rows); the wizard step only adds display name / icon / opening balance. `ACCOUNT_RESOLUTION_REQUIRED` shrinks to genuinely-ambiguous suffix matches (the `resolveAccountLast4` "many" case).
+  - **Permission is a soft enhancement, never a dead end.** Deny → wizard completes and promotes a clean production **"Add from SMS" paste sheet** (parse → confirm); the dev raw-matches harness stays `__DEV__`-gated. `READ_SMS` / `RECEIVE_SMS` degrade independently (scan without realtime, or vice versa). The "Play rejects the restricted permission entirely → no-SMS build variant" scenario is **deferred** until Play review actually forces it.
+
+  **C. Default-bundled manifest set (offline cold-start, not coverage).** With A in place, bundling is only about the zero-network first parse. Ship **~10–12 reach-selected** manifests (India majors — HDFC, SBI, ICICI, Axis, Kotak, PNB, BoB — + dominant UPI/PPI wallets + the current HDFC/IOB/SBI/JioPay/Slice). The other ~87 stay registry-only. **Bundled files are the same files as the store**, copied by a build-time allowlist that pulls from `unmiser-extensions` (no fork/drift); Q4's foreground update flow catches a bundled-vs-store version gap.
+
+  **D. Harden the scan — native-driven, off-thread, foreground-only.** Replace the inline `while`/`cancelScanRef` loop in `extensions.tsx`:
+  - **Threading:** Nitro reads SMS pages off-thread; the **unchanged TS engine runs on a dedicated background worklet runtime (`createWorkletRuntime` — NOT the UI runtime, which is the UI thread)**; results post back to the RN runtime via `scheduleOnRN` for batched DB writes. RN JS thread + UI thread both stay clear. Foreground-only — no app-closed/WorkManager execution in v1 (realtime `RECEIVE_SMS` already covers closed-app capture for new messages). _Spike risk:_ `js-md5` + `decimal.js` aren't worklet-marked — dedup hash / amount normalization may need to run RN-side or be reimplemented as worklets.
+  - **Native coarse pre-screen:** the Nitro module applies the **manifest-independent** ADR-0015 gate (`shouldCaptureUnrecognizedSms`-style sender-shape + "money moved" heuristic) to drop the obvious 80–90% before anything crosses into the worklet. It must **not** evaluate manifest dispatch/filter regexes (that stays the one TS engine's authority — no Kotlin fork of manifest semantics).
+  - **State + cancel:** a singleton **scan-task store** (`{ phase, processed, total, saved, review, running, cancel() }`) that both the wizard's final step and the Extensions tab observe; cancel via `AbortController`. **Checkpoint the cursor** (last processed timestamp/offset) to the KV table each page so an OS-killed scan **resumes** ("Resume scan 4,000/5,300") rather than restarting; dedup makes restart safe, checkpoint makes it fast.
+
+  **EXIT CRITERION:** a real ~5k-message inbox scan auto-saves high-confidence transactions and leaves the review queue in the **low hundreds, not thousands** (the handoff's 4k+ `UNRECOGNIZED` noise is resolved-by-consequence via auto-create + native pre-screen + the ADR-0015 gate — no separate noise-aging mechanism). Engine stays the single TS source of truth; the worklet runs the same code the fixtures validate.
 
 - **GOAL:** Ship one interpreter engine + installable parser extensions; users install only the banks/providers they need.
 - **SCOPE:**

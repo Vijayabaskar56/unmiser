@@ -10,7 +10,16 @@ export type TransactionSource = (typeof TRANSACTION_SOURCES)[number];
 export const EXTENSION_TYPES = ["sms-parser", "rule"] as const;
 export type ExtensionType = (typeof EXTENSION_TYPES)[number];
 
-export const EXTENSION_TRUST_TIERS = ["bundled", "owner", "community"] as const;
+// Trust is set by INSTALL SOURCE (bundled = compiled-in, registry = fetched
+// from the store), not by the manifest's own trust field. "community" and
+// "vetted" are reserved for future third-party submissions / api-source.
+export const EXTENSION_TRUST_TIERS = [
+  "bundled",
+  "registry",
+  "owner",
+  "community",
+  "vetted",
+] as const;
 export type ExtensionTrustTier = (typeof EXTENSION_TRUST_TIERS)[number];
 
 export const SMS_REVIEW_STATUSES = [

@@ -16,6 +16,7 @@ namespace margelo::nitro::cashriosms {
     registerHybrids(this, [](Prototype& prototype) {
       prototype.registerHybridMethod("hasSmsPermissions", &HybridCashrioSmsSpec::hasSmsPermissions);
       prototype.registerHybridMethod("requestSmsPermissions", &HybridCashrioSmsSpec::requestSmsPermissions);
+      prototype.registerHybridMethod("getHistoricalSmsCount", &HybridCashrioSmsSpec::getHistoricalSmsCount);
       prototype.registerHybridMethod("getHistoricalSmsPage", &HybridCashrioSmsSpec::getHistoricalSmsPage);
       prototype.registerHybridMethod("showNotification", &HybridCashrioSmsSpec::showNotification);
       prototype.registerHybridMethod("startSmsListener", &HybridCashrioSmsSpec::startSmsListener);

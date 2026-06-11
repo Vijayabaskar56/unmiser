@@ -1,6 +1,6 @@
 import { BTreeIndex, createCollection } from "@tanstack/db";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { pluginAssets, plugins, type Plugin, type PluginAsset } from "@/db/schema";
@@ -35,7 +35,16 @@ export const enabledPluginAssetCollection = createCollection(
           createdAt: pluginAssets.createdAt,
         })
         .from(pluginAssets)
-        .innerJoin(plugins, eq(pluginAssets.pluginId, plugins.pluginId))
+        // Join on (pluginId, version): plugins.version is the active-version
+        // pointer, and old asset rows are retained for rollback after an
+        // update — pluginId alone would surface both versions at once.
+        .innerJoin(
+          plugins,
+          and(
+            eq(pluginAssets.pluginId, plugins.pluginId),
+            eq(pluginAssets.version, plugins.version),
+          ),
+        )
         .where(eq(plugins.enabled, true)),
   }),
 );

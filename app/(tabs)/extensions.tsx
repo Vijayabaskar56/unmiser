@@ -1,5 +1,5 @@
 import { count, useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, ToastAndroid, View } from "react-native";
 import { useThemeColor } from "heroui-native";
 
@@ -19,7 +19,6 @@ import {
 } from "@/db/services/extensions";
 import { processSms, pruneReviewRows, type SmsProcessOutcome } from "@/db/services/sms-processing";
 import {
-  getHistoricalSmsPage,
   hasSmsPermissions,
   isAndroidSmsAdapterAvailable,
   requestSmsPermissions,
@@ -27,12 +26,12 @@ import {
   subscribeToIncomingSms,
   type SmsPermissionState,
 } from "@/lib/android-sms-adapter";
+import { getScanEngineMode, smsScanTask } from "@/lib/scan";
 import { bundledParserBundles } from "@/lib/parser/manifests";
 import type { Plugin, UnrecognizedSms } from "@/db/schema";
 
 const DEFAULT_BODY =
   "Rs.1250.00 debited from HDFC Bank A/c XX1234 at AMAZON on 09/06/26. Avl bal:INR 88,750.20";
-const SCAN_PAGE_SIZE = 250;
 // The review list renders inside a plain ScrollView (no virtualization); a full
 // historical scan can leave thousands of review rows, and mounting them all
 // hangs the JS thread and crashes Fabric. Render only the newest few.
@@ -80,7 +79,6 @@ export default function ExtensionsScreen() {
   const [sender, setSender] = useState("VM-HDFCBK-S");
   const [body, setBody] = useState(DEFAULT_BODY);
   const [processing, setProcessing] = useState(false);
-  const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState("");
   const [outcome, setOutcome] = useState<SmsProcessOutcome | null>(null);
   const [permissions, setPermissions] = useState<SmsPermissionState>({
@@ -88,7 +86,9 @@ export default function ExtensionsScreen() {
     receive: false,
   });
   const [realtimeEnabled, setRealtimeEnabled] = useState(true);
-  const cancelScanRef = useRef(false);
+  // Scan progress comes from the singleton scan-task store (lib/scan), which
+  // the onboarding wizard's final step will also observe.
+  const scan = useSyncExternalStore(smsScanTask.subscribe, smsScanTask.getState);
 
   const sortedPlugins = plugins ?? [];
   const selectedPlugin =
@@ -107,7 +107,17 @@ export default function ExtensionsScreen() {
 
   useEffect(() => {
     void hasSmsPermissions().then(setPermissions);
+    // Surface "Resume scan N/M" when an interrupted checkpoint exists.
+    void smsScanTask.refreshResumeAvailable();
   }, []);
+
+  // Refresh the live collections once a scan settles (the task itself stays
+  // UI-agnostic; collection refetches are a screen concern).
+  useEffect(() => {
+    if (scan.running || scan.phase === "idle") return;
+    void refreshPhase2Collections();
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [scan.running, scan.phase]);
 
   // Hygiene pass on mount: drop review rows that fail the ADR-0015 capture
   // gate (rows hoarded before the gate existed). Mirrors the original app's
@@ -201,58 +211,24 @@ export default function ExtensionsScreen() {
     );
   };
 
-  const onRunHistoricalScan = async () => {
-    if (scanning) {
-      cancelScanRef.current = true;
-      setMessage("Cancelling historical scan");
-      return;
-    }
-
-    setScanning(true);
-    cancelScanRef.current = false;
-    setMessage("Historical scan running");
-    try {
-      const manifests = await loadEnabledParserManifests(appDb);
-      let saved = 0;
-      let review = 0;
-      let rejected = 0;
-      let processed = 0;
-      let offset = 0;
-
-      while (!cancelScanRef.current) {
-        const records = await getHistoricalSmsPage(offset, SCAN_PAGE_SIZE);
-        if (records.length === 0) break;
-
-        for (const record of records) {
-          if (cancelScanRef.current) break;
-          const nextOutcome = await processSms(appDb, manifests, record);
-          if (nextOutcome.kind === "saved") saved += 1;
-          else if (nextOutcome.kind === "review") review += 1;
-          else rejected += 1;
-          processed += 1;
-        }
-
-        offset += records.length;
-        setMessage(
-          `Scan running: ${processed} processed, ${saved} saved, ${review} review, ${rejected} rejected/skipped`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, 0));
-
-        if (records.length < SCAN_PAGE_SIZE) break;
-      }
-      await refreshPhase2Collections();
-      setMessage(
-        cancelScanRef.current
-          ? `Scan cancelled: ${saved} saved, ${review} review, ${rejected} rejected/skipped`
-          : `Scan complete: ${saved} saved, ${review} review, ${rejected} rejected/skipped`,
-      );
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Historical scan failed");
-    } finally {
-      cancelScanRef.current = false;
-      setScanning(false);
-    }
+  const onStartScan = (resume: boolean) => {
+    if (scan.running) return;
+    void smsScanTask.start({ resume });
   };
+
+  const onCancelScan = () => {
+    smsScanTask.cancel();
+  };
+
+  const scanStatusText = (() => {
+    if (scan.phase === "idle" && !scan.resumeAvailable) return "No scan run yet.";
+    const counts = `${scan.processed}/${scan.total || "?"} · ${scan.saved} saved · ${scan.review} review · ${scan.rejected} rejected/skipped`;
+    if (scan.running) return `Scanning ${counts} · engine: ${getScanEngineMode()}`;
+    if (scan.phase === "error") return `Scan failed: ${scan.error ?? "unknown"} · ${counts}`;
+    if (scan.phase === "cancelled") return `Scan cancelled at ${counts}`;
+    if (scan.phase === "completed") return `Scan complete: ${counts}`;
+    return counts;
+  })();
 
   return (
     <Container isScrollable={false} className="px-4 pt-6">
@@ -290,7 +266,7 @@ export default function ExtensionsScreen() {
                 <Text className="text-background text-xs font-medium">Request SMS</Text>
               </Pressable>
               <Pressable
-                onPress={() => void onRunHistoricalScan()}
+                onPress={() => (scan.running ? onCancelScan() : onStartScan(false))}
                 disabled={!permissions.read}
                 className={
                   !permissions.read
@@ -305,10 +281,22 @@ export default function ExtensionsScreen() {
                       : "text-background text-xs font-medium"
                   }
                 >
-                  {scanning ? "Cancel scan" : "Full scan"}
+                  {scan.running ? "Cancel scan" : "Full scan"}
                 </Text>
               </Pressable>
             </View>
+            {scan.resumeAvailable && !scan.running && (
+              <Pressable
+                onPress={() => onStartScan(true)}
+                disabled={!permissions.read}
+                className="rounded-xl border border-foreground px-3 py-3 items-center active:opacity-70"
+              >
+                <Text className="text-foreground text-xs font-medium">
+                  Resume scan {scan.processed}/{scan.total || "?"}
+                </Text>
+              </Pressable>
+            )}
+            <Text className="text-muted text-xs">{scanStatusText}</Text>
             <Pressable
               onPress={() => setRealtimeEnabled((enabled) => !enabled)}
               className={

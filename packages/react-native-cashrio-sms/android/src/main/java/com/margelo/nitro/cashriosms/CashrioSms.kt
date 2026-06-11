@@ -25,6 +25,7 @@ import java.time.Instant
 class CashrioSms : HybridCashrioSmsSpec() {
   private var smsListener: ((NativeSmsRecord) -> Unit)? = null
   private var smsReceiver: BroadcastReceiver? = null
+  private var listenerPreScreen: Boolean = false
 
   override fun hasSmsPermissions(): SmsPermissionState {
     val context = requireContext()
@@ -73,7 +74,36 @@ class CashrioSms : HybridCashrioSmsSpec() {
     return promise
   }
 
-  override fun getHistoricalSmsPage(offset: Double, limit: Double): Promise<Array<NativeSmsRecord>> {
+  override fun getHistoricalSmsCount(): Promise<Double> {
+    return Promise.parallel {
+      val context = requireContext()
+      if (context.checkSelfPermission(Manifest.permission.READ_SMS) !=
+        android.content.pm.PackageManager.PERMISSION_GRANTED
+      ) {
+        throw IllegalStateException("READ_SMS permission is not granted")
+      }
+
+      var cursor: Cursor? = null
+      try {
+        cursor = context.contentResolver.query(
+          Uri.parse("content://sms/inbox"),
+          arrayOf("_id"),
+          null,
+          null,
+          null,
+        )
+        (cursor?.count ?: 0).toDouble()
+      } finally {
+        cursor?.close()
+      }
+    }
+  }
+
+  override fun getHistoricalSmsPage(
+    offset: Double,
+    limit: Double,
+    preScreen: Boolean,
+  ): Promise<SmsPageResult> {
     return Promise.parallel {
       val context = requireContext()
       if (context.checkSelfPermission(Manifest.permission.READ_SMS) !=
@@ -91,6 +121,9 @@ class CashrioSms : HybridCashrioSmsSpec() {
         "date ASC"
       }
 
+      // `scanned` counts every raw row the cursor visits — including rows the
+      // pre-screen drops — so JS cursor bookkeeping stays in raw-row space.
+      var scanned = 0
       var cursor: Cursor? = null
       try {
         cursor = context.contentResolver.query(
@@ -102,8 +135,10 @@ class CashrioSms : HybridCashrioSmsSpec() {
         )
 
         while (cursor != null && cursor.moveToNext()) {
+          scanned += 1
           val sender = cursor.getString(0) ?: continue
           val body = cursor.getString(1) ?: continue
+          if (preScreen && !SmsPreScreen.shouldCapture(sender, body)) continue
           val dateMillis = cursor.getLong(2)
           messages.add(
             NativeSmsRecord(
@@ -117,7 +152,7 @@ class CashrioSms : HybridCashrioSmsSpec() {
         cursor?.close()
       }
 
-      messages.toTypedArray()
+      SmsPageResult(records = messages.toTypedArray(), scanned = scanned.toDouble())
     }
   }
 
@@ -154,9 +189,10 @@ class CashrioSms : HybridCashrioSmsSpec() {
     }
   }
 
-  override fun startSmsListener(onSms: (NativeSmsRecord) -> Unit) {
+  override fun startSmsListener(onSms: (NativeSmsRecord) -> Unit, preScreen: Boolean) {
     val context = requireContext()
     smsListener = onSms
+    listenerPreScreen = preScreen
     if (smsReceiver != null) return
 
     val receiver = object : BroadcastReceiver() {
@@ -169,6 +205,7 @@ class CashrioSms : HybridCashrioSmsSpec() {
         // Multipart SMS arrive as several PDUs in one broadcast; join them in order.
         val body = messages.joinToString(separator = "") { it.displayMessageBody ?: "" }
         if (body.isEmpty()) return
+        if (listenerPreScreen && !SmsPreScreen.shouldCapture(sender, body)) return
         val record = NativeSmsRecord(
           sender = sender,
           body = body,
@@ -191,6 +228,7 @@ class CashrioSms : HybridCashrioSmsSpec() {
 
   override fun stopSmsListener() {
     smsListener = null
+    listenerPreScreen = false
     val receiver = smsReceiver ?: return
     smsReceiver = null
     try {

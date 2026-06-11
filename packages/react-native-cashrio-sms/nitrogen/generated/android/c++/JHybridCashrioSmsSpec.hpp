@@ -56,9 +56,10 @@ namespace margelo::nitro::cashriosms {
     // Methods
     SmsPermissionState hasSmsPermissions() override;
     std::shared_ptr<Promise<SmsPermissionState>> requestSmsPermissions() override;
-    std::shared_ptr<Promise<std::vector<NativeSmsRecord>>> getHistoricalSmsPage(double offset, double limit) override;
+    std::shared_ptr<Promise<double>> getHistoricalSmsCount() override;
+    std::shared_ptr<Promise<SmsPageResult>> getHistoricalSmsPage(double offset, double limit, bool preScreen) override;
     std::shared_ptr<Promise<bool>> showNotification(const std::string& title, const std::string& body) override;
-    void startSmsListener(const std::function<void(const NativeSmsRecord& /* sms */)>& onSms) override;
+    void startSmsListener(const std::function<void(const NativeSmsRecord& /* sms */)>& onSms, bool preScreen) override;
     void stopSmsListener() override;
 
   private:

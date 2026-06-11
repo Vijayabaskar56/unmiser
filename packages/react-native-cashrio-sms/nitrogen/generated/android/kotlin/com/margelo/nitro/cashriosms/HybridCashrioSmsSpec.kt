@@ -39,18 +39,22 @@ abstract class HybridCashrioSmsSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
-  abstract fun getHistoricalSmsPage(offset: Double, limit: Double): Promise<Array<NativeSmsRecord>>
+  abstract fun getHistoricalSmsCount(): Promise<Double>
+  
+  @DoNotStrip
+  @Keep
+  abstract fun getHistoricalSmsPage(offset: Double, limit: Double, preScreen: Boolean): Promise<SmsPageResult>
   
   @DoNotStrip
   @Keep
   abstract fun showNotification(title: String, body: String): Promise<Boolean>
   
-  abstract fun startSmsListener(onSms: (sms: NativeSmsRecord) -> Unit): Unit
+  abstract fun startSmsListener(onSms: (sms: NativeSmsRecord) -> Unit, preScreen: Boolean): Unit
   
   @DoNotStrip
   @Keep
-  private fun startSmsListener_cxx(onSms: Func_void_NativeSmsRecord): Unit {
-    val __result = startSmsListener(onSms)
+  private fun startSmsListener_cxx(onSms: Func_void_NativeSmsRecord, preScreen: Boolean): Unit {
+    val __result = startSmsListener(onSms, preScreen)
     return __result
   }
   

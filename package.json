@@ -11,6 +11,7 @@
     "web": "expo start --web",
     "prebuild": "expo prebuild",
     "db:generate": "drizzle-kit generate",
+    "sync:manifests": "bun run scripts/sync-bundled-manifests.ts",
     "check": "oxlint && oxfmt --write",
     "prepare": "husky",
     "test": "vitest run",

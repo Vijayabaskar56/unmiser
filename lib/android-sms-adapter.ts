@@ -4,10 +4,11 @@ import { NitroModules } from "react-native-nitro-modules";
 import type {
   CashrioSms as CashrioSmsHybrid,
   NativeSmsRecord,
+  SmsPageResult,
   SmsPermissionState,
 } from "react-native-cashrio-sms";
 
-export type { NativeSmsRecord, SmsPermissionState };
+export type { NativeSmsRecord, SmsPageResult, SmsPermissionState };
 type CashrioSmsModule = CashrioSmsHybrid;
 
 let nitroModule: CashrioSmsModule | null = null;
@@ -39,19 +40,35 @@ export async function requestSmsPermissions(): Promise<SmsPermissionState> {
   return module.requestSmsPermissions();
 }
 
+export async function getHistoricalSmsCount(): Promise<number> {
+  const module = getNitroModule();
+  if (!module) return 0;
+  return module.getHistoricalSmsCount();
+}
+
+/**
+ * One historical page. `preScreen: true` applies the native coarse heuristic
+ * (Kotlin mirror of shouldCaptureUnrecognizedSms) before records cross the
+ * bridge; `scanned` stays in raw-row space for cursor bookkeeping. The paste
+ * harness path never calls this, so it is unaffected by the pre-screen.
+ */
 export async function getHistoricalSmsPage(
   offset: number,
   limit: number,
-): Promise<NativeSmsRecord[]> {
+  preScreen = false,
+): Promise<SmsPageResult> {
   const module = getNitroModule();
-  if (!module) return [];
-  return module.getHistoricalSmsPage(offset, limit);
+  if (!module) return { records: [], scanned: 0 };
+  return module.getHistoricalSmsPage(offset, limit, preScreen);
 }
 
-export function subscribeToIncomingSms(callback: (record: NativeSmsRecord) => void): () => void {
+export function subscribeToIncomingSms(
+  callback: (record: NativeSmsRecord) => void,
+  options: { preScreen?: boolean } = {},
+): () => void {
   const module = getNitroModule();
   if (!module) return () => {};
-  module.startSmsListener(callback);
+  module.startSmsListener(callback, options.preScreen ?? false);
   return () => module.stopSmsListener();
 }
 

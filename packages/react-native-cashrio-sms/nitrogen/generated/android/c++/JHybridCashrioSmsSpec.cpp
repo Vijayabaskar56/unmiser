@@ -9,6 +9,8 @@
 
 // Forward declaration of `SmsPermissionState` to properly resolve imports.
 namespace margelo::nitro::cashriosms { struct SmsPermissionState; }
+// Forward declaration of `SmsPageResult` to properly resolve imports.
+namespace margelo::nitro::cashriosms { struct SmsPageResult; }
 // Forward declaration of `NativeSmsRecord` to properly resolve imports.
 namespace margelo::nitro::cashriosms { struct NativeSmsRecord; }
 
@@ -16,6 +18,8 @@ namespace margelo::nitro::cashriosms { struct NativeSmsRecord; }
 #include "JSmsPermissionState.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/JPromise.hpp>
+#include "SmsPageResult.hpp"
+#include "JSmsPageResult.hpp"
 #include "NativeSmsRecord.hpp"
 #include <vector>
 #include "JNativeSmsRecord.hpp"
@@ -78,23 +82,30 @@ namespace margelo::nitro::cashriosms {
       return __promise;
     }();
   }
-  std::shared_ptr<Promise<std::vector<NativeSmsRecord>>> JHybridCashrioSmsSpec::getHistoricalSmsPage(double offset, double limit) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(double /* offset */, double /* limit */)>("getHistoricalSmsPage");
-    auto __result = method(_javaPart, offset, limit);
+  std::shared_ptr<Promise<double>> JHybridCashrioSmsSpec::getHistoricalSmsCount() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>()>("getHistoricalSmsCount");
+    auto __result = method(_javaPart);
     return [&]() {
-      auto __promise = Promise<std::vector<NativeSmsRecord>>::create();
+      auto __promise = Promise<double>::create();
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
-        auto __result = jni::static_ref_cast<jni::JArrayClass<JNativeSmsRecord>>(__boxedResult);
-        __promise->resolve([&](auto&& __input) {
-          size_t __size = __input->size();
-          std::vector<NativeSmsRecord> __vector;
-          __vector.reserve(__size);
-          for (size_t __i = 0; __i < __size; __i++) {
-            auto __element = __input->getElement(__i);
-            __vector.push_back(__element->toCpp());
-          }
-          return __vector;
-        }(__result));
+        auto __result = jni::static_ref_cast<jni::JDouble>(__boxedResult);
+        __promise->resolve(__result->value());
+      });
+      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
+        jni::JniException __jniError(__throwable);
+        __promise->reject(std::make_exception_ptr(__jniError));
+      });
+      return __promise;
+    }();
+  }
+  std::shared_ptr<Promise<SmsPageResult>> JHybridCashrioSmsSpec::getHistoricalSmsPage(double offset, double limit, bool preScreen) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(double /* offset */, double /* limit */, jboolean /* preScreen */)>("getHistoricalSmsPage");
+    auto __result = method(_javaPart, offset, limit, preScreen);
+    return [&]() {
+      auto __promise = Promise<SmsPageResult>::create();
+      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
+        auto __result = jni::static_ref_cast<JSmsPageResult>(__boxedResult);
+        __promise->resolve(__result->toCpp());
       });
       __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
         jni::JniException __jniError(__throwable);
@@ -119,9 +130,9 @@ namespace margelo::nitro::cashriosms {
       return __promise;
     }();
   }
-  void JHybridCashrioSmsSpec::startSmsListener(const std::function<void(const NativeSmsRecord& /* sms */)>& onSms) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_NativeSmsRecord::javaobject> /* onSms */)>("startSmsListener_cxx");
-    method(_javaPart, JFunc_void_NativeSmsRecord_cxx::fromCpp(onSms));
+  void JHybridCashrioSmsSpec::startSmsListener(const std::function<void(const NativeSmsRecord& /* sms */)>& onSms, bool preScreen) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<void(jni::alias_ref<JFunc_void_NativeSmsRecord::javaobject> /* onSms */, jboolean /* preScreen */)>("startSmsListener_cxx");
+    method(_javaPart, JFunc_void_NativeSmsRecord_cxx::fromCpp(onSms), preScreen);
   }
   void JHybridCashrioSmsSpec::stopSmsListener() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<void()>("stopSmsListener");

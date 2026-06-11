@@ -11,11 +11,11 @@ describe("resolveAccount", () => {
     });
   });
 
-  it("needs-create when a full (>=4 char) last4 has no exact match", () => {
+  it("none (auto-create signal) when a full (>=4 char) last4 has no exact match", () => {
     const existing: ExistingAccount[] = [{ id: 7, canonicalBank: "hdfc-in", accountLast4: "1234" }];
 
     expect(resolveAccount({ canonicalBank: "hdfc-in", accountLast4: "9999" }, existing)).toEqual({
-      kind: "needs-create",
+      kind: "none",
       canonicalBank: "hdfc-in",
       accountLast4: "9999",
     });
@@ -33,24 +33,25 @@ describe("resolveAccount", () => {
     });
   });
 
-  it("needs-create (keeping the fragment) when a partial fragment matches many accounts", () => {
+  it("many (ambiguous, keeping the fragment) when a partial fragment matches many accounts", () => {
     const existing: ExistingAccount[] = [
       { id: 7, canonicalBank: "hdfc-in", accountLast4: "1234" },
       { id: 8, canonicalBank: "hdfc-in", accountLast4: "9234" },
     ];
 
     expect(resolveAccount({ canonicalBank: "hdfc-in", accountLast4: "34" }, existing)).toEqual({
-      kind: "needs-create",
+      kind: "many",
       canonicalBank: "hdfc-in",
       accountLast4: "34",
+      candidateIds: [7, 8],
     });
   });
 
-  it("needs-create (keeping the fragment) when a partial fragment matches zero accounts", () => {
+  it("none (keeping the fragment) when a partial fragment matches zero accounts", () => {
     const existing: ExistingAccount[] = [{ id: 7, canonicalBank: "hdfc-in", accountLast4: "1234" }];
 
     expect(resolveAccount({ canonicalBank: "hdfc-in", accountLast4: "99" }, existing)).toEqual({
-      kind: "needs-create",
+      kind: "none",
       canonicalBank: "hdfc-in",
       accountLast4: "99",
     });
@@ -60,7 +61,7 @@ describe("resolveAccount", () => {
     const existing: ExistingAccount[] = [{ id: 7, canonicalBank: "hdfc-in", accountLast4: "1234" }];
 
     expect(resolveAccount({ canonicalBank: "icici-in", accountLast4: "1234" }, existing)).toEqual({
-      kind: "needs-create",
+      kind: "none",
       canonicalBank: "icici-in",
       accountLast4: "1234",
     });
@@ -71,7 +72,7 @@ describe("resolveAccount", () => {
 
     // "34" is a unique suffix under hdfc-in, but the query is for icici-in.
     expect(resolveAccount({ canonicalBank: "icici-in", accountLast4: "34" }, existing)).toEqual({
-      kind: "needs-create",
+      kind: "none",
       canonicalBank: "icici-in",
       accountLast4: "34",
     });

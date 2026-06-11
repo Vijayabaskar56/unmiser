@@ -12,7 +12,11 @@ export interface ResolveQuery {
 
 export type ResolveResult =
   | { kind: "matched"; accountId: number }
-  | { kind: "needs-create"; canonicalBank: string; accountLast4: string };
+  /** No same-bank account matches — safe to auto-create (ADR-0006). */
+  | { kind: "none"; canonicalBank: string; accountLast4: string }
+  /** A partial fragment matches several same-bank accounts — genuinely
+   *  ambiguous; the only case that still needs human resolution. */
+  | { kind: "many"; canonicalBank: string; accountLast4: string; candidateIds: number[] };
 
 export function resolveAccount(query: ResolveQuery, existing: ExistingAccount[]): ResolveResult {
   const exact = existing.find(
@@ -24,7 +28,8 @@ export function resolveAccount(query: ResolveQuery, existing: ExistingAccount[])
   }
 
   // Partial fragment (<4 chars): fuzzy-match to the unique same-bank account
-  // whose last4 ends with the fragment. 0 or many -> keep the fragment.
+  // whose last4 ends with the fragment. 0 -> none (keep the fragment); many ->
+  // ambiguous, surface for review.
   if (query.accountLast4.length < 4) {
     const suffixMatches = existing.filter(
       (account) =>
@@ -34,10 +39,18 @@ export function resolveAccount(query: ResolveQuery, existing: ExistingAccount[])
     if (suffixMatches.length === 1) {
       return { kind: "matched", accountId: suffixMatches[0].id };
     }
+    if (suffixMatches.length > 1) {
+      return {
+        kind: "many",
+        canonicalBank: query.canonicalBank,
+        accountLast4: query.accountLast4,
+        candidateIds: suffixMatches.map((account) => account.id),
+      };
+    }
   }
 
   return {
-    kind: "needs-create",
+    kind: "none",
     canonicalBank: query.canonicalBank,
     accountLast4: query.accountLast4,
   };
