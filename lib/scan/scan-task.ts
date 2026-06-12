@@ -16,6 +16,7 @@ export interface ScanTaskState {
   /** Raw inbox total (0 until counted). */
   total: number;
   saved: number;
+  mandates: number;
   review: number;
   /** Dropped/duplicate/noise records (native pre-screen drops count here). */
   rejected: number;
@@ -25,7 +26,7 @@ export interface ScanTaskState {
   resumeAvailable: boolean;
 }
 
-export type ScanPersistOutcome = "saved" | "review" | "rejected";
+export type ScanPersistOutcome = "saved" | "mandate" | "review" | "rejected";
 
 export interface ScanPage {
   records: SmsInput[];
@@ -61,6 +62,7 @@ const IDLE_STATE: ScanTaskState = {
   processed: 0,
   total: 0,
   saved: 0,
+  mandates: 0,
   review: 0,
   rejected: 0,
   running: false,
@@ -96,6 +98,7 @@ export class ScanTask {
         processed: checkpoint.processed,
         total: checkpoint.total,
         saved: checkpoint.saved,
+        mandates: checkpoint.mandates ?? 0,
         review: checkpoint.review,
         rejected: checkpoint.rejected,
       });
@@ -123,6 +126,7 @@ export class ScanTask {
     let offset = checkpoint?.offset ?? 0;
     let processed = checkpoint?.processed ?? 0;
     let saved = checkpoint?.saved ?? 0;
+    let mandates = checkpoint?.mandates ?? 0;
     let review = checkpoint?.review ?? 0;
     let rejected = checkpoint?.rejected ?? 0;
 
@@ -133,6 +137,7 @@ export class ScanTask {
       resumeAvailable: false,
       processed,
       saved,
+      mandates,
       review,
       rejected,
       total: checkpoint?.total ?? 0,
@@ -158,6 +163,7 @@ export class ScanTask {
           if (signal.aborted) break;
           const outcome = await this.deps.persist(page.records[i], results[i]);
           if (outcome === "saved") saved += 1;
+          else if (outcome === "mandate") mandates += 1;
           else if (outcome === "review") review += 1;
           else rejected += 1;
         }
@@ -169,12 +175,13 @@ export class ScanTask {
           offset,
           processed,
           saved,
+          mandates,
           review,
           rejected,
           total,
           updatedAt: new Date().toISOString(),
         });
-        this.setState({ processed, saved, review, rejected });
+        this.setState({ processed, saved, mandates, review, rejected });
 
         if (page.scanned < pageSize) break;
       }
@@ -186,6 +193,7 @@ export class ScanTask {
           running: false,
           processed,
           saved,
+          mandates,
           review,
           rejected,
           resumeAvailable: processed > 0,
@@ -197,6 +205,7 @@ export class ScanTask {
           running: false,
           processed,
           saved,
+          mandates,
           review,
           rejected,
           resumeAvailable: false,

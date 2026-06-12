@@ -1,4 +1,5 @@
 import { useLiveQuery } from "@tanstack/react-db";
+import { eq } from "drizzle-orm";
 import { router, useLocalSearchParams } from "expo-router";
 import { useThemeColor } from "heroui-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -12,7 +13,10 @@ import {
   subcategoryCollection,
   transactionCollection,
 } from "@/db/collections/finance";
+import { subscriptionCollection } from "@/db/collections";
 import { db } from "@/db/index";
+import { transactions } from "@/db/schema";
+import { upsertFromMandate } from "@/db/services/subscription-ops";
 import {
   editTransaction,
   softDeleteTransaction,
@@ -75,6 +79,7 @@ export default function TransactionDetailScreen() {
   const [editing, setEditing] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
 
   // Edit-form state, seeded from the row when entering edit mode.
   const [amount, setAmount] = useState("");
@@ -142,6 +147,7 @@ export default function TransactionDetailScreen() {
       Promise.all([
         transactionCollection.utils.refetch(),
         accountBalanceCollection.utils.refetch(),
+        subscriptionCollection.utils.refetch(),
       ]),
     [],
   );
@@ -206,6 +212,29 @@ export default function TransactionDetailScreen() {
       setBusy(false);
     }
   }, [txn, accountById, refetch]);
+
+  const onMarkRecurring = useCallback(async () => {
+    if (!txn) return;
+    setBusy(true);
+    try {
+      const subscriptionId = await upsertFromMandate(db, {
+        amount: txn.amount,
+        nextDeductionDate: txn.dateTime.slice(0, 10),
+        merchant: txn.merchantName,
+        currency: txn.currency,
+        pluginId: "manual",
+        provider: txn.bankName ?? "Manual",
+      });
+      await db
+        .update(transactions)
+        .set({ subscriptionId, isRecurring: true })
+        .where(eq(transactions.id, txn.id));
+      await refetch();
+      setMessage(`Linked to subscription #${subscriptionId}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [txn, refetch]);
 
   if (!txn) {
     return (
@@ -420,6 +449,20 @@ export default function TransactionDetailScreen() {
           <DetailRow label="Date" value={formatDisplay(txn.dateTime, "MMM d, yyyy · HH:mm")} />
           <DetailRow label="Currency" value={txn.currency} />
           {txn.description ? <DetailRow label="Note" value={txn.description} /> : null}
+          {txn.subscriptionId ? (
+            <DetailRow label="Subscription" value={`#${txn.subscriptionId}`} />
+          ) : null}
+          {message ? <Text className="text-muted text-sm">{message}</Text> : null}
+
+          <Pressable
+            onPress={() => void onMarkRecurring()}
+            disabled={busy}
+            className="mt-2 rounded-xl border border-border px-4 py-3 items-center active:opacity-70"
+          >
+            <Text className="text-foreground font-medium">
+              {txn.subscriptionId ? "Update recurring link" : "Mark as recurring"}
+            </Text>
+          </Pressable>
 
           <Pressable
             onPress={() => void onDelete()}

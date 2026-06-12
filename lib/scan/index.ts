@@ -71,6 +71,7 @@ async function persistScanRecord(
   const manifests = await cachedManifests();
   const outcome = await processSms(appDb, manifests, record);
   if (outcome.kind === "saved") return "saved";
+  if (outcome.kind === "mandate") return "mandate";
   if (outcome.kind === "review") return "review";
   return "rejected"; // duplicate + rejected both count as skipped
 }

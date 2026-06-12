@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 
-import { pluginAssets, plugins } from "@/db/schema";
+import { pluginAssets, plugins, transactionRules } from "@/db/schema";
 import {
   installParserBundle,
+  installRulePack,
   loadEnabledParserManifests,
   prunePluginAssets,
   setActiveExtensionVersion,
@@ -186,5 +188,48 @@ describe("prunePluginAssets", () => {
     await installParserBundle(db, makeTestBundle("1"));
     expect(await prunePluginAssets(db, "in.test.bank")).toBe(0);
     expect(await prunePluginAssets(db, "in.unknown.bank")).toBe(0);
+  });
+});
+
+describe("installRulePack", () => {
+  it("installs inactive rule templates and skips active customized rules on update", async () => {
+    const { db } = createTestDb();
+    const pack = {
+      schemaVersion: "1.0" as const,
+      pluginId: "rules.india.basics",
+      type: "rule" as const,
+      name: "India Basics",
+      country: "IN",
+      version: "1",
+      rules: [
+        {
+          id: "food",
+          name: "Food merchants",
+          priority: 300,
+          conditions: [
+            { field: "MERCHANT" as const, operator: "CONTAINS" as const, value: "cafe" },
+          ],
+          actions: [{ actionType: "SET" as const, field: "CATEGORY" as const, value: "Food" }],
+        },
+      ],
+    };
+
+    await installRulePack(db, pack);
+    let rules = await db.select().from(transactionRules);
+    expect(rules).toHaveLength(1);
+    expect(rules[0]).toMatchObject({ id: "rules.india.basics:food", isActive: false });
+
+    await db
+      .update(transactionRules)
+      .set({ isActive: true, name: "My Food Rule" })
+      .where(eq(transactionRules.id, "rules.india.basics:food"));
+    await installRulePack(db, {
+      ...pack,
+      version: "2",
+      rules: [{ ...pack.rules[0], name: "Updated Food Rule" }],
+    });
+
+    rules = await db.select().from(transactionRules);
+    expect(rules[0].name).toBe("My Food Rule");
   });
 });

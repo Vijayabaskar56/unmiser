@@ -11,6 +11,7 @@ export interface ScanCheckpoint {
   offset: number;
   processed: number;
   saved: number;
+  mandates?: number;
   review: number;
   rejected: number;
   /** Raw inbox total at the time the scan started. */
@@ -47,6 +48,7 @@ export function parseScanCheckpoint(raw: string | null): ScanCheckpoint | null {
     !isNonNegativeInt(candidate.offset) ||
     !isNonNegativeInt(candidate.processed) ||
     !isNonNegativeInt(candidate.saved) ||
+    (candidate.mandates !== undefined && !isNonNegativeInt(candidate.mandates)) ||
     !isNonNegativeInt(candidate.review) ||
     !isNonNegativeInt(candidate.rejected) ||
     !isNonNegativeInt(candidate.total) ||
@@ -58,6 +60,7 @@ export function parseScanCheckpoint(raw: string | null): ScanCheckpoint | null {
     offset: candidate.offset,
     processed: candidate.processed,
     saved: candidate.saved,
+    mandates: candidate.mandates ?? 0,
     review: candidate.review,
     rejected: candidate.rejected,
     total: candidate.total,

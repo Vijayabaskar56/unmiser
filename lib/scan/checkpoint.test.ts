@@ -12,6 +12,7 @@ const CHECKPOINT: ScanCheckpoint = {
   offset: 4000,
   processed: 4000,
   saved: 310,
+  mandates: 12,
   review: 120,
   rejected: 3570,
   total: 5300,
@@ -37,7 +38,13 @@ describe("scan checkpoint", () => {
     expect(parseScanCheckpoint(JSON.stringify({ ...CHECKPOINT, offset: -1 }))).toBeNull();
     expect(parseScanCheckpoint(JSON.stringify({ ...CHECKPOINT, offset: 1.5 }))).toBeNull();
     expect(parseScanCheckpoint(JSON.stringify({ ...CHECKPOINT, saved: "310" }))).toBeNull();
+    expect(parseScanCheckpoint(JSON.stringify({ ...CHECKPOINT, mandates: -1 }))).toBeNull();
     expect(parseScanCheckpoint(JSON.stringify({ ...CHECKPOINT, updatedAt: 7 }))).toBeNull();
+  });
+
+  it("defaults legacy checkpoints without mandate counts to zero", () => {
+    const { mandates: _mandates, ...legacy } = CHECKPOINT;
+    expect(parseScanCheckpoint(JSON.stringify(legacy))).toEqual({ ...legacy, mandates: 0 });
   });
 
   it("stores, loads, and clears through the KV surface", async () => {

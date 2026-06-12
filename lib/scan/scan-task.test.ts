@@ -114,7 +114,8 @@ describe("scan task store", () => {
     const { task, persisted, checkpoint, getSettledCount } = createHarness({
       totalRecords: 25,
       pageSize: 10,
-      outcomeFor: (i) => (i % 5 === 0 ? "saved" : i % 5 === 1 ? "review" : "rejected"),
+      outcomeFor: (i) =>
+        i % 5 === 0 ? "saved" : i % 5 === 1 ? "mandate" : i % 5 === 2 ? "review" : "rejected",
     });
 
     const state = await task.start();
@@ -123,8 +124,9 @@ describe("scan task store", () => {
     expect(state.processed).toBe(25);
     expect(state.total).toBe(25);
     expect(state.saved).toBe(5);
+    expect(state.mandates).toBe(5);
     expect(state.review).toBe(5);
-    expect(state.rejected).toBe(15);
+    expect(state.rejected).toBe(10);
     expect(persisted).toEqual([...Array(25).keys()]); // strictly oldest-to-newest
     expect(checkpoint.value).toBeNull(); // cleared on natural completion
     expect(state.resumeAvailable).toBe(false);

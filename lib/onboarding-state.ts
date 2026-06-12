@@ -228,6 +228,11 @@ export function friendlyOutcomeCopy(outcome: SmsProcessOutcome): OutcomeCopy {
         title: "Transaction saved",
         detail: "We recognized this message and added the transaction to your history.",
       };
+    case "mandate":
+      return {
+        title: "Subscription saved",
+        detail: "We recognized this mandate notice and updated your subscriptions.",
+      };
     case "duplicate":
       return {
         title: "Already recorded",

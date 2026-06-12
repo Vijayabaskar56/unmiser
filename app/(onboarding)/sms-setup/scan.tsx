@@ -116,7 +116,8 @@ export default function SmsSetupScanScreen() {
                         : "Ready to scan"}
               </Text>
               <Text className="text-muted text-sm">
-                {scan.saved} transactions saved · {scan.review} for review · {scan.rejected} skipped
+                {scan.saved} transactions saved · {scan.mandates} mandates · {scan.review} for
+                review · {scan.rejected} skipped
               </Text>
               {scan.error && <Text className="text-danger text-sm">{scan.error}</Text>}
             </View>

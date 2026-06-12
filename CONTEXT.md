@@ -69,8 +69,66 @@ A parser manifest discovered or updated from a remote catalog after the bundled-
 working.
 
 **Rule Extension**:
-An installable rule pack that applies conditions and actions to **Transactions** after parsing or
-manual entry, such as assigning categories based on amount, merchant text, or fixed recurring values.
+An installable, non-executable rule pack that provides inactive rule templates for **Transactions**,
+such as assigning categories based on amount, merchant text, or fixed recurring values.
+
+**Transaction Automation Pipeline**:
+The ordered path every **Transaction** save follows once raw facts are known: parser/default
+category hints, learned **Merchant Mapping**, active rules by priority, save, rule audit logging, then
+subscription/mandate effects. A blocking rule stops the save before subscription matching.
+
+**Rule Action**:
+An automation effect that may change categorization or presentation fields on a **Transaction** in
+v1, or block the save entirely. Rule actions do not change **Transaction** type in v1.
+
+**Blocked Automated Transaction**:
+A parsed automated-source transaction that matched a blocking rule before save. It is kept as an
+**SMS Review Item** with the blocking rule identity so the user can inspect, override, edit the rule,
+or delete the item.
+
+**Apply-to-Past**:
+A user-triggered batch run of one or more rules over existing non-deleted **Transactions**, with a
+preview count before changes are written and **Rule Application** audit rows after changes are made.
+
+**Rule Application**:
+An audit record for a rule that changed a **Transaction**, storing the rule identity and each changed
+field's before/after value. Matching rules that make no effective change do not create audit rows.
+
+**System Rule Template**:
+A shipped inactive rule row that users can enable or duplicate to automate common categorization or
+blocking patterns.
+
+**User Rule**:
+A locally created or edited rule owned by the user, evaluated by the same rules engine as system
+templates and installed rule packs.
+
+**Rule Builder**:
+The user-facing rule editor: flat condition rows, action rows, priority, active toggle, and preview
+match count. Raw JSON editing and nested condition groups are not part of v1.
+
+**Mandate-Sourced Subscription**:
+A **Subscription** created or updated from parser-emitted mandate details. A mandate notice predicts
+future payment; it is not itself a saved **Transaction**.
+
+**Recurring Transaction**:
+A **Transaction** marked by the user or detected by the app as part of a repeated payment pattern.
+Recurring Transactions can be bundled and proposed as a **Subscription**.
+
+**Recurring Pattern Suggestion**:
+An app-detected group of similar **Transactions** that may represent a **Subscription**, requiring
+user confirmation before a Subscription is created.
+
+**Subscription Review**:
+A review area within the Subscriptions screen for ambiguous recurring-pattern suggestions and
+ambiguous Transaction-to-Subscription matches.
+
+**Upcoming Subscription Payment**:
+A predicted future payment for an active **Subscription**, derived from mandate/manual next date or
+from cadence inferred from linked recurring Transactions.
+
+**Fallback Subscription Identity**:
+The dedup key for mandate-sourced subscriptions that do not include a UMN, built from normalized
+merchant, normalized amount, Currency, provider/bank, and billing cycle when available.
 
 **Manifest Pipeline Primitive**:
 A generic interpreter capability used by parser manifests to express complex bank formats, such as
@@ -148,8 +206,9 @@ A captured bank-like SMS that needs attention because it could not be safely sav
 An **SMS Review Item** where no installed/enabled parser manifest could handle the message.
 
 **Account Resolution Required**:
-An **SMS Review Item** where the parser found an account/card last-4 the app cannot link to an
-existing **Account**, so the user must link or create the Account before it can be saved.
+An **SMS Review Item** where the parser found an account/card last-4 that matches multiple existing
+same-bank **Accounts**/**Cards**, so the user must choose the correct target before it can be saved.
+No-match confident parses auto-create the **Account** per ADR-0006.
 
 **Background Parse Notification**:
 A user-facing alert for a real SMS parsed in the background, including successful automatic saves
@@ -211,6 +270,93 @@ out of production. Not surfaced in the UI.
 - Uninstalling an **Installed Extension** does not delete Transactions already created by it.
 - Parser manifests extract transaction facts; **Rule Extensions** and user rules own classification
   and categorization behavior after facts are parsed.
+- The **Transaction Automation Pipeline** runs for SMS, paste-SMS, manual entry, and apply-to-past
+  flows so the same automation rules produce the same result everywhere.
+- Subscription matching observes the final saved **Transaction** after merchant mapping and rules
+  have run; it does not run before blocking rules.
+- v1 **Rule Actions** do not mutate **Transaction** type; type corrections are human edits or parser
+  manifest fixes because type drives balance and budget semantics.
+- v1 **Rule Actions** may mutate categorization and presentation fields such as Category,
+  Subcategory, merchant name, description, recurring flag, billing cycle, and optionally Account.
+  They must not mutate amount, Currency, date/time, Transaction type, transaction hash, source
+  provenance, or balance fields.
+- v1 rules may inspect more fields than they can mutate, including amount, merchant, category,
+  subcategory, Account/bank, Transaction type, Currency, description, source, SMS sender, date/time
+  parts, recurring flag, and billing cycle.
+- A blocking rule on an automated source creates a **Blocked Automated Transaction** instead of
+  silently discarding it. Manual entry shows immediate feedback instead of creating an SMS Review
+  row.
+- **Apply-to-Past** excludes soft-deleted Transactions by default, never rewrites source provenance
+  or dedup fields, and defaults to filling uncategorized/gap fields before overwriting user work.
+- Active rules execute in ascending priority order; later matching rules may override fields set by
+  earlier rules unless an earlier rule blocks the save.
+- A **Rule Application** records only effective changes, including field name, before value, after
+  value, and action type.
+- When a rule sets a Subcategory, the parent Category is auto-resolved. When a later rule sets an
+  incompatible Category, the Subcategory is cleared.
+- **System Rule Templates** ship inactive and resettable; enabling or duplicating them is a user
+  choice.
+- Phase 3 includes local **User Rules**, **System Rule Templates**, and installable **Rule
+  Extensions**. Rule Extensions are rule packs evaluated by the same local rules engine, not
+  executable code.
+- **Rule Extensions** use the same local extension registry/storage/update model as parser
+  extensions: versioned manifest assets, checksum verification, enabled flag, offline after install,
+  and owner-maintained store distribution in v1.
+- Installing a **Rule Extension** does not immediately activate its rules. Users enable individual
+  rules or duplicate templates into **User Rules**.
+- Rule Extension updates do not mutate active or customized **User Rules** automatically; updated
+  packs add/update inactive templates and surface the available change.
+- Rule conditions may inspect source/provenance fields such as SMS sender, but rule actions cannot
+  mutate provenance. Missing source-specific fields make that condition false.
+- Rule Extension manifests use `type = "rule"` with their own schema for metadata and rule
+  templates; parser manifest pipeline primitives do not apply to rule packs.
+- Disabling or uninstalling a Rule Extension affects its pack templates, not user-owned copies
+  created from those templates.
+- Rule Extensions may include blocking rules, but each blocking rule must be explicitly enabled by
+  the user. Bulk/pack activation must not silently activate blocking rules.
+- Rules run before every Transaction commit path: manual save, paste-SMS save, historical SMS scan,
+  realtime SMS listener save, apply-to-past, and later automated import paths.
+- Manual transaction entry previews rule effects before save; rule actions apply only when the user
+  commits the save.
+- If a user edits a rule-controlled field before saving, that explicit edit overrides conflicting
+  rule actions for that Transaction only. Apply-to-past can overwrite user edits only when the user
+  opts in.
+- A **Mandate-Sourced Subscription** is deduped by UMN when present; otherwise it uses **Fallback
+  Subscription Identity** and never merges fallback identities across different providers/banks.
+- A mandate SMS creates or updates a **Subscription** only; the actual debit creates the
+  **Transaction** and may later match that Subscription.
+- A hidden Subscription reactivates automatically on a fresh mandate. A matching debit for a hidden
+  Subscription should surface a review prompt or badge rather than silently reactivating it.
+- A Subscription's Category/Subcategory comes first from a matched Transaction after rules, then
+  **Merchant Mapping**, then a system Subscriptions category.
+- Phase 3 stores billing cycle as the existing `billingCycle` text value, including preset/custom
+  encodings; helper services own parsing and formatting so UI does not inspect the raw encoding.
+- Users can create a **Subscription** manually, mark an existing **Transaction** as recurring to
+  create or link a Subscription, or accept an app suggestion built from bundled recurring
+  Transactions.
+- The app may bundle similar **Recurring Transactions** and ask whether they represent a recurring
+  payment/Subscription; it should not silently create a user-visible Subscription from that pattern.
+- Transaction-to-Subscription matching uses amount tolerance and date/merchant/provider plausibility.
+  Ambiguous matches go to review rather than auto-linking.
+- A **Recurring Pattern Suggestion** is created only after at least two similar Transactions with the
+  same normalized merchant, Currency, plausible category context, amount within tolerance, and a
+  plausible weekly/monthly/yearly date gap.
+- Marking a Transaction as recurring opens a confirmation flow prefilled from that Transaction;
+  saving creates or links a Subscription and links the Transaction as a known payment.
+- A saved Subscription payment is linked directly from the Transaction in v1 because a payment
+  belongs to at most one Subscription.
+- Ambiguous recurring-pattern suggestions and ambiguous subscription matches belong in
+  **Subscription Review**, not **SMS Review**.
+- User-facing Subscription removal is **Hide** for mandate-sourced or transaction-linked
+  Subscriptions. A manually created Subscription with no linked Transactions can be hard-deleted as
+  cleanup.
+- A merchant/provider/cadence-stable amount change remains the same Subscription. The expected
+  amount updates after user confirmation or after two consecutive matched payments at the new
+  amount.
+- Phase 3 shows **Upcoming Subscription Payments** for the next 30 days by default, plus a full list
+  view.
+- Phase 3 uses in-app Subscription badges/sections only; local/push notification behavior is deferred
+  to Phase 4/5 nudges.
 - Bank-specific SMS behavior lives in parser manifests using **Manifest Pipeline Primitives**; v1
   avoids app-shipped bank parser fallback code.
 - Parser manifests are declarative data only, not executable JavaScript or user code.
@@ -255,8 +401,9 @@ out of production. Not surfaced in the UI.
 - A **High-confidence SMS Parse** may create an **Automatic SMS Transaction**.
 - A **Review-confidence SMS Parse** creates an **SMS Review Item**.
 - A **Rejected SMS Parse** is ignored unless it is useful as an **Unrecognized SMS** signal.
-- Unknown account/card last-4 values require user link/create action; accounts are not created
-  silently from SMS.
+- Unknown account/card last-4 values auto-create an **Account** when the parse is high-confidence
+  and resolves to no existing same-bank Account/Card; only ambiguous suffix matches require user
+  review.
 - An SMS available-balance value creates an **Account Balance** row with `sourceType = SMS_BALANCE`
   when the **Account** is resolved.
 - **Merchant Category Learning** may apply to future matching Transactions and optionally update
@@ -265,8 +412,7 @@ out of production. Not surfaced in the UI.
 - **Unrecognized SMS** and **Account Resolution Required** are statuses/reasons within the same
   SMS review queue.
 - The user-facing review screen is **SMS Review**, not "Unrecognized SMS".
-- **Account Resolution Required** prevents save until the user links or creates the referenced
-  **Account**.
+- **Account Resolution Required** prevents save until the user chooses the referenced **Account**.
 - Transaction source must distinguish MANUAL, SMS, IMPORT, and later API_SOURCE.
 - An **Account** has many **Account Balance** readings; the newest is "the balance".
 - Every monetary value pairs an `amount` (BigDecimal string) with a **Currency** column.

@@ -335,6 +335,36 @@
             }
           }
         },
+        "mandate": {
+          "type": "object",
+          "properties": {
+            "detectKeyword": {
+              "type": "string",
+              "minLength": 1
+            },
+            "amount": {
+              "type": "string",
+              "minLength": 1
+            },
+            "date": {
+              "type": "string",
+              "minLength": 1
+            },
+            "merchant": {
+              "type": "string",
+              "minLength": 1
+            },
+            "umn": {
+              "type": "string",
+              "minLength": 1
+            },
+            "dateFormat": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["detectKeyword", "amount", "date", "merchant", "dateFormat"]
+        },
         "pipeline": {
           "type": "array",
           "items": {
@@ -380,6 +410,7 @@
                     "enum": [
                       "NO_MATCHING_MANIFEST",
                       "FILTER_REJECTED",
+                      "MANDATE_DETECTED",
                       "MISSING_AMOUNT",
                       "MISSING_TYPE",
                       "MISSING_MERCHANT",
@@ -622,6 +653,7 @@
                     "enum": [
                       "NO_MATCHING_MANIFEST",
                       "FILTER_REJECTED",
+                      "MANDATE_DETECTED",
                       "MISSING_AMOUNT",
                       "MISSING_TYPE",
                       "MISSING_MERCHANT",
@@ -714,6 +746,35 @@
                   }
                 }
               },
+              "mandate": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "string"
+                  },
+                  "nextDeductionDate": {
+                    "type": "string"
+                  },
+                  "merchant": {
+                    "type": "string"
+                  },
+                  "umn": {
+                    "type": "string"
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "pluginId": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string"
+                  }
+                }
+              },
+              "mandateParseFailed": {
+                "type": "boolean"
+              },
               "reasons": {
                 "type": "array",
                 "items": {
@@ -721,6 +782,7 @@
                   "enum": [
                     "NO_MATCHING_MANIFEST",
                     "FILTER_REJECTED",
+                    "MANDATE_DETECTED",
                     "MISSING_AMOUNT",
                     "MISSING_TYPE",
                     "MISSING_MERCHANT",

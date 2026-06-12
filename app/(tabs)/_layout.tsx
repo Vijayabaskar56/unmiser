@@ -62,6 +62,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="rules"
+        options={{
+          title: "Rules",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="options-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="subscriptions"
+        options={{
+          title: "Subscriptions",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="repeat-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="store"
         options={{
           title: "Store",

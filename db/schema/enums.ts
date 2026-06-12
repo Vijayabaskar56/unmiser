@@ -28,6 +28,7 @@ export const SMS_REVIEW_STATUSES = [
   "LOW_CONFIDENCE",
   "DUPLICATE_SKIPPED",
   "REJECTED",
+  "BLOCKED",
 ] as const;
 export type SmsReviewStatus = (typeof SMS_REVIEW_STATUSES)[number];
 
@@ -40,6 +41,8 @@ export const SMS_REVIEW_REASONS = [
   "MISSING_TYPE",
   "MISSING_MERCHANT",
   "PIPELINE_REJECTED",
+  "BLOCKED_BY_RULE",
+  "MANDATE_PARSE_FAILED",
 ] as const;
 export type SmsReviewReason = (typeof SMS_REVIEW_REASONS)[number];
 

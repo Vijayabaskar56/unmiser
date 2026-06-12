@@ -39,6 +39,7 @@ async function seedCategories(db: TestDb): Promise<void> {
   await db.insert(categories).values([
     { name: "Income", color: "#3DDC97", seedKey: "income", isIncome: true },
     { name: "Miscellaneous", color: "#757575", seedKey: "miscellaneous" },
+    { name: "Subscription", color: "#4A90E2", seedKey: "subscription" },
   ]);
 }
 
@@ -235,6 +236,31 @@ describe("processSms account auto-create (ADR-0006)", () => {
     expect(rescan.kind).toBe("saved");
     expect(await db.select().from(transactions)).toHaveLength(1);
     expect(await db.select().from(accounts)).toHaveLength(1);
+  });
+});
+
+describe("processSms subscription matching", () => {
+  it("links a later matching payment to a mandate-sourced subscription", async () => {
+    const { db } = createTestDb();
+    await seedCategories(db);
+
+    const mandate = await processSms(db, bundledParserManifests, {
+      sender: "VM-HDFCBK-S",
+      body: "E-Mandate! Rs.700 will be deducted on 20/07/26, 09:00:00 For MATCHMEUAT mandate UMN UATMATCH001",
+      receivedAt: "2026-06-12T10:00:00Z",
+    });
+    expect(mandate.kind).toBe("mandate");
+
+    const payment = await processSms(db, bundledParserManifests, {
+      sender: "VM-HDFCBK-S",
+      body: "Rs.700.00 debited from HDFC Bank A/c XX1234 at MATCHMEUAT on 20/06/26. Avl bal:INR 86,000.00",
+      receivedAt: "2026-06-20T10:00:00Z",
+    });
+    expect(payment.kind).toBe("saved");
+
+    const [row] = await db.select().from(transactions);
+    expect(row.subscriptionId).not.toBeNull();
+    expect(row.isRecurring).toBe(true);
   });
 });
 

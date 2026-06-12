@@ -3,6 +3,7 @@ import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 
 import { accounts, categories, subcategories } from "@/db/schema";
 import { SEED_CASH_ACCOUNT, SEED_CATEGORIES, SEED_SUBCATEGORIES } from "@/db/seed/categories";
+import { seedSystemRuleTemplates } from "@/db/services/rule-ops";
 
 // The seed/reset service. `db` is injected so the same code runs against the
 // expo-sqlite (async) driver on-device and the better-sqlite3 (sync) driver in
@@ -100,6 +101,8 @@ export async function seedDefaults(db: SeedDb): Promise<void> {
       isWallet: SEED_CASH_ACCOUNT.isWallet,
     });
   }
+
+  await seedSystemRuleTemplates(db);
 }
 
 /**

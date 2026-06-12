@@ -6,6 +6,7 @@ import m0002 from "./20260608094037_mute_living_mummy/migration.sql";
 import m0003 from "./20260608105256_daily_epoch/migration.sql";
 import m0004 from "./20260609093941_awesome_the_captain/migration.sql";
 import m0005 from "./20260609150104_gigantic_fixer/migration.sql";
+import m0006 from "./20260612100323_huge_patriot/migration.sql";
 
 export default {
   migrations: {
@@ -15,5 +16,6 @@ export default {
     "20260608105256_daily_epoch": m0003,
     "20260609093941_awesome_the_captain": m0004,
     "20260609150104_gigantic_fixer": m0005,
+    "20260612100323_huge_patriot": m0006,
   },
 };

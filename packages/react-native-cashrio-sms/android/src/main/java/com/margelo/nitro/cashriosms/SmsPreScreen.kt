@@ -85,6 +85,9 @@ object SmsPreScreen {
       "paid",
       "credit",
       "debit",
+      "deducted",
+      "will be deducted",
+      "will be debited",
     )
 
     return transactionKeywords.any { lower.contains(it) }

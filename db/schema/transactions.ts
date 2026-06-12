@@ -4,6 +4,7 @@ import { nowIso } from "../utils";
 import { accounts } from "./accounts";
 import { categories, subcategories } from "./categories";
 import { TRANSACTION_SOURCES, TRANSACTION_TYPES } from "./enums";
+import { subscriptions } from "./subscriptions";
 
 export const transactions = sqliteTable(
   "transactions",
@@ -36,6 +37,7 @@ export const transactions = sqliteTable(
     sourcePluginVersion: text(),
     sourceReceivedAt: text(),
     isRecurring: integer({ mode: "boolean" }).notNull().default(false),
+    subscriptionId: integer().references(() => subscriptions.id, { onDelete: "set null" }),
     isDeleted: integer({ mode: "boolean" }).notNull().default(false),
     createdAt: text().notNull().$defaultFn(nowIso),
     updatedAt: text().notNull().$defaultFn(nowIso),
@@ -50,6 +52,7 @@ export const transactions = sqliteTable(
     uniqueIndex("index_transactions_transaction_hash").on(t.transactionHash),
     index("index_transactions_category_id").on(t.categoryId),
     index("index_transactions_account_id").on(t.accountId),
+    index("index_transactions_subscription_id").on(t.subscriptionId),
   ],
 );
 

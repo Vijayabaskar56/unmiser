@@ -15,7 +15,12 @@ const NOISE_INPUT: SmsInput = {
   receivedAt: "2026-06-11T10:00:00.000Z",
 };
 
-const MANIFEST_REF = { pluginId: "in.hdfc.bank", version: "1.0.0", name: "HDFC Bank" };
+const MANIFEST_REF = {
+  pluginId: "in.hdfc.bank",
+  version: "1.0.0",
+  name: "HDFC Bank",
+  currency: "INR",
+};
 
 function result(partial: Partial<ParserResult>): ParserResult {
   return { confidence: "REJECTED", reasons: [], rawMatches: [], ...partial };

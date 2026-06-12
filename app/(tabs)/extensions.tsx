@@ -18,6 +18,7 @@ import {
   setExtensionEnabled,
 } from "@/db/services/extensions";
 import { processSms, pruneReviewRows, type SmsProcessOutcome } from "@/db/services/sms-processing";
+import { runPhase3Uat } from "@/db/services/phase3-uat";
 import {
   hasSmsPermissions,
   isAndroidSmsAdapterAvailable,
@@ -32,6 +33,24 @@ import type { Plugin, UnrecognizedSms } from "@/db/schema";
 
 const DEFAULT_BODY =
   "Rs.1250.00 debited from HDFC Bank A/c XX1234 at AMAZON on 09/06/26. Avl bal:INR 88,750.20";
+const PASTE_FIXTURES = [
+  {
+    label: "Mandate",
+    body: "E-Mandate! Rs.1,499 will be deducted on 15/07/26, 09:00:00 For NETFLIX mandate UMN HDFCUMN12345",
+  },
+  {
+    label: "Bad mandate",
+    body: "E-Mandate! Rs.1,499 will be deducted soon For NETFLIX mandate UMN HDFCUMN12345",
+  },
+  {
+    label: "Swiggy",
+    body: "Rs.322.00 debited from HDFC Bank A/c XX1234 at SWIGGY on 13/06/26. Avl bal:INR 87,900.00",
+  },
+  {
+    label: "Block",
+    body: "Rs.654.00 debited from HDFC Bank A/c XX1234 at TEST-BLOCK on 12/06/26. Avl bal:INR 87,000.00",
+  },
+] as const;
 // The review list renders inside a plain ScrollView (no virtualization); a full
 // historical scan can leave thousands of review rows, and mounting them all
 // hangs the JS thread and crashes Fabric. Render only the newest few.
@@ -40,13 +59,37 @@ const REVIEW_RENDER_LIMIT = 25;
 function outcomeText(outcome: SmsProcessOutcome | null): string {
   if (!outcome) return "";
   if (outcome.kind === "saved") return `Saved transaction #${outcome.transactionId}`;
+  if (outcome.kind === "mandate") return `Saved subscription #${outcome.subscriptionId}`;
   if (outcome.kind === "review") return `Sent to SMS Review: ${outcome.status}`;
   if (outcome.kind === "duplicate") return `Duplicate skipped: #${outcome.transactionId}`;
   return `Rejected: ${outcome.result.reasons.join(", ")}`;
 }
 
 function reviewTitle(row: UnrecognizedSms): string {
+  if (row.reviewReason === "BLOCKED_BY_RULE") {
+    try {
+      const fields = row.parsedFieldsJson ? JSON.parse(row.parsedFieldsJson) : null;
+      if (typeof fields?.blockingRuleName === "string" && fields.blockingRuleName.length > 0) {
+        return `Blocked by ${fields.blockingRuleName}`;
+      }
+    } catch {
+      // Fall through to the stored reason.
+    }
+  }
   return `${row.status} · ${row.reviewReason}`;
+}
+
+function reviewSubtitle(row: UnrecognizedSms): string | null {
+  if (row.reviewReason !== "BLOCKED_BY_RULE") return null;
+  try {
+    const fields = row.parsedFieldsJson ? JSON.parse(row.parsedFieldsJson) : null;
+    if (typeof fields?.blockingRuleId === "string" && fields.blockingRuleId.length > 0) {
+      return `Edit rule ${fields.blockingRuleId}`;
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function showTestToast(message: string): void {
@@ -179,14 +222,14 @@ export default function ExtensionsScreen() {
     setMessage(`Linked ${selectedPlugin.name} account ${last4.trim()}`);
   };
 
-  const onProcessPaste = async () => {
+  const processBody = async (bodyToProcess: string) => {
     setProcessing(true);
     setMessage("");
     try {
       const manifests = await loadEnabledParserManifests(appDb);
       const nextOutcome = await processSms(appDb, manifests, {
         sender,
-        body,
+        body: bodyToProcess,
         receivedAt: new Date().toISOString(),
       });
       setOutcome(nextOutcome);
@@ -196,6 +239,31 @@ export default function ExtensionsScreen() {
       await refreshPhase2Collections();
     } catch (error) {
       const text = error instanceof Error ? error.message : "SMS processing failed";
+      setMessage(text);
+      showTestToast(text);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const onProcessPaste = async () => {
+    await processBody(body);
+  };
+
+  const onProcessFixture = async (fixture: (typeof PASTE_FIXTURES)[number]) => {
+    setBody(fixture.body);
+    await processBody(fixture.body);
+  };
+
+  const onRunPhase3Uat = async () => {
+    setProcessing(true);
+    setMessage("");
+    try {
+      const result = await runPhase3Uat(appDb);
+      await refreshPhase2Collections();
+      setMessage(`Phase 3 UAT ${JSON.stringify(result)}`);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "Phase 3 UAT failed";
       setMessage(text);
       showTestToast(text);
     } finally {
@@ -222,7 +290,7 @@ export default function ExtensionsScreen() {
 
   const scanStatusText = (() => {
     if (scan.phase === "idle" && !scan.resumeAvailable) return "No scan run yet.";
-    const counts = `${scan.processed}/${scan.total || "?"} · ${scan.saved} saved · ${scan.review} review · ${scan.rejected} rejected/skipped`;
+    const counts = `${scan.processed}/${scan.total || "?"} · ${scan.saved} saved · ${scan.mandates} mandates · ${scan.review} review · ${scan.rejected} rejected/skipped`;
     if (scan.running) return `Scanning ${counts} · engine: ${getScanEngineMode()}`;
     if (scan.phase === "error") return `Scan failed: ${scan.error ?? "unknown"} · ${counts}`;
     if (scan.phase === "cancelled") return `Scan cancelled at ${counts}`;
@@ -441,6 +509,34 @@ export default function ExtensionsScreen() {
               />
             </View>
 
+            {__DEV__ ? (
+              <View className="gap-2">
+                <Pressable
+                  disabled={processing}
+                  accessibilityLabel="Run Phase 3 UAT"
+                  accessibilityRole="button"
+                  className="rounded-lg border border-primary px-3 py-2 items-center active:opacity-70"
+                  onPress={() => void onRunPhase3Uat()}
+                >
+                  <Text className="text-primary text-xs font-semibold">Run Phase 3 UAT</Text>
+                </Pressable>
+                {PASTE_FIXTURES.map((fixture) => (
+                  <Pressable
+                    key={fixture.label}
+                    disabled={processing}
+                    accessibilityLabel={`Process ${fixture.label}`}
+                    accessibilityRole="button"
+                    className="rounded-lg border border-border px-3 py-2 items-center active:opacity-70"
+                    onPress={() => void onProcessFixture(fixture)}
+                  >
+                    <Text className="text-foreground text-xs font-medium">
+                      Process {fixture.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
             <Pressable
               onPress={() => void onProcessPaste()}
               disabled={processing}
@@ -495,6 +591,9 @@ export default function ExtensionsScreen() {
               sortedReviewItems.map((item) => (
                 <View key={item.id} className="rounded-xl border border-border p-3 gap-1">
                   <Text className="text-foreground font-medium">{reviewTitle(item)}</Text>
+                  {reviewSubtitle(item) ? (
+                    <Text className="text-primary text-xs font-medium">{reviewSubtitle(item)}</Text>
+                  ) : null}
                   <Text selectable className="text-muted text-xs">
                     {item.sender} · {item.receivedAt}
                   </Text>

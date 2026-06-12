@@ -108,6 +108,13 @@ const CAPTURE_CASES: Array<{ name: string; sender: string; body: string; expecte
     body: "Pls pay a min of Rs.500 towards your card",
     expected: false,
   },
+  // [K14] mandate future debit must pass so the JS mandate parser can create a subscription
+  {
+    name: "hdfc e-mandate future deduction",
+    sender: "VM-HDFCBK-S",
+    body: "E-Mandate! Rs.1,499 will be deducted on 15/07/26, 09:00:00 For NETFLIX mandate UMN HDFCUMN12345",
+    expected: true,
+  },
   // [K14] "win " promo keyword (trailing space) → dropped
   {
     name: "win promo",

@@ -4,13 +4,17 @@ import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 import {
   pluginAssets,
   plugins,
+  transactionRules,
   type NewPlugin,
   type NewPluginAsset,
   type Plugin,
 } from "@/db/schema";
+import { saveRule } from "@/db/services/rule-ops";
 import { bundledParserBundles } from "@/lib/parser/manifests";
 import { smsParserManifestSchema } from "@/lib/parser/manifest-schema";
 import type { ManifestWithFixtures, SmsParserManifest } from "@/lib/parser/types";
+import { rulePackSchema, type RulePack } from "@/lib/rules/rule-pack";
+import * as v from "valibot";
 
 type Db = BaseSQLiteDatabase<"sync" | "async", any, any>;
 
@@ -34,6 +38,12 @@ export interface InstallParserBundleOptions {
   enabled?: boolean;
   source?: InstallSource;
   /** Verified SHA-256 (registry installs); null for bundled installs. */
+  checksum?: string | null;
+}
+
+export interface InstallRulePackOptions {
+  enabled?: boolean;
+  source?: InstallSource;
   checksum?: string | null;
 }
 
@@ -95,6 +105,71 @@ export async function installParserBundle(
         checksum,
       },
     });
+}
+
+export async function installRulePack(
+  db: Db,
+  packInput: unknown,
+  options: InstallRulePackOptions = {},
+): Promise<void> {
+  const { enabled = true, source = "registry", checksum = null } = options;
+  const pack: RulePack = v.parse(rulePackSchema, packInput);
+  const trust = trustForSource(source);
+
+  await db
+    .insert(plugins)
+    .values({
+      pluginId: pack.pluginId,
+      type: "rule",
+      name: pack.name,
+      country: pack.country,
+      version: pack.version,
+      trust,
+      enabled,
+    })
+    .onConflictDoUpdate({
+      target: plugins.pluginId,
+      set: {
+        name: pack.name,
+        country: pack.country,
+        version: pack.version,
+        trust,
+        ...(options.enabled === undefined ? {} : { enabled }),
+        updatedAt: new Date().toISOString(),
+      },
+    });
+
+  await db
+    .insert(pluginAssets)
+    .values({
+      pluginId: pack.pluginId,
+      version: pack.version,
+      manifestJson: JSON.stringify(pack),
+      fixturesJson: "[]",
+      checksum,
+    })
+    .onConflictDoUpdate({
+      target: [pluginAssets.pluginId, pluginAssets.version],
+      set: { manifestJson: JSON.stringify(pack), fixturesJson: "[]", checksum },
+    });
+
+  const existing = await db.select().from(transactionRules);
+  const existingById = new Map(existing.map((rule) => [rule.id, rule]));
+  for (const rule of pack.rules) {
+    const stableId = `${pack.pluginId}:${rule.id}`;
+    const current = existingById.get(stableId);
+    if (current?.isActive || (current && !current.isSystemTemplate)) continue;
+    await saveRule(db, {
+      id: stableId,
+      name: rule.name,
+      description: rule.description ?? `${pack.name} template`,
+      priority: rule.priority,
+      conditions: rule.conditions,
+      actions: rule.actions,
+      isActive: false,
+      isSystemTemplate: true,
+    });
+  }
 }
 
 export async function installBundledParserExtensions(db: Db): Promise<void> {

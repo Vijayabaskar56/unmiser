@@ -16,7 +16,8 @@ import {
 import { appDb } from "@/db/app-db";
 import { db } from "@/db/index";
 import { getMainAccountId } from "@/db/services/app-settings";
-import { addTransaction, softDeleteTransaction, transfer } from "@/db/services/transaction-ops";
+import { saveTransactionThroughPipeline } from "@/db/services/automation-pipeline";
+import { softDeleteTransaction, transfer } from "@/db/services/transaction-ops";
 import type { Transaction } from "@/db/schema";
 import type { TxnType } from "@/lib/balance-service";
 import { formatDisplay, nowIso } from "@/lib/dates";
@@ -89,8 +90,9 @@ const TransactionRow = memo(function TransactionRow({
  *
  * The list is a live query over the (non-deleted) transactions collection,
  * rendered with money.format and a friendly date. Adding goes through the
- * services layer — addTransaction(db, ...) runs dedup + the balance cascade —
- * NOT the collection's optimistic path, so balance math stays single-sourced.
+ * services layer — saveTransactionThroughPipeline(db, ...) runs rules, dedup
+ * and the balance cascade — NOT the collection's optimistic path, so balance
+ * math stays single-sourced.
  * After a successful add we refetch the transactions AND account-balances
  * collections so both the list here and the Accounts screen reflect the write.
  *
@@ -128,6 +130,7 @@ export default function TransactionsScreen() {
   const [type, setType] = useState<TxnType>("EXPENSE");
   const [submitting, setSubmitting] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
 
   // List search + type-filter (combined, client-side over the live query).
   const [search, setSearch] = useState("");
@@ -224,6 +227,7 @@ export default function TransactionsScreen() {
     setType("EXPENSE");
     setToAccountId(null);
     setTransferError(null);
+    setBlockedMessage(null);
   }, []);
 
   // Picking a (different) category clears any subcategory selection so we never
@@ -239,6 +243,7 @@ export default function TransactionsScreen() {
     if (!selectedAccount || categoryId === null || !amountValid) return;
     setSubmitting(true);
     setTransferError(null);
+    setBlockedMessage(null);
     try {
       // Called directly on the expo db (not wrapped in db.transaction): the
       // expo-sqlite drizzle driver is typed sync and rejects async transaction
@@ -264,17 +269,27 @@ export default function TransactionsScreen() {
           merchantName: merchant.trim(),
         });
       } else {
-        await addTransaction(db, {
-          accountId: selectedAccount.id,
-          amount: money.normalize2dp(amount.trim()),
-          merchantName: merchant.trim(),
-          categoryId,
-          subcategoryId,
-          transactionType: type,
-          dateTime: nowIso(),
-          isCreditCard: selectedAccount.isCreditCard,
-          currency: selectedAccount.currency,
-        });
+        const outcome = await saveTransactionThroughPipeline(
+          db,
+          {
+            accountId: selectedAccount.id,
+            amount: money.normalize2dp(amount.trim()),
+            merchantName: merchant.trim(),
+            categoryId,
+            subcategoryId,
+            transactionType: type,
+            dateTime: nowIso(),
+            isCreditCard: selectedAccount.isCreditCard,
+            currency: selectedAccount.currency,
+          },
+          {
+            explicitUserFields: ["merchantName", "categoryId"],
+          },
+        );
+        if (outcome.kind === "blocked") {
+          setBlockedMessage(`Blocked by rule: ${outcome.ruleName}`);
+          return;
+        }
       }
       await Promise.all([
         transactionCollection.utils.refetch(),
@@ -283,7 +298,7 @@ export default function TransactionsScreen() {
       resetForm();
       setShowForm(false);
     } catch (err) {
-      setTransferError(err instanceof Error ? err.message : "Transfer failed");
+      setTransferError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSubmitting(false);
     }
@@ -513,6 +528,7 @@ export default function TransactionsScreen() {
                                 onPress={() => {
                                   setToAccountId(a.id);
                                   setTransferError(null);
+                                  setBlockedMessage(null);
                                 }}
                                 className={
                                   active
@@ -617,6 +633,7 @@ export default function TransactionsScreen() {
                           onPress={() => {
                             setType(t);
                             setTransferError(null);
+                            setBlockedMessage(null);
                             if (t !== "TRANSFER") setToAccountId(null);
                           }}
                           className={
@@ -637,6 +654,8 @@ export default function TransactionsScreen() {
                     })}
                   </View>
                 </View>
+
+                {blockedMessage && <Text className="text-danger text-xs">{blockedMessage}</Text>}
 
                 <Pressable
                   onPress={() => void onSubmit()}

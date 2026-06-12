@@ -44,6 +44,8 @@ export interface AddTransactionInput {
   subcategoryId?: number | null;
   description?: string | null;
   currency?: string;
+  billingCycle?: string | null;
+  isRecurring?: boolean;
   /** An SMS-stated post-transaction balance, if any — anchors the reading. */
   balanceAfter?: string | null;
   transactionHash?: string;
@@ -112,6 +114,8 @@ export async function addTransaction(db: Db, input: AddTransactionInput): Promis
       sourcePluginVersion: input.sourcePluginVersion ?? null,
       sourceReceivedAt: input.sourceReceivedAt ?? null,
       currency: input.currency ?? "INR",
+      billingCycle: input.billingCycle ?? null,
+      isRecurring: input.isRecurring ?? false,
     })
     .returning();
 

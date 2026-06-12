@@ -10,6 +10,7 @@ import { z } from "zod";
  */
 export const registryCatalogEntrySchema = z.object({
   pluginId: z.string().min(3),
+  type: z.enum(["sms-parser", "rule"]).optional(),
   name: z.string().min(1),
   country: z.string().length(2),
   currency: z.string().length(3),

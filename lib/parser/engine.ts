@@ -4,6 +4,7 @@ import { smsParserManifestSchema } from "@/lib/parser/manifest-schema";
 import type {
   ExtractField,
   ExtractorSpec,
+  MandateRaw,
   ParsedField,
   ParsedSmsFields,
   ParserCondition,
@@ -14,6 +15,7 @@ import type {
   SmsInput,
   SmsParserManifest,
 } from "@/lib/parser/types";
+import { format as formatDate, isValid, parse as parseDate } from "date-fns";
 
 const DEFAULT_COMMON_WORDS = new Set([
   "USING",
@@ -63,12 +65,46 @@ export function attachTransactionHash(result: ParserResult, input: SmsInput): Pa
   return result;
 }
 
+export function attachMandateInfo(result: ParserResult): ParserResult {
+  if (!result.mandateRaw || !result.matchedManifest) return result;
+
+  const reasons: string[] = [];
+  const raw = result.mandateRaw;
+  if (!raw.amount) reasons.push("missing_amount");
+  if (!raw.date) reasons.push("missing_date");
+  if (!raw.merchant) reasons.push("missing_merchant");
+
+  let nextDeductionDate: string | undefined;
+  if (raw.date) {
+    const parsed = parseDate(raw.date, raw.dateFormat, new Date());
+    if (isValid(parsed)) nextDeductionDate = formatDate(parsed, "yyyy-MM-dd");
+    else reasons.push("invalid_date");
+  }
+
+  if (reasons.length > 0 || !raw.amount || !raw.merchant || !nextDeductionDate) {
+    result.confidence = "REVIEW";
+    result.mandateParseFailed = { reasons };
+    return result;
+  }
+
+  result.mandate = {
+    amount: raw.amount.replaceAll(",", ""),
+    nextDeductionDate,
+    merchant: raw.merchant,
+    umn: raw.umn,
+    currency: result.matchedManifest.currency,
+    pluginId: result.matchedManifest.pluginId,
+    provider: result.matchedManifest.name,
+  };
+  return result;
+}
+
 export function parseSmsWithManifest(
   manifestInput: SmsParserManifest,
   input: SmsInput,
 ): ParserResult {
   const manifest = smsParserManifestSchema.parse(manifestInput);
-  return attachTransactionHash(parsePreparedSms(manifest, input), input);
+  return attachMandateInfo(attachTransactionHash(parsePreparedSms(manifest, input), input));
 }
 
 export function parseSmsWithManifests(
@@ -88,6 +124,7 @@ function resultFor(
   reasons: ParserReason[],
   fields: ParsedSmsFields | undefined,
   rawMatches: RawMatch[],
+  mandateRaw?: MandateRaw,
 ): ParserResult {
   "worklet";
   return {
@@ -97,8 +134,10 @@ function resultFor(
       pluginId: manifest.pluginId,
       version: manifest.version,
       name: manifest.name,
+      currency: manifest.currency,
     },
     fields,
+    mandateRaw,
     rawMatches,
   };
 }
@@ -221,6 +260,28 @@ function uniqueReasons(reasons: ParserReason[]): ParserReason[] {
   return [...new Set(reasons)];
 }
 
+function extractNamedValue(body: string, pattern: string): string | undefined {
+  "worklet";
+  const match = new RegExp(pattern, "i").exec(body);
+  return match?.groups?.value?.trim() ?? match?.[1]?.trim();
+}
+
+function extractMandateRaw(manifest: SmsParserManifest, body: string): MandateRaw | undefined {
+  "worklet";
+  if (!manifest.mandate) return undefined;
+  if (!body.toLowerCase().includes(manifest.mandate.detectKeyword.toLowerCase())) {
+    return undefined;
+  }
+
+  return {
+    amount: extractNamedValue(body, manifest.mandate.amount)?.replaceAll(",", ""),
+    date: extractNamedValue(body, manifest.mandate.date),
+    merchant: extractNamedValue(body, manifest.mandate.merchant),
+    umn: manifest.mandate.umn ? extractNamedValue(body, manifest.mandate.umn) : undefined,
+    dateFormat: manifest.mandate.dateFormat,
+  };
+}
+
 // NOTE (worklet ordering): functions carrying a "worklet" directive are NOT
 // hoisted — the worklets babel plugin rewrites them into non-hoisted bindings
 // whose closures are captured at the DEFINITION point. A worklet that calls a
@@ -341,6 +402,11 @@ export function parsePreparedSms(manifest: SmsParserManifest, input: SmsInput): 
 
   if (!matchesDispatch(manifest, input.sender)) {
     return rejected(["NO_MATCHING_MANIFEST"], rawMatches);
+  }
+
+  const mandateRaw = extractMandateRaw(manifest, input.body);
+  if (mandateRaw) {
+    return resultFor(manifest, "HIGH", ["MANDATE_DETECTED"], undefined, rawMatches, mandateRaw);
   }
 
   if (!passesFilter(manifest, input.body)) {

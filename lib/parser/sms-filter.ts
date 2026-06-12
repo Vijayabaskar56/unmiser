@@ -82,6 +82,9 @@ export function isTransactionMessage(message: string): boolean {
     "paid",
     "credit",
     "debit",
+    "deducted",
+    "will be deducted",
+    "will be debited",
   ];
 
   return transactionKeywords.some((keyword) => lower.includes(keyword));

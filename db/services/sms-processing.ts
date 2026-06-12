@@ -9,7 +9,8 @@ import {
   unrecognizedSms,
 } from "@/db/schema";
 import { createAccount } from "@/db/services/account-ops";
-import { addTransaction } from "@/db/services/transaction-ops";
+import { saveTransactionThroughPipeline } from "@/db/services/automation-pipeline";
+import { upsertFromMandate } from "@/db/services/subscription-ops";
 import { resolveAccount } from "@/lib/account-resolver";
 import { nowIso, parseIso, toIso } from "@/lib/dates";
 import { parseSmsWithManifests } from "@/lib/parser";
@@ -20,6 +21,7 @@ type Db = BaseSQLiteDatabase<"sync" | "async", any, any>;
 
 export type SmsProcessOutcome =
   | { kind: "saved"; transactionId: number; result: ParserResult }
+  | { kind: "mandate"; subscriptionId: number; result: ParserResult }
   | { kind: "review"; reviewId: number; result: ParserResult; status: SmsReviewStatus }
   | { kind: "duplicate"; transactionId: number; result: ParserResult }
   | { kind: "rejected"; result: ParserResult };
@@ -30,6 +32,17 @@ export async function processSms(
   input: SmsInput,
 ): Promise<SmsProcessOutcome> {
   const result = parseSmsWithManifests(manifests, input);
+
+  if (result.mandate) {
+    const subscriptionId = await upsertFromMandate(db, result.mandate);
+    await resolveReviewRow(db, input);
+    return { kind: "mandate", subscriptionId, result };
+  }
+
+  if (result.mandateParseFailed) {
+    const reviewId = await captureSmsReview(db, input, result, "REJECTED", "MANDATE_PARSE_FAILED");
+    return { kind: "review", reviewId, result, status: "REJECTED" };
+  }
 
   if (!result.matchedManifest) {
     // ADR-0015: capture is scoped to bank-like senders with transaction-looking
@@ -130,7 +143,7 @@ export async function processSms(
 
   const categoryId = await resolveSmsCategory(db, result.fields.transactionType);
   const dateTime = normalizeReceivedAt(input.receivedAt);
-  const transactionId = await addTransaction(db, {
+  const pipelineOutcome = await saveTransactionThroughPipeline(db, {
     accountId,
     amount: result.fields.amount!,
     merchantName: result.fields.merchant ?? "Transfer",
@@ -149,11 +162,29 @@ export async function processSms(
     currency: result.fields.currency,
   });
 
+  if (pipelineOutcome.kind === "blocked") {
+    const reviewId = await captureSmsReview(
+      db,
+      input,
+      {
+        ...result,
+        fields: {
+          ...result.fields!,
+          blockedRuleId: pipelineOutcome.ruleId,
+          blockedRuleName: pipelineOutcome.ruleName,
+        } as ParserResult["fields"],
+      },
+      "BLOCKED",
+      "BLOCKED_BY_RULE",
+    );
+    return { kind: "review", reviewId, result, status: "BLOCKED" };
+  }
+
   // A message that is now a saved transaction (fresh insert or hash-dedup on a
   // rescan) no longer needs review; resolve any earlier review row for it.
   await resolveReviewRow(db, input);
 
-  return { kind: "saved", transactionId, result };
+  return { kind: "saved", transactionId: pipelineOutcome.transactionId, result };
 }
 
 /**

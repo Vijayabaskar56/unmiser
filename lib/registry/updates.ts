@@ -167,8 +167,9 @@ export async function applyExtensionUpdate(
       body: row.smsBody,
       receivedAt: row.receivedAt,
     });
-    if (outcome.kind === "saved" || outcome.kind === "duplicate") saved += 1;
-    else stillInReview += 1;
+    if (outcome.kind === "saved" || outcome.kind === "duplicate" || outcome.kind === "mandate") {
+      saved += 1;
+    } else stillInReview += 1;
   }
 
   return {
