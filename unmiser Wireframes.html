@@ -1,0 +1,1783 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>unmiser — Wireframe Explorations</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Patrick+Hand&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #f4f3ec;
+        --ink: #15140f;
+        --muted: #9a988c;
+        --line: #1a1814;
+        --soft: #e7e6dd;
+        --hl: #e9e83f;
+        --ui: "Hanken Grotesk", system-ui, sans-serif;
+        --hand: "Patrick Hand", cursive;
+        --mono: "Space Mono", monospace;
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-font-smoothing: antialiased;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--ui);
+      }
+      body {
+        padding: 0 0 80px;
+      }
+
+      /* ---------- top bar ---------- */
+      .top {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: var(--paper);
+        border-bottom: 2px solid var(--ink);
+      }
+      .top-inner {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 18px 26px 14px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+      }
+      .brand h1 {
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin: 0;
+      }
+      .brand .dot {
+        width: 12px;
+        height: 12px;
+        background: var(--ink);
+        border-radius: 50%;
+        display: inline-block;
+        transform: translateY(-2px);
+      }
+      .brand p {
+        margin: 0;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+      .ctl {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #56544c;
+      }
+      .ctl label {
+        font-family: var(--mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+      }
+      .swatches {
+        display: flex;
+        gap: 6px;
+      }
+      .sw {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid var(--ink);
+        cursor: pointer;
+        padding: 0;
+      }
+      .sw.active {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
+      }
+      .toggle {
+        display: inline-flex;
+        border: 2px solid var(--ink);
+        border-radius: 20px;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .toggle span {
+        padding: 3px 12px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .toggle .on {
+        background: var(--ink);
+        color: #fff;
+      }
+
+      /* ---------- flow tabs ---------- */
+      .tabs {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 14px 26px 0;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .tab-btn {
+        border: 2px solid var(--ink);
+        background: #fff;
+        border-radius: 22px;
+        padding: 7px 15px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: transform 0.08s;
+      }
+      .tab-btn:hover {
+        transform: translateY(-1px);
+      }
+      .tab-btn .n {
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--muted);
+        border: 1.5px solid var(--soft);
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        display: grid;
+        place-items: center;
+      }
+      .tab-btn.active {
+        background: var(--ink);
+        color: #fff;
+      }
+      .tab-btn.active .n {
+        color: #fff;
+        border-color: #5a584f;
+      }
+
+      /* ---------- flow panel ---------- */
+      .panel {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 8px 26px 0;
+        display: none;
+      }
+      .panel.active {
+        display: block;
+      }
+      .flow-head {
+        padding: 22px 2px 6px;
+        max-width: 760px;
+      }
+      .flow-head h2 {
+        font-size: 24px;
+        font-weight: 800;
+        margin: 0 0 6px;
+        letter-spacing: -0.01em;
+      }
+      .flow-head p {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.5;
+        color: #56544c;
+      }
+      .flow-head .why {
+        font-family: var(--hand);
+        font-size: 17px;
+        color: #1a1814;
+        margin-top: 10px;
+      }
+      .flow-head .why b {
+        background: linear-gradient(transparent 55%, var(--hl) 55%);
+        padding: 0 3px;
+        font-weight: inherit;
+      }
+
+      .rail {
+        display: flex;
+        gap: 34px;
+        overflow-x: auto;
+        padding: 24px 4px 40px;
+        scroll-snap-type: x proximity;
+      }
+      .rail::-webkit-scrollbar {
+        height: 8px;
+      }
+      .rail::-webkit-scrollbar-thumb {
+        background: #d3d1c6;
+        border-radius: 8px;
+      }
+      .variant {
+        flex: none;
+        width: 300px;
+        scroll-snap-align: start;
+      }
+      .variant .vtag {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        height: 26px;
+        white-space: nowrap;
+      }
+      .vtag .ab {
+        font-family: var(--mono);
+        font-weight: 700;
+        font-size: 12px;
+        background: var(--ink);
+        color: #fff;
+        border-radius: 6px;
+        padding: 2px 7px;
+        flex: none;
+      }
+      .vtag .vname {
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      /* ---------- caption ---------- */
+      .cap {
+        margin-top: 16px;
+        font-family: var(--hand);
+        font-size: 16.5px;
+        line-height: 1.35;
+        color: #26241d;
+        display: flex;
+        gap: 8px;
+      }
+      .cap .arr {
+        color: var(--muted);
+      }
+      .cap b {
+        background: linear-gradient(transparent 55%, var(--hl) 55%);
+        padding: 0 3px;
+        font-weight: inherit;
+      }
+      body.no-notes .cap {
+        display: none;
+      }
+      body.no-notes .note {
+        display: none !important;
+      }
+
+      /* ---------- phone ---------- */
+      .phone {
+        width: 300px;
+        height: 624px;
+        border: 2.5px solid var(--ink);
+        border-radius: 36px;
+        background: #fff;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 7px 7px 0 rgba(20, 18, 12, 0.07);
+      }
+      .scr {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .sb {
+        height: 30px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .sb .r {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        font-size: 9px;
+        letter-spacing: 0.05em;
+      }
+      .ct {
+        flex: 1;
+        overflow: hidden;
+        padding: 8px 16px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 11px;
+      }
+      .ct.dark {
+        background: var(--ink);
+        color: #fff;
+      }
+      .ct.pad0 {
+        padding-left: 0;
+        padding-right: 0;
+      }
+
+      /* app bar */
+      .ab-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 2px 0 2px;
+      }
+      .ab-bar .ttl {
+        font-size: 21px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .ab-bar .ttl.sm {
+        font-size: 17px;
+      }
+      .ico {
+        width: 26px;
+        height: 26px;
+        border: 2px solid currentColor;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 700;
+        opacity: 0.85;
+      }
+      .ico.sq {
+        border-radius: 7px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .grow {
+        flex: 1;
+      }
+      .right {
+        margin-left: auto;
+      }
+
+      /* primitives */
+      .ph {
+        background: repeating-linear-gradient(45deg, #fff, #fff 6px, #eeede4 6px, #eeede4 12px);
+        border: 1.5px solid #d8d6ca;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #a6a497;
+        font-family: var(--mono);
+        font-size: 10px;
+        text-align: center;
+        padding: 6px;
+      }
+      .dark .ph {
+        background: repeating-linear-gradient(
+          45deg,
+          #1f1d17,
+          #1f1d17 6px,
+          #2b2922 6px,
+          #2b2922 12px
+        );
+        border-color: #3a382f;
+        color: #8f8d80;
+      }
+      .lines {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .lines span {
+        height: 8px;
+        background: var(--soft);
+        border-radius: 4px;
+        display: block;
+      }
+      .dark .lines span {
+        background: #34322a;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .big {
+        font-size: 38px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      .big.xl {
+        font-size: 46px;
+      }
+      .kicker {
+        font-family: var(--mono);
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        color: var(--muted);
+      }
+      .h {
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.18;
+        letter-spacing: -0.01em;
+      }
+      .h.big2 {
+        font-size: 22px;
+      }
+      .p {
+        font-size: 12px;
+        line-height: 1.45;
+        color: #5a584f;
+      }
+      .dark .p {
+        color: #bdbbb0;
+      }
+      .dark .muted {
+        color: #86847a;
+      }
+
+      .btn {
+        border: 2px solid var(--ink);
+        border-radius: 13px;
+        padding: 11px;
+        text-align: center;
+        font-weight: 800;
+        font-size: 13px;
+      }
+      .btn.solid {
+        background: var(--ink);
+        color: #fff;
+      }
+      .btn.outline {
+        background: #fff;
+      }
+      .dark .btn.solid {
+        background: #fff;
+        color: var(--ink);
+        border-color: #fff;
+      }
+      .dark .btn.outline {
+        background: transparent;
+        color: #fff;
+        border-color: #5a584f;
+      }
+      .btn.hl {
+        background: var(--hl);
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .chip {
+        border: 1.5px solid #cdcbbf;
+        border-radius: 16px;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #56544c;
+      }
+      .chip.on {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+      .chip.hl {
+        background: var(--hl);
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+
+      .card {
+        border: 2px solid var(--ink);
+        border-radius: 14px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .card.soft {
+        border: 1.5px solid #dddbcf;
+      }
+      .dark .card {
+        border-color: #3a382f;
+      }
+
+      .barrow {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .barhead {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+      .barwrap {
+        height: 9px;
+        background: var(--soft);
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid #e0ded2;
+      }
+      .barfill {
+        height: 100%;
+        background: var(--ink);
+      }
+      .barfill.hl {
+        background: var(--hl);
+      }
+      .barfill.over {
+        background: repeating-linear-gradient(
+          45deg,
+          var(--ink),
+          var(--ink) 4px,
+          #444 4px,
+          #444 8px
+        );
+      }
+
+      .txn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid #ecebe2;
+      }
+      .txn:last-child {
+        border-bottom: none;
+      }
+      .tdot {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        border: 1.5px solid #cdcbbf;
+        flex: none;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: #8a887c;
+      }
+      .tdot.in {
+        border-color: var(--ink);
+      }
+      .tmid {
+        flex: 1;
+        min-width: 0;
+      }
+      .tm {
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .ts {
+        font-size: 10.5px;
+        color: var(--muted);
+      }
+      .ta {
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .ta.pos {
+        color: #1f7a3d;
+      }
+      .badge {
+        font-family: var(--mono);
+        font-size: 8.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border: 1.5px solid var(--ink);
+        border-radius: 5px;
+        padding: 1px 5px;
+      }
+      .badge.hl {
+        background: var(--hl);
+      }
+      .badge.gray {
+        border-color: #cdcbbf;
+        color: #9a988c;
+      }
+
+      .note {
+        position: absolute;
+        font-family: var(--hand);
+        font-size: 13px;
+        line-height: 1.15;
+        background: var(--hl);
+        border: 2px solid var(--ink);
+        border-radius: 10px 10px 10px 2px;
+        padding: 5px 9px;
+        max-width: 150px;
+        z-index: 6;
+        box-shadow: 3px 3px 0 rgba(20, 18, 12, 0.12);
+      }
+
+      /* bottom tab bar */
+      .tabbar {
+        flex: none;
+        height: 50px;
+        border-top: 2px solid var(--ink);
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 0 6px;
+        background: #fff;
+      }
+      .dark .tabbar {
+        background: var(--ink);
+        border-color: #3a382f;
+      }
+      .tb {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        font-size: 8.5px;
+        font-weight: 700;
+        color: #b3b1a5;
+      }
+      .tb .ti {
+        width: 18px;
+        height: 18px;
+        border: 1.8px solid #b3b1a5;
+        border-radius: 5px;
+      }
+      .tb.on {
+        color: var(--ink);
+      }
+      .tb.on .ti {
+        border-color: var(--ink);
+        background: var(--hl);
+      }
+      .dark .tb.on {
+        color: #fff;
+      }
+      .dark .tb.on .ti {
+        background: var(--hl);
+        border-color: var(--hl);
+      }
+      .tb.add .ti {
+        border-radius: 50%;
+        background: var(--ink);
+        border-color: var(--ink);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        width: 30px;
+        height: 30px;
+        margin-top: -8px;
+      }
+      .tb.add {
+        color: transparent;
+      }
+
+      .sheet {
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        background: #fff;
+        border: 2.5px solid var(--ink);
+        border-radius: 20px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        box-shadow: 0 -6px 0 rgba(20, 18, 12, 0.06);
+        z-index: 5;
+      }
+      .grab {
+        width: 36px;
+        height: 4px;
+        border-radius: 3px;
+        background: #d8d6ca;
+        margin: 0 auto 2px;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(20, 18, 12, 0.32);
+        z-index: 4;
+      }
+
+      .seg {
+        display: flex;
+        border: 2px solid var(--ink);
+        border-radius: 11px;
+        overflow: hidden;
+      }
+      .seg div {
+        flex: 1;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 7px 4px;
+      }
+      .seg div.on {
+        background: var(--ink);
+        color: #fff;
+      }
+
+      .donut {
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        background: conic-gradient(
+          var(--ink) 0 34%,
+          var(--hl) 34% 58%,
+          #9a988c 58% 76%,
+          #cdcbbf 76% 92%,
+          #e7e6dd 92% 100%
+        );
+        position: relative;
+        flex: none;
+      }
+      .donut::after {
+        content: "";
+        position: absolute;
+        inset: 17px;
+        background: #fff;
+        border-radius: 50%;
+        border: 1.5px solid #ecebe2;
+      }
+      .heat {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+      }
+      .heat span {
+        aspect-ratio: 1;
+        border-radius: 4.5px;
+        background: var(--ink);
+      }
+      .heat span.z {
+        background: #fff;
+        border: 1.5px solid #e3e1d5;
+      }
+      .legrow {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legrow .ld {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        border: 1.5px solid var(--ink);
+        flex: none;
+      }
+
+      .legend {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 6px 30px 0;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+      }
+
+      .foot {
+        max-width: 1320px;
+        margin: 30px auto 0;
+        padding: 20px 30px;
+        border-top: 2px solid var(--ink);
+        font-size: 13px;
+        color: #56544c;
+        line-height: 1.6;
+      }
+      .foot b {
+        color: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top">
+      <div class="top-inner">
+        <div class="brand">
+          <h1>unmiser<span class="dot"></span></h1>
+          <p>Wireframe explorations · v1</p>
+        </div>
+        <div class="controls">
+          <div class="ctl">
+            <label>accent</label>
+            <div class="swatches" id="swatches">
+              <button
+                class="sw active"
+                data-hl="#e9e83f"
+                style="background: #e9e83f"
+                title="Highlighter yellow"
+              ></button>
+              <button
+                class="sw"
+                data-hl="#b8f04a"
+                style="background: #b8f04a"
+                title="Lime"
+              ></button>
+              <button
+                class="sw"
+                data-hl="#ff7a59"
+                style="background: #ff7a59"
+                title="Coral"
+              ></button>
+              <button class="sw" data-hl="#7ab8ff" style="background: #7ab8ff" title="Sky"></button>
+            </div>
+          </div>
+          <div class="ctl">
+            <label>annotations</label>
+            <div class="toggle" id="notesToggle">
+              <span class="on" data-v="on">On</span><span data-v="off">Off</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tabs" id="tabs"></div>
+    </div>
+
+    <div class="legend">
+      low-fi · structure over polish · ₹ INR · fully offline · 3 distinct approaches per flow —
+      scroll each row sideways →
+    </div>
+
+    <div id="panels"></div>
+
+    <div class="foot">
+      <b>How to read this:</b> each tab is one flow from your brief. Within a flow,
+      <b>A / B / C</b> are genuinely different structural bets — not restyles. The handwritten
+      yellow notes explain the idea behind each. Tell me which approaches to merge and I'll take the
+      winners to mid-fi, then to the B&W + yellow Minna-no-Ginko vibe.
+    </div>
+
+    <script>
+      /* ============ primitives ============ */
+      const sb = (dark) =>
+        `<div class="sb"><span>9:41</span><span class="r"><span>${dark ? "●●●" : "•••"}</span><span>5G</span><span>▮</span></span></div>`;
+      const lines = (n = 3, w = ["100%", "90%", "64%"]) =>
+        `<div class="lines">${Array.from({ length: n }, (_, i) => `<span style="width:${w[i] || "78%"}"></span>`).join("")}</div>`;
+      const ph = (h, label) => `<div class="ph" style="height:${h}px">${label || ""}</div>`;
+      const btn = (t, cls = "solid") => `<div class="btn ${cls}">${t}</div>`;
+      const chip = (t, cls = "") => `<span class="chip ${cls}">${t}</span>`;
+      const chips = (arr) =>
+        `<div class="chips">${arr.map((c) => (Array.isArray(c) ? chip(c[0], c[1]) : chip(c))).join("")}</div>`;
+      const bar = (label, frac, right, cls = "") =>
+        `<div class="barrow"><div class="barhead"><span>${label}</span><span class="muted">${right || ""}</span></div><div class="barwrap"><div class="barfill ${cls}" style="width:${Math.round(frac * 100)}%"></div></div></div>`;
+      const txn = (m, sub, amt, o = {}) =>
+        `<div class="txn"><div class="tdot ${o.in ? "in" : ""}">${o.ic || (o.in ? "↓" : "↑")}</div><div class="tmid"><div class="tm">${m}</div><div class="ts">${sub}</div></div><div class="ta ${o.in ? "pos" : ""}">${amt}${o.badge ? ` <span class="badge ${o.badgeCls || ""}">${o.badge}</span>` : ""}</div></div>`;
+      const tabbar = (active) => {
+        const items = [
+          ["Home", "home"],
+          ["Log", "log"],
+          ["add", "add"],
+          ["Grow", "grow"],
+          ["Hub", "hub"],
+        ];
+        return `<div class="tabbar">${items
+          .map(([l, k]) =>
+            k === "add"
+              ? `<div class="tb add"><div class="ti">+</div>${l}</div>`
+              : `<div class="tb ${active === k ? "on" : ""}"><div class="ti"></div>${l}</div>`,
+          )
+          .join("")}</div>`;
+      };
+      const appbar = (t, o = {}) =>
+        `<div class="ab-bar"><div class="row">${o.back ? '<div class="ico">‹</div>' : ""}<div class="ttl ${o.sm ? "sm" : ""}">${t}</div></div><div class="row right">${o.icons === false ? "" : `<div class="ico">♪</div><div class="ico">◔</div>`}${o.x ? '<div class="ico">✕</div>' : ""}</div></div>`;
+      const note = (txt, pos) => `<div class="note" style="${pos}">${txt}</div>`;
+      const lchart = (
+        h = 104,
+      ) => `<svg viewBox="0 0 252 ${h}" style="width:100%;display:block;" aria-hidden="true">
+  <line x1="0" y1="${h - 14}" x2="252" y2="${h - 14}" stroke="#dddbcf" stroke-dasharray="3 4"/>
+  <line x1="0" y1="${Math.round(h * 0.35)}" x2="252" y2="${Math.round(h * 0.35)}" stroke="#ecebe2" stroke-dasharray="3 4"/>
+  <polyline fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="8,${h - 24} 34,${h - 30} 58,${h - 18} 82,${Math.round(h * 0.52)} 106,${Math.round(h * 0.66)} 130,${Math.round(h * 0.36)} 154,${Math.round(h * 0.55)} 178,${Math.round(h * 0.26)} 202,${Math.round(h * 0.44)} 226,${Math.round(h * 0.14)} 246,${Math.round(h * 0.3)}"/>
+  <circle cx="226" cy="${Math.round(h * 0.14)}" r="5" fill="var(--hl)" stroke="var(--ink)" stroke-width="2"/>
+</svg>`;
+      const leg = (items) =>
+        items
+          .map(
+            ([c, l, r]) =>
+              `<div class="legrow"><span class="ld" style="background:${c};"></span><span class="grow" style="font-size:11px;font-weight:700;">${l}</span><span class="ts">${r}</span></div>`,
+          )
+          .join("");
+      const heat = () => {
+        const lv = [0, 0.12, 0.3, 0.6, 1];
+        return `<div class="heat">${Array.from({ length: 28 }, (_, i) => {
+          const v = lv[Math.floor(Math.abs(Math.sin((i + 2) * 4.31)) * 5) % 5];
+          return v === 0 ? `<span class="z"></span>` : `<span style="opacity:${v}"></span>`;
+        }).join("")}</div>`;
+      };
+      const srow = (ic, t, sub, right = "&rsaquo;") =>
+        `<div class="txn"><div class="tdot in">${ic}</div><div class="tmid"><div class="tm">${t}</div><div class="ts">${sub}</div></div><div class="ta" style="color:var(--muted);">${right}</div></div>`;
+
+      function phone(inner) {
+        return `<div class="phone"><div class="scr">${inner}</div></div>`;
+      }
+      function screen(ctClass, body, opts = {}) {
+        return `${sb(ctClass.includes("dark"))}<div class="ct ${ctClass}">${body}</div>${opts.tab ? tabbar(opts.tab) : ""}`;
+      }
+
+      /* ============ data ============ */
+      const FLOWS = [
+        {
+          id: "onb",
+          n: "1",
+          tab: "Onboarding + SMS",
+          name: "Onboarding & SMS permission",
+          desc: "The make-or-break moment: convince a first-time earner to grant SMS access. We never leave the device, so the pitch is trust + instant payoff.",
+          why: "Three different bets on <b>when you ask for permission</b> — and what you show to earn it.",
+          variants: [
+            {
+              ab: "A",
+              name: "Trust-first",
+              cap: "Lead with <b>privacy</b>. One calm screen, one promise (“nothing leaves this phone”), one button. Permission on the very next tap.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       <div class="grow" style="display:flex;flex-direction:column;justify-content:center;gap:16px;">
+         <div class="kicker">unmiser</div>
+         <div class="big xl" style="letter-spacing:-.03em;">Your money.<br/>On your phone.<br/>Nowhere else.</div>
+         <div class="p">We read your bank SMS on-device to log every rupee automatically. No login, no upload, no cloud.</div>
+         ${chips([["🔒 100% offline", "hl"], "no account"])}
+       </div>
+       <div style="display:flex;flex-direction:column;gap:8px;">
+         ${btn("Connect my SMS")}
+         <div class="p" style="text-align:center;">We only read bank senders. You can revoke anytime.</div>
+       </div>`,
+                  ),
+                ),
+            },
+            {
+              ab: "B",
+              name: "Show-the-magic",
+              cap: "Demo before you ask. An illustrated <b>walkthrough</b> shows a raw SMS turning into a clean transaction, so the permission ask already makes sense.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("", { x: true, icons: false })}
+       ${ph(150, "illustration\nperson + floating receipts")}
+       <div class="h big2">From this mess…<br/>to one clean line.</div>
+       <div class="card soft" style="gap:6px;">
+         <div class="p" style="font-family:var(--mono);font-size:10px;color:#8a887c;">"Rs.480 spent at SWIGGY via UPI on a/c XX4410…"</div>
+         <div style="height:1px;background:#ecebe2;"></div>
+         ${txn("Swiggy", "Food · UPI", "−₹480", { badge: "auto" })}
+       </div>
+       <div class="row"><span class="muted" style="font-size:18px;">● ○ ○</span><div class="grow"></div>${btn("Next", "solid")}</div>`,
+                  ),
+                ),
+            },
+            {
+              ab: "C",
+              name: "Instant proof",
+              cap: "Ask immediately, reward instantly. Right after permission we <b>scan the inbox live</b> and show “found 3 banks, 142 transactions” before anything else.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Scanning inbox…", { sm: true, icons: false })}
+       <div class="card" style="gap:10px;">
+         <div class="row"><div class="big" style="font-size:30px;">142</div><div class="p grow">transactions found in your SMS</div></div>
+         ${bar("Reading messages", 0.8, "80%", "hl")}
+       </div>
+       <div class="kicker">banks detected</div>
+       <div class="card soft">
+         ${txn("HDFC Bank", "38 messages", "✓", { ic: "🏦", in: true })}
+         ${txn("ICICI Bank", "61 messages", "✓", { ic: "🏦", in: true })}
+         ${txn("SBI", "43 messages", "✓", { ic: "🏦", in: true })}
+       </div>
+       ${note("reward BEFORE the ask", "top:300px;right:14px;")}
+       <div class="grow"></div>
+       ${btn("Log all 142 →", "hl")}`,
+                  ),
+                ),
+            },
+          ],
+        },
+        {
+          id: "home",
+          n: "2",
+          tab: "Home dashboard",
+          name: "Home / spending dashboard",
+          desc: "The screen opened ten times a day. What should greet a young earner who wants control — a number, a feed, or their budgets?",
+          why: "Each home answers a different question first: <b>“how much left?”</b> vs <b>“what just happened?”</b> vs <b>“am I on track?”</b>",
+          variants: [
+            {
+              ab: "A",
+              name: "Calm number",
+              cap: "One hero number — <b>safe-to-spend this month</b> — and almost nothing else. Anxiety-reducing, glanceable.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("June", { icons: true })}
+       <div style="text-align:center;padding:14px 0 6px;">
+         <div class="kicker">safe to spend</div>
+         <div class="big xl">₹18,240</div>
+         <div class="p">of ₹40,000 · 11 days left</div>
+       </div>
+       ${bar("Spent so far", 0.54, "₹21,760", "hl")}
+       <div class="chips" style="justify-content:center;">${chip("▲ ₹2.1k under pace", "hl")}</div>
+       <div class="card soft">
+         <div class="row"><div class="kicker grow">today</div><div class="muted" style="font-size:11px;">3 txns</div></div>
+         ${txn("Zepto", "Groceries", "−₹612")}
+         ${txn("Auto / Namma", "Transport", "−₹95")}
+       </div>
+       <div class="grow"></div>`,
+                    { tab: "home" },
+                  ),
+                ),
+            },
+            {
+              ab: "B",
+              name: "Feed-first",
+              cap: "The <b>transaction feed is the home</b>. Money is a stream of events; a sticky header keeps the running totals.",
+              phone: () =>
+                phone(
+                  screen(
+                    "pad0",
+                    `
+       <div style="padding:2px 16px 0;">${appbar("Activity", { icons: true })}</div>
+       <div style="padding:8px 16px;background:var(--ink);color:#fff;margin:0 0 4px;">
+         <div class="row"><div><div style="font-size:9px;font-family:var(--mono);opacity:.7;">SPENT · JUNE</div><div style="font-size:24px;font-weight:800;">₹21,760</div></div><div class="grow"></div><div style="text-align:right;"><div style="font-size:9px;font-family:var(--mono);opacity:.7;">IN</div><div style="font-size:16px;font-weight:700;">+₹62k</div></div></div>
+       </div>
+       <div style="padding:0 16px;overflow:hidden;">
+         <div class="kicker" style="padding:6px 0 2px;">Today</div>
+         ${txn("Zepto", "12:40 · UPI", "−₹612")}
+         ${txn("Salary · Acme", "9:02 · credit", "+₹62,000", { in: true })}
+         <div class="kicker" style="padding:8px 0 2px;">Yesterday</div>
+         ${txn("Swiggy", "21:10 · card", "−₹480")}
+         ${txn("Jio Recharge", "18:30", "−₹299")}
+         ${txn("Indian Oil", "08:15 · fuel", "−₹1,500")}
+       </div>`,
+                    { tab: "home" },
+                  ),
+                ),
+            },
+            {
+              ab: "C",
+              name: "Budget envelopes",
+              cap: "<b>Category budgets up front.</b> Borrowed from envelope budgeting — you see every bucket draining in real time.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Budgets", { icons: true })}
+       <div class="row"><div class="kicker grow">june · ₹40,000 plan</div><div class="badge hl">54% used</div></div>
+       <div class="card soft" style="gap:11px;">
+         ${bar("🍜 Food & dining", 0.82, "₹6.5k / 8k")}
+         ${bar("🛒 Groceries", 0.46, "₹4.6k / 10k", "hl")}
+         ${bar("🛺 Transport", 0.3, "₹1.5k / 5k")}
+         ${bar("🎬 Fun", 1.1, "₹3.3k / 3k", "over")}
+         ${bar("🏠 Bills", 0.7, "₹7k / 10k")}
+       </div>
+       ${note("“Fun” is over — nudge here", "top:330px;right:10px;")}
+       <div class="grow"></div>
+       ${btn("Adjust envelopes", "outline")}`,
+                    { tab: "home" },
+                  ),
+                ),
+            },
+          ],
+        },
+        {
+          id: "log",
+          n: "3",
+          tab: "Auto-log & review",
+          name: "SMS auto-log & transaction review",
+          desc: "The engine parses each bank SMS (amount, merchant, account, type, confidence) from a manifest. Some land clean; some need a human glance. How do we surface that?",
+          why: "Different bets on <b>trust in the parser</b>: triage a queue, fix one rich card, or a one-tap capture as it happens.",
+          variants: [
+            {
+              ab: "A",
+              name: "Triage inbox",
+              cap: "A <b>review queue</b> of low-confidence parses. Swipe to confirm, tap to fix. High-confidence ones auto-file silently.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("To review", { sm: true, icons: true })}
+       <div class="row"><div class="kicker grow">4 need a category · 138 auto-filed</div></div>
+       <div class="card soft">
+         ${txn("AMZN Mktplace", "₹1,299 · HDFC XX10", "−₹1,299", { badge: "?", badgeCls: "gray" })}
+         ${txn("UPI/9876…", "₹500 · unknown payee", "−₹500", { badge: "?", badgeCls: "gray" })}
+         ${txn("IRCTC", "₹2,140 · ICICI", "−₹2,140", { badge: "low", badgeCls: "gray" })}
+         ${txn("NEFT Cr", "₹15,000 · who?", "+₹15,000", { in: true, badge: "?", badgeCls: "gray" })}
+       </div>
+       ${note("swipe → confirm", "top:300px;left:14px;")}
+       <div class="grow"></div>
+       <div class="row" style="gap:8px;">${btn("Confirm all", "outline")}${btn("Review →", "solid")}</div>`,
+                    { tab: "log" },
+                  ),
+                ),
+            },
+            {
+              ab: "B",
+              name: "One rich card",
+              cap: "Review <b>one transaction at a time</b>, every parsed field editable, with the raw SMS shown for proof and a confidence badge.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Review 1 of 4", { back: true, sm: true, icons: false })}
+       <div class="card">
+         <div class="row"><div class="kicker grow">parsed · HDFC manifest</div><div class="badge hl">HIGH</div></div>
+         <div class="big" style="font-size:30px;">−₹1,299</div>
+         <div class="ts" style="font-family:var(--mono);">amount · merchant · account · type</div>
+         <div style="height:1px;background:#ecebe2;"></div>
+         <div class="row"><div class="p grow">Merchant</div><b style="font-size:13px;">Amazon ▾</b></div>
+         <div class="row"><div class="p grow">Account</div><b style="font-size:13px;">HDFC ••4410</b></div>
+         <div class="row"><div class="p grow">Category</div>${chips([["🛍 Shopping", "hl"], "Bills", "+"])}</div>
+       </div>
+       <div class="card soft" style="gap:4px;"><div class="kicker">raw sms</div><div class="p" style="font-family:var(--mono);font-size:9.5px;">"Rs 1299.00 spent on HDFC Card XX4410 at AMZN Mktplace…"</div></div>
+       <div class="grow"></div>
+       <div class="row" style="gap:8px;">${btn("Skip", "outline")}${btn("Save & next", "solid")}</div>`,
+                  ),
+                ),
+            },
+            {
+              ab: "C",
+              name: "Live capture",
+              cap: "A <b>just-happened bottom sheet</b>. The SMS lands, a sheet slides up, one tap to categorise — done in 2 seconds, never opening the app.",
+              phone: () =>
+                phone(`<div class="scr">${sb(false)}<div class="ct" style="filter:blur(1px);opacity:.5;">${appbar("Home", { icons: true })}${ph(120, "dashboard behind")}${lines(3)}</div>
+       <div class="scrim"></div>
+       <div class="sheet">
+         <div class="grab"></div>
+         <div class="row"><div class="kicker grow">new · just now</div><div class="badge hl">auto</div></div>
+         <div class="row"><div class="tdot in" style="width:34px;height:34px;">🍔</div><div class="grow"><div class="tm">Swiggy</div><div class="ts">HDFC ••4410 · UPI</div></div><div class="ta">−₹480</div></div>
+         <div class="kicker">tap a category</div>
+         ${chips([["🍜 Food", "hl"], "Groceries", "Treat", "Split", "Skip"])}
+         ${btn("Looks right ✓", "solid")}
+       </div></div>`),
+            },
+          ],
+        },
+        {
+          id: "habit",
+          n: "4",
+          tab: "Habit engine",
+          name: "Habit-change engine",
+          desc: "The actual point of unmiser: nudge a new earner toward control. Offline, so all insight is computed on-device. Three philosophies of behaviour change.",
+          why: "<b>Nudge</b> in the moment, <b>goals</b> to pull toward, or a <b>weekly ritual</b> to reflect. Which changes habits?",
+          variants: [
+            {
+              ab: "A",
+              name: "Nudge cards",
+              cap: "Timely <b>insight cards</b>: “food delivery is up 40% this week.” Each card has one concrete action, never just a stat.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("For you", { sm: true, icons: true })}
+       <div class="card" style="gap:8px;">
+         <div class="kicker">⚠ pattern spotted</div>
+         <div class="h">Food delivery is up <span style="background:linear-gradient(transparent 55%,var(--hl) 55%);">40%</span> vs last week.</div>
+         <div class="p">₹2,180 across 7 orders. Cooking 2 nights saves ~₹900.</div>
+         <div class="row" style="gap:8px;">${btn("Set a Swiggy cap", "solid")}${btn("Ignore", "outline")}</div>
+       </div>
+       <div class="card soft" style="gap:6px;">
+         <div class="kicker">💡 small win</div>
+         <div class="p"><b>3 subscriptions</b> renew this week (₹897). Tap to see if any are unused.</div>
+       </div>
+       <div class="grow"></div>`,
+                    { tab: "grow" },
+                  ),
+                ),
+            },
+            {
+              ab: "B",
+              name: "Goals & limits",
+              cap: "Forward-looking. <b>Savings goals + spend limits</b> with live progress — pull toward something, not just track.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Goals", { icons: true })}
+       <div class="card" style="gap:10px;">
+         <div class="row"><div class="grow"><div class="kicker">saving for</div><div class="h">iPhone fund</div></div><div class="big" style="font-size:22px;">62%</div></div>
+         ${bar("₹49,600 of ₹80,000", 0.62, "+₹6k/mo", "hl")}
+         <div class="p muted">On track for September at this pace.</div>
+       </div>
+       <div class="kicker">active limits</div>
+       <div class="card soft" style="gap:11px;">
+         ${bar("🍜 Eating out", 0.82, "₹6.5k / 8k")}
+         ${bar("🛍 Shopping", 0.4, "₹4k / 10k", "hl")}
+       </div>
+       <div class="grow"></div>
+       ${btn("+ New goal", "outline")}`,
+                    { tab: "grow" },
+                  ),
+                ),
+            },
+            {
+              ab: "C",
+              name: "Weekly ritual",
+              cap: "A <b>Sunday review</b> you do together with the app — streaks, a single headline, three swipeable insights. Habit = the ritual itself.",
+              phone: () =>
+                phone(
+                  screen(
+                    "dark",
+                    `
+       ${appbar("Your week", { sm: true, icons: false })}
+       <div class="grow" style="display:flex;flex-direction:column;justify-content:center;gap:14px;">
+         <div class="kicker" style="color:#86847a;">week 23 · review</div>
+         <div class="h big2" style="color:#fff;">You spent <span style="color:var(--hl);">₹4,100 less</span> than last week. 🔥 4-week streak.</div>
+         <div class="card" style="border-color:#3a382f;gap:8px;">
+           <div class="p" style="color:#bdbbb0;">Biggest drop · <b style="color:#fff;">eating out −₹2,300</b></div>
+           <div class="p" style="color:#bdbbb0;">Sneaky climb · <b style="color:#fff;">subscriptions +₹400</b></div>
+         </div>
+         <div class="row" style="gap:6px;justify-content:center;">${chip("● ● ● ○", "hl")}</div>
+       </div>
+       ${btn("See full review →", "solid")}`,
+                  ),
+                ),
+            },
+          ],
+        },
+        {
+          id: "store",
+          n: "5",
+          tab: "Extension store",
+          name: "Extension marketplace",
+          desc: "Each bank/PF/insurer is a community JSON manifest (senders, filters, regex extractors, fixtures) that customises the core engine. The store is how users teach unmiser new money sources.",
+          why: "A real <b>app-store</b>, a quiet <b>connected-sources</b> manager, or a deep <b>manifest detail</b> page — how installable should this feel?",
+          variants: [
+            {
+              ab: "A",
+              name: "Browse store",
+              cap: "<b>App-store style.</b> Search, categories (Banks · PF · Insurance · Funds), featured manifests with one-tap install.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Extensions", { icons: true })}
+       <div class="card soft" style="padding:8px 12px;flex-direction:row;align-items:center;gap:8px;"><span class="muted">🔍</span><span class="p">Search 240+ banks & providers</span></div>
+       ${chips([["Banks", "on"], "PF / EPF", "Insurance", "Mutual funds", "Wallets"])}
+       <div class="kicker">featured</div>
+       <div class="card soft">
+         ${txn("HDFC Bank", "SMS parser · ★ bundled", "Get", { ic: "🏦", badge: "install", badgeCls: "" })}
+         ${txn("ADCB", "UAE · 14 fixtures", "Get", { ic: "🏦", badge: "install" })}
+         ${txn("EPFO", "Provident fund", "Get", { ic: "🏛", badge: "install" })}
+         ${txn("LIC", "Insurance premiums", "Get", { ic: "🛡", badge: "install" })}
+       </div>
+       <div class="grow"></div>`,
+                    { tab: "hub" },
+                  ),
+                ),
+            },
+            {
+              ab: "B",
+              name: "Connected sources",
+              cap: "Calmer. A <b>list of what’s installed</b> and live, each with last-sync + message count, “add source” at the bottom. Plumbing, not a shop.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Sources", { sm: true, icons: true })}
+       <div class="row"><div class="kicker grow">5 active · last parsed 2m ago</div><div class="badge hl">all ok</div></div>
+       <div class="card soft">
+         ${txn("HDFC Bank", "142 msgs · ✓ syncing", "●", { ic: "🏦", in: true })}
+         ${txn("ICICI Bank", "61 msgs · ✓", "●", { ic: "🏦", in: true })}
+         ${txn("EPFO", "passbook · monthly", "●", { ic: "🏛", in: true })}
+         ${txn("HDFC Life", "premium reminders", "●", { ic: "🛡", in: true })}
+         ${txn("Groww", "MF portfolio", "⚠ update", { ic: "📈", badge: "fix", badgeCls: "gray" })}
+       </div>
+       ${note("manifests = JSON, updatable", "top:300px;right:8px;")}
+       <div class="grow"></div>
+       ${btn("+ Add a source", "solid")}`,
+                    { tab: "hub" },
+                  ),
+                ),
+            },
+            {
+              ab: "C",
+              name: "Manifest detail",
+              cap: "The deep view of one extension — what it <b>parses</b>, supported SMS samples, fixture/test count, trust level. Power-user transparency.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("", { back: true, icons: false })}
+       <div class="row"><div class="tdot in" style="width:42px;height:42px;font-size:18px;">🏦</div><div class="grow"><div class="h">Abu Dhabi Comm. Bank</div><div class="ts">ae.adcb.bank · v1 · bundled</div></div></div>
+       <div class="chips">${chip("AED", "hl")}${chip("14 fixtures")}${chip("★ trusted")}</div>
+       <div class="card soft" style="gap:6px;">
+         <div class="kicker">parses</div>
+         ${chips(["amount", "merchant", "balance", "account", "type"])}
+       </div>
+       <div class="card soft" style="gap:4px;"><div class="kicker">sample it handles</div><div class="p" style="font-family:var(--mono);font-size:9px;">"Your debit card XXX1234 was used for AED100.50 at MERCHANT…"</div></div>
+       <div class="grow"></div>
+       ${btn("Install extension", "hl")}`,
+                  ),
+                ),
+            },
+          ],
+        },
+        {
+          id: "net",
+          n: "6",
+          tab: "Net worth",
+          name: "Net worth / all-money overview",
+          desc: "Beyond spending: the full picture — bank balances, PF, mutual funds, insurance cash value, cash. One number that grows.",
+          why: "Show net worth as a <b>stacked total</b>, a <b>trend over time</b>, or a <b>grid of sources</b> — which builds the “I’m in control” feeling?",
+          variants: [
+            {
+              ab: "A",
+              name: "Stacked total",
+              cap: "One big <b>net worth number</b>, then every bucket listed underneath, largest first. Simple, honest ledger.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Net worth", { sm: true, icons: true })}
+       <div style="padding:8px 0 2px;">
+         <div class="kicker">total · all sources</div>
+         <div class="big xl">₹6.84L</div>
+         <div class="chips">${chip("▲ +₹14,200 this month", "hl")}</div>
+       </div>
+       <div class="card soft">
+         ${txn("Mutual funds", "Groww · SIP", "₹3.10L", { ic: "📈", in: true })}
+         ${txn("EPF", "provident fund", "₹1.92L", { ic: "🏛", in: true })}
+         ${txn("Savings", "HDFC + ICICI", "₹1.18L", { ic: "🏦", in: true })}
+         ${txn("LIC cash value", "endowment", "₹48,000", { ic: "🛡", in: true })}
+         ${txn("Cash", "wallet", "₹16,000", { ic: "💵", in: true })}
+       </div>
+       <div class="grow"></div>`,
+                    { tab: "grow" },
+                  ),
+                ),
+            },
+            {
+              ab: "B",
+              name: "Trend line",
+              cap: "<b>Net worth over time.</b> A rising line is the most motivating object in the app; buckets become a legend below.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Net worth", { sm: true, icons: true })}
+       <div class="big" style="font-size:30px;">₹6.84L</div>
+       <div class="ts">past 12 months · ▲ 31%</div>
+       ${ph(150, "line chart\n↗ rising net worth")}
+       ${chips([["1M", ""], "6M", ["1Y", "on"], "All"])}
+       <div class="card soft" style="gap:9px;">
+         ${bar("📈 Investments", 0.46, "₹3.1L", "hl")}
+         ${bar("🏛 PF", 0.28, "₹1.9L")}
+         ${bar("🏦 Bank", 0.17, "₹1.2L")}
+       </div>
+       <div class="grow"></div>`,
+                    { tab: "grow" },
+                  ),
+                ),
+            },
+            {
+              ab: "C",
+              name: "Source grid",
+              cap: "Each money source as a <b>tappable card</b> in a grid — tactile, “my accounts as objects,” tap any to drill in.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("My money", { sm: true, icons: true })}
+       <div class="big" style="font-size:26px;">₹6.84L <span class="ts" style="font-weight:600;">net</span></div>
+       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+         <div class="card" style="gap:4px;padding:11px;"><div style="font-size:18px;">🏦</div><div class="ts">Savings</div><b>₹1.18L</b></div>
+         <div class="card" style="gap:4px;padding:11px;"><div style="font-size:18px;">📈</div><div class="ts">Mutual funds</div><b>₹3.10L</b></div>
+         <div class="card" style="gap:4px;padding:11px;"><div style="font-size:18px;">🏛</div><div class="ts">EPF</div><b>₹1.92L</b></div>
+         <div class="card" style="gap:4px;padding:11px;border-style:dashed;"><div style="font-size:18px;">🛡</div><div class="ts">Insurance</div><b>₹48k</b></div>
+       </div>
+       ${note("tap a card → detail", "top:330px;right:10px;")}
+       <div class="grow"></div>`,
+                    { tab: "grow" },
+                  ),
+                ),
+            },
+          ],
+        },
+        {
+          id: "acct",
+          n: "7",
+          tab: "Account detail",
+          name: "Single account detail",
+          desc: "Drill into one source. The same shell must flex across very different money types — a bank account, a PF passbook, an insurance policy.",
+          why: "One detail layout stretched across <b>bank · PF · insurance</b> — testing whether a single template can hold them all.",
+          variants: [
+            {
+              ab: "A",
+              name: "Bank account",
+              cap: "Balance + the <b>SMS-parsed transaction history</b> for one account. The everyday case.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("", { back: true, icons: false })}
+       <div class="kicker">HDFC Bank · savings ••4410</div>
+       <div class="big" style="font-size:32px;">₹84,210</div>
+       <div class="chips">${chip("auto from SMS", "hl")}${chip("updated 2m ago")}</div>
+       <div class="seg"><div class="on">Activity</div><div>Insights</div></div>
+       <div style="overflow:hidden;">
+         ${txn("Salary · Acme", "1 Jun · NEFT", "+₹62,000", { in: true })}
+         ${txn("Zepto", "3 Jun · UPI", "−₹612")}
+         ${txn("Indian Oil", "3 Jun · card", "−₹1,500")}
+         ${txn("Jio", "2 Jun · UPI", "−₹299")}
+       </div>
+       <div class="grow"></div>`,
+                    { tab: "home" },
+                  ),
+                ),
+            },
+            {
+              ab: "B",
+              name: "PF passbook",
+              cap: "Same shell, money that <b>grows not flows</b>: employee + employer split, interest, contribution streak.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("", { back: true, icons: false })}
+       <div class="kicker">EPFO · provident fund</div>
+       <div class="big" style="font-size:32px;">₹1.92L</div>
+       <div class="chips">${chip("▲ +₹4,800 this month", "hl")}${chip("8.25% p.a.")}</div>
+       ${ph(96, "contribution growth\nstacked bars ↗")}
+       <div class="card soft" style="gap:9px;">
+         ${bar("Employee share", 0.5, "₹96,000")}
+         ${bar("Employer share", 0.42, "₹81,000")}
+         ${bar("Interest earned", 0.08, "₹15,000", "hl")}
+       </div>
+       <div class="grow"></div>`,
+                    { tab: "grow" },
+                  ),
+                ),
+            },
+            {
+              ab: "C",
+              name: "Insurance policy",
+              cap: "Same shell, a <b>commitment to keep up</b>: sum assured, next premium due, payment schedule front and centre.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("", { back: true, icons: false })}
+       <div class="kicker">LIC · Jeevan Anand</div>
+       <div class="row"><div class="grow"><div class="ts">sum assured</div><div class="big" style="font-size:28px;">₹10L</div></div><div style="text-align:right;"><div class="ts">cash value</div><b style="font-size:16px;">₹48,000</b></div></div>
+       <div class="card" style="gap:6px;border-color:var(--ink);">
+         <div class="row"><div class="kicker grow">next premium</div><div class="badge hl">in 9 days</div></div>
+         <div class="row"><div class="big" style="font-size:22px;">₹12,400</div><div class="grow"></div>${chip("half-yearly")}</div>
+       </div>
+       <div class="kicker">schedule</div>
+       <div class="card soft">
+         ${txn("Jun 2026", "upcoming", "₹12,400", { ic: "◷", badge: "due", badgeCls: "gray" })}
+         ${txn("Dec 2025", "paid", "₹12,400", { ic: "✓", in: true })}
+         ${txn("Jun 2025", "paid", "₹12,400", { ic: "✓", in: true })}
+       </div>
+       <div class="grow"></div>`,
+                    { tab: "grow" },
+                  ),
+                ),
+            },
+          ],
+        },
+        {
+          id: "charts",
+          n: "8",
+          tab: "Charts & insights",
+          name: "Charts & insights",
+          desc: "On-device analytics — totals, trends, category breakdown, top merchants. Your current prototype already has a line/bar/heatmap switcher and a donut; these test three ways to organise all of it.",
+          why: "A <b>scrolling report</b> like today, <b>question-led cards</b> that answer instead of display, or a <b>calendar heatmap</b> as the spine.",
+          variants: [
+            {
+              ab: "A",
+              name: "Scrolling report",
+              cap: "Closest to your build: stat header, <b>chart-type switcher</b> (line / bar / heatmap), then donut + top merchants as you scroll.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Insights", { icons: true })}
+       <div class="card soft" style="gap:4px;">
+         <div class="row"><div class="grow"><div class="kicker">total · june</div><div class="big" style="font-size:26px;">₹37,965</div></div><div style="text-align:right;"><div class="kicker">avg/day</div><b style="font-size:14px;">₹1,224</b></div></div>
+       </div>
+       <div class="seg"><div class="on">Line</div><div>Bar</div><div>Heatmap</div></div>
+       <div class="card soft" style="padding:10px 8px 6px;">${lchart(100)}<div class="row"><span class="ts">Jun 1</span><span class="ts right">Jun 10</span></div></div>
+       <div class="row" style="gap:12px;align-items:center;">
+         <div class="donut"></div>
+         <div class="grow" style="display:flex;flex-direction:column;gap:5px;">
+           ${leg([
+             ["var(--ink)", "Bills", "₹9.4k"],
+             ["var(--hl)", "Food", "₹6.5k"],
+             ["#9a988c", "Shopping", "₹2.7k"],
+             ["#cdcbbf", "Transport", "₹1.7k"],
+           ])}
+         </div>
+       </div>
+       <div class="grow"></div>`,
+                    { tab: "grow" },
+                  ),
+                ),
+            },
+            {
+              ab: "B",
+              name: "Question cards",
+              cap: "Charts only exist to <b>answer a question</b> — so lead with the question. Each card: one question, one visual, one plain-words answer.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Insights", { icons: true })}
+       <div class="card" style="gap:8px;">
+         <div class="kicker">where did june go?</div>
+         <div class="row" style="gap:12px;">
+           <div class="donut" style="width:70px;height:70px;"></div>
+           <div class="grow" style="display:flex;flex-direction:column;gap:4px;">${leg([
+             ["var(--ink)", "Bills", "24%"],
+             ["var(--hl)", "Food", "17%"],
+             ["#9a988c", "Shopping", "7%"],
+           ])}</div>
+         </div>
+         <div class="p">Mostly bills — but <b>food grew the fastest</b>.</div>
+       </div>
+       <div class="card soft" style="gap:6px;">
+         <div class="kicker">am i spending faster than may?</div>
+         ${lchart(72)}
+         <div class="p"><b>Yes, +12%</b> at the same point last month.</div>
+       </div>
+       ${note("answer in words, not axes", "top:330px;right:10px;")}
+       <div class="grow"></div>`,
+                    { tab: "grow" },
+                  ),
+                ),
+            },
+            {
+              ab: "C",
+              name: "Calendar heatmap",
+              cap: "The month as a <b>heatmap calendar</b> — dark days are heavy days. Tap a day to see exactly what happened. Patterns jump out (weekends!).",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("June", { icons: true })}
+       <div class="row"><div class="kicker grow">daily spend · darker = heavier</div><div class="badge hl">₹37.9k</div></div>
+       <div class="card soft" style="gap:8px;">
+         <div class="row" style="justify-content:space-between;">${["M", "T", "W", "T", "F", "S", "S"].map((d) => `<span class="ts" style="width:24px;text-align:center;">${d}</span>`).join("")}</div>
+         ${heat()}
+       </div>
+       <div class="kicker">sat 7 jun · ₹4,310</div>
+       <div class="card soft">
+         ${txn("PVR Cinemas", "Fun", "−₹1,200")}
+         ${txn("Swiggy", "Food", "−₹860")}
+         ${txn("Myntra", "Shopping", "−₹2,250")}
+       </div>
+       ${note("weekends glow dark →", "top:218px;left:12px;")}
+       <div class="grow"></div>`,
+                    { tab: "grow" },
+                  ),
+                ),
+            },
+          ],
+        },
+        {
+          id: "settings",
+          n: "9",
+          tab: "Settings",
+          name: "Settings",
+          desc: "Where the machinery lives: accounts, budgets, categories, smart rules, appearance, language, notifications — plus the on-device AI model and data privacy, which are unmiser\u2019s differentiators.",
+          why: "A classic <b>grouped list</b>, a <b>searchable hub</b>, or a <b>privacy-first</b> layout that leads with “your data never leaves”.",
+          variants: [
+            {
+              ab: "A",
+              name: "Grouped list",
+              cap: "Your current structure, organised into <b>3 groups</b>: Money, App, Data. Profile card on top with the transaction count as a badge of honour.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Settings", { back: true, icons: false })}
+       <div class="card" style="background:var(--ink);color:#fff;flex-direction:row;align-items:center;gap:10px;border-color:var(--ink);">
+         <div class="tdot" style="background:#fff;border-color:#fff;">VJ</div>
+         <div class="grow"><div class="tm" style="color:#fff;">VJ</div><div class="ts" style="color:#9a988c;">1,148 transactions logged</div></div>
+         <span style="color:#9a988c;">&rsaquo;</span>
+       </div>
+       <div class="kicker">money</div>
+       <div class="card soft" style="gap:0;padding:4px 12px;">
+         ${srow("🏦", "Accounts", "3 banks · 2 wallets")}
+         ${srow("◔", "Budgets", "₹40,000 / month")}
+         ${srow("⊞", "Categories", "14 active")}
+         ${srow("✳", "Smart rules", "auto-categorisation")}
+       </div>
+       <div class="kicker">app · data</div>
+       <div class="card soft" style="gap:0;padding:4px 12px;">
+         ${srow("◐", "Appearance", "dark · accent")}
+         ${srow("🔒", "Data & privacy", "everything on-device")}
+       </div>
+       <div class="grow"></div>`,
+                    { tab: "hub" },
+                  ),
+                ),
+            },
+            {
+              ab: "B",
+              name: "Searchable hub",
+              cap: "Settings as a <b>hub with search</b> + a “most used” row. Scales better as extensions add their own settings pages.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Settings", { back: true, icons: false })}
+       <div class="card soft" style="padding:8px 12px;flex-direction:row;align-items:center;gap:8px;"><span class="muted">🔍</span><span class="p">Search settings…</span></div>
+       <div class="kicker">most used</div>
+       ${chips([["Budgets", "hl"], "Smart rules", "Export"])}
+       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+         <div class="card" style="gap:3px;padding:11px;"><div>🏦</div><b style="font-size:12.5px;">Accounts</b><span class="ts">3 banks</span></div>
+         <div class="card" style="gap:3px;padding:11px;"><div>⊞</div><b style="font-size:12.5px;">Categories</b><span class="ts">14 active</span></div>
+         <div class="card" style="gap:3px;padding:11px;"><div>✳</div><b style="font-size:12.5px;">Smart rules</b><span class="ts">9 rules</span></div>
+         <div class="card" style="gap:3px;padding:11px;"><div>🧩</div><b style="font-size:12.5px;">Extensions</b><span class="ts">5 installed</span></div>
+       </div>
+       ${note("extensions add tiles here", "top:392px;right:10px;")}
+       <div class="grow"></div>`,
+                    { tab: "hub" },
+                  ),
+                ),
+            },
+            {
+              ab: "C",
+              name: "Privacy-first",
+              cap: "Lead with the promise: a <b>“your data” dashboard</b> — storage on device, export anytime, the on-device AI model, and a clear erase button. Trust as a feature.",
+              phone: () =>
+                phone(
+                  screen(
+                    "",
+                    `
+       ${appbar("Data & privacy", { back: true, sm: true, icons: false })}
+       <div class="card" style="gap:6px;">
+         <div class="row"><div class="kicker grow">your data lives here</div><div class="badge hl">offline</div></div>
+         <div class="row"><div class="big" style="font-size:22px;">4.2 MB</div><div class="p grow" style="padding-left:8px;">on this phone. Zero servers, zero analytics.</div></div>
+       </div>
+       <div class="card soft" style="gap:6px;">
+         <div class="row"><div class="tdot in">✦</div><div class="grow"><div class="tm">On-device AI assistant</div><div class="ts">Qwen 2.5 · 1.6 GB · optional</div></div><div class="badge">get</div></div>
+         ${bar("Works without internet", 1, "", "hl")}
+       </div>
+       <div class="row" style="gap:8px;">${btn("Export CSV", "outline")}${btn("Backup JSON", "outline")}</div>
+       <div class="grow"></div>
+       ${btn("Erase everything", "outline")}
+       <div class="p" style="text-align:center;">No account to delete — it\u2019s all yours.</div>`,
+                    { tab: "hub" },
+                  ),
+                ),
+            },
+          ],
+        },
+      ];
+
+      /* ============ render ============ */
+      const tabsEl = document.getElementById("tabs");
+      const panelsEl = document.getElementById("panels");
+      FLOWS.forEach((f, i) => {
+        const b = document.createElement("button");
+        b.className = "tab-btn" + (i === 0 ? " active" : "");
+        b.innerHTML = `<span class="n">${f.n}</span>${f.tab}`;
+        b.onclick = () => select(i);
+        tabsEl.appendChild(b);
+
+        const p = document.createElement("div");
+        p.className = "panel" + (i === 0 ? " active" : "");
+        p.dataset.idx = i;
+        p.innerHTML = `
+    <div class="flow-head">
+      <h2>${f.name}</h2>
+      <p>${f.desc}</p>
+      <div class="why">${f.why}</div>
+    </div>
+    <div class="rail">
+      ${f.variants
+        .map(
+          (v) => `
+        <div class="variant">
+          <div class="vtag"><span class="ab">${v.ab}</span><span class="vname">${v.name}</span></div>
+          ${v.phone()}
+          <div class="cap"><span class="arr">↳</span><span>${v.cap}</span></div>
+        </div>`,
+        )
+        .join("")}
+    </div>`;
+        panelsEl.appendChild(p);
+      });
+      function select(i) {
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b, k) => b.classList.toggle("active", k === i));
+        document
+          .querySelectorAll(".panel")
+          .forEach((p, k) => p.classList.toggle("active", k === i));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      /* ============ controls ============ */
+      document.getElementById("swatches").addEventListener("click", (e) => {
+        const t = e.target.closest(".sw");
+        if (!t) return;
+        document.documentElement.style.setProperty("--hl", t.dataset.hl);
+        document.querySelectorAll(".sw").forEach((s) => s.classList.toggle("active", s === t));
+      });
+      document.getElementById("notesToggle").addEventListener("click", (e) => {
+        const t = e.target.closest("span");
+        if (!t) return;
+        const off = t.dataset.v === "off";
+        document.body.classList.toggle("no-notes", off);
+        document
+          .querySelectorAll("#notesToggle span")
+          .forEach((s) => s.classList.toggle("on", s === t));
+      });
+    </script>
+  </body>
+</html>

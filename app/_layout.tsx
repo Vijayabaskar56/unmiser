@@ -1,11 +1,25 @@
 import "@/global.css";
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import {
+  HankenGrotesk_400Regular,
+  HankenGrotesk_500Medium,
+  HankenGrotesk_600SemiBold,
+  HankenGrotesk_700Bold,
+  HankenGrotesk_800ExtraBold,
+  HankenGrotesk_900Black,
+} from "@expo-google-fonts/hanken-grotesk";
+import { SpaceMono_400Regular, SpaceMono_700Bold } from "@expo-google-fonts/space-mono";
+import { useFonts } from "expo-font";
 import { Redirect, Stack, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
 import { HeroUINativeProvider } from "heroui-native";
+import { useEffect } from "react";
 import { ActivityIndicator, Platform, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+
+SplashScreen.preventAutoHideAsync();
 
 import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { expoDb } from "@/db";
@@ -60,8 +74,29 @@ export default function Layout() {
   // On-device Drizzle Studio dev tool (no-op in production builds).
   useDrizzleStudio(expoDb);
 
+  // Load the design-system fonts (one file per weight — RN can't synthesise
+  // weights, so each is registered under its own family name referenced by the
+  // --font-* tokens in global.css).
+  const [fontsLoaded, fontError] = useFonts({
+    HankenGrotesk_400Regular,
+    HankenGrotesk_500Medium,
+    HankenGrotesk_600SemiBold,
+    HankenGrotesk_700Bold,
+    HankenGrotesk_800ExtraBold,
+    HankenGrotesk_900Black,
+    SpaceMono_400Regular,
+    SpaceMono_700Bold,
+  });
+
   // Apply bundled migrations on startup before rendering the app.
   const { success, error } = useMigrations();
+
+  const ready = success && (fontsLoaded || !!fontError);
+  useEffect(() => {
+    if (ready) {
+      void SplashScreen.hideAsync();
+    }
+  }, [ready]);
 
   if (error) {
     return (
@@ -71,7 +106,7 @@ export default function Layout() {
     );
   }
 
-  if (!success) {
+  if (!ready) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator />

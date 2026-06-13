@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>unmiser — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#15140f;
+    --surface:#ffffff;
+    --paper:#f4f3ec;
+    --t2:#56544c;     /* secondary text */
+    --muted:#9a988c;  /* tertiary */
+    --hair:#cdcbbf;   /* hairline border */
+    --div:#e3e1d5;    /* divider */
+    --wash:#f4f3ec;   /* fill wash */
+    --hl:#e9e83f;     /* accent — unmiser yellow */
+    --on-ink:#ffffff; /* text on an ink fill */
+    --on-hl:#15140f;  /* text on yellow (constant) */
+    --pos:#1f7a3d;    /* credit / positive */
+    --ui:'Hanken Grotesk',system-ui,sans-serif;
+    --mono:'Space Mono',monospace;
+    --r:3px;
+  }
+  html[data-theme="dark"]{
+    --ink:#f1f0e8;
+    --surface:#1a1916;
+    --paper:#0e0d0b;
+    --t2:#bdbbb0;
+    --muted:#86847a;
+    --hair:#3a382f;
+    --div:#2c2a23;
+    --wash:#221f19;
+    --on-ink:#15140f;
+    --pos:#5fcf86;
+  }
+  html{transition:background .25s,color .25s;}
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--ui);display:flex;}
+  a{color:inherit;}
+
+  /* sidebar */
+  aside{position:sticky;top:0;height:100vh;width:236px;flex:none;border-right:1.5px solid var(--ink);background:var(--surface);padding:26px 20px;overflow-y:auto;}
+  aside .logo{font-size:24px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;}
+  aside .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--ink);}
+  aside .sub{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);margin:6px 0 26px;}
+  aside nav{display:flex;flex-direction:column;gap:1px;}
+  aside nav a{font-size:13px;font-weight:600;color:var(--t2);text-decoration:none;padding:7px 10px;border-radius:var(--r);display:flex;gap:9px;align-items:center;}
+  aside nav a:hover{background:var(--wash);}
+  aside nav a .n{font-family:var(--mono);font-size:10px;color:var(--muted);width:16px;}
+  aside .foot{margin-top:26px;padding-top:16px;border-top:1px solid var(--div);font-size:11px;line-height:1.5;color:var(--muted);}
+
+  main{flex:1;min-width:0;}
+  .hero{padding:64px 56px 40px;border-bottom:1.5px solid var(--ink);background:var(--surface);}
+  .hero h1{font-size:54px;font-weight:900;letter-spacing:-.03em;margin:0;line-height:1;}
+  .hero .lede{font-size:17px;line-height:1.5;color:var(--t2);max-width:620px;margin:18px 0 0;}
+  .hero .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;}
+  .pill{border:1.3px solid var(--ink);border-radius:var(--r);padding:5px 11px;font-size:12px;font-weight:700;white-space:nowrap;}
+  .pill.fill{background:var(--ink);color:var(--on-ink);}
+  .pill.hl{background:var(--hl);color:var(--on-hl);}
+
+  section{padding:48px 56px;border-bottom:1px solid var(--div);scroll-margin-top:10px;}
+  .sec-h{display:flex;align-items:baseline;gap:14px;margin-bottom:8px;}
+  .sec-h .num{font-family:var(--mono);font-size:12px;color:var(--muted);}
+  .sec-h h2{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0;}
+  .sec-sub{font-size:14.5px;color:var(--t2);line-height:1.55;max-width:680px;margin:0 0 28px;}
+
+  .grid{display:grid;gap:14px;}
+  .g2{grid-template-columns:repeat(2,1fr);}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g4{grid-template-columns:repeat(4,1fr);}
+  @media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr);}.g3{grid-template-columns:repeat(2,1fr);}}
+
+  .card{border:1.5px solid var(--ink);border-radius:var(--r);background:var(--surface);padding:18px;}
+  .card.soft{border:1px solid var(--hair);}
+  .label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+  .mono{font-family:var(--mono);}
+
+  /* color swatches */
+  .sw{border:1px solid var(--hair);border-radius:var(--r);overflow:hidden;background:var(--surface);}
+  .sw .chip{height:84px;}
+  .sw .meta{padding:10px 12px;}
+  .sw .name{font-size:13px;font-weight:800;}
+  .sw .val{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;}
+  .sw .use{font-size:11px;color:var(--t2);margin-top:6px;line-height:1.4;}
+
+  /* type specimens */
+  .specrow{display:flex;align-items:baseline;gap:20px;padding:14px 0;border-bottom:1px solid var(--div);}
+  .specrow:last-child{border-bottom:none;}
+  .specrow .tag{font-family:var(--mono);font-size:10px;color:var(--muted);width:130px;flex:none;text-transform:uppercase;letter-spacing:.08em;}
+  .d-display{font-size:46px;font-weight:900;letter-spacing:-.03em;line-height:1;}
+  .d-title{font-size:30px;font-weight:800;letter-spacing:-.02em;}
+  .d-balance{font-size:34px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+  .d-h{font-size:18px;font-weight:800;}
+  .d-body{font-size:14px;font-weight:500;color:var(--t2);}
+  .d-cap{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+  .d-tag{font-size:12px;font-weight:700;}
+  .d-tag::before{content:'#';color:var(--hair);}
+
+  /* tokens */
+  .tok{display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid var(--div);}
+  .tok:last-child{border-bottom:none;}
+  .tok .demo{flex:none;}
+  .tok .info{font-size:12.5px;}
+  .tok .info b{font-size:13px;}
+  .tok .info .mono{color:var(--muted);font-size:11px;}
+
+  /* component demo frame */
+  .demo-wrap{background:var(--wash);border:1px solid var(--div);border-radius:var(--r);padding:22px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+  .demo-wrap.col{flex-direction:column;align-items:stretch;}
+
+  /* ===== ACTUAL COMPONENTS (the system) ===== */
+  .btn{border:1.5px solid var(--ink);border-radius:var(--r);padding:12px 18px;text-align:center;font-weight:800;font-size:13px;cursor:default;}
+  .btn.solid{background:var(--ink);color:var(--on-ink);}
+  .btn.outline{background:var(--surface);}
+  .btn.hl{background:var(--hl);color:var(--on-hl);}
+  .btn.sm{padding:8px 13px;font-size:12px;}
+
+  .uchip{border:1.3px solid var(--hair);border-radius:var(--r);padding:5px 11px;font-size:12px;font-weight:600;color:var(--t2);background:var(--surface);}
+  .uchip.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink);}
+  .uchip.hl{background:var(--hl);border-color:var(--ink);color:var(--on-hl);}
+
+  .ht{display:inline-block;border:1.2px solid var(--hair);border-radius:var(--r);padding:3px 9px;font-size:11.5px;font-weight:700;background:var(--surface);}
+  .ht::before{content:'#';color:var(--hair);}
+  .ht.on{background:var(--ink);color:var(--on-ink);border-color:var(--ink);}
+  .ht.on::before{color:var(--muted);}
+
+  .badge{font-family:var(--mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border:1.3px solid var(--ink);border-radius:2px;padding:2px 6px;}
+  .badge.hl{background:var(--hl);color:var(--on-hl);}
+  .badge.gray{border-color:var(--hair);color:var(--muted);}
+
+  .ucard{border:1.5px solid var(--ink);border-radius:var(--r);background:var(--surface);padding:14px;}
+  .ucard.soft{border:1px solid var(--hair);}
+
+  .subtabs{display:flex;gap:18px;border-bottom:1px solid var(--div);}
+  .subtabs span{padding:0 0 9px;font-size:13px;font-weight:700;color:var(--muted);position:relative;}
+  .subtabs span.on{color:var(--ink);}
+  .subtabs span.on::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink);}
+
+  .scrub{display:flex;gap:8px;align-items:center;}
+  .scrub span{font-size:14px;font-weight:700;color:var(--muted);position:relative;padding:0 4px 7px;}
+  .scrub span.on{color:var(--ink);}
+  .scrub span.on::after{content:'';position:absolute;left:4px;right:4px;bottom:0;height:2.5px;background:var(--ink);border-radius:2px;}
+
+  .seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:var(--r);overflow:hidden;}
+  .seg div{text-align:center;font-size:12px;font-weight:700;padding:8px 18px;}
+  .seg div.on{background:var(--ink);color:var(--on-ink);}
+
+  .cb-pill{display:inline-flex;align-items:center;gap:9px;background:var(--ink);color:var(--on-ink);font-size:12px;font-weight:700;padding:6px 12px;border-radius:var(--r);white-space:nowrap;}
+  .cb-pill .sep{width:1px;height:12px;background:var(--muted);opacity:.5;}
+
+  .txn{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--div);}
+  .txn:last-child{border-bottom:none;}
+  .tdot{width:34px;height:34px;border-radius:50%;border:1.3px solid var(--hair);flex:none;display:grid;place-items:center;font-size:13px;color:var(--muted);}
+  .tdot.in{border-color:var(--ink);color:var(--ink);}
+  .tmid{flex:1;min-width:0;}
+  .tm{font-size:14px;font-weight:700;}
+  .ts{font-size:11px;color:var(--muted);margin-top:1px;}
+  .ts .tg{font-weight:700;color:var(--t2);}
+  .ts .tg::before{content:'#';color:var(--hair);}
+  .ta{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .ta.pos{color:var(--pos);}
+
+  .illo{border:1.5px solid var(--ink);border-radius:var(--r);background:var(--surface);display:flex;align-items:center;justify-content:center;padding:16px;height:128px;}
+  .illo svg{width:auto;height:100%;}
+  .illo .cap{position:absolute;}
+
+  .tabbar{border:1.5px solid var(--ink);border-radius:var(--r);background:var(--surface);height:58px;display:flex;align-items:center;justify-content:space-around;padding:0 14px;width:100%;max-width:380px;}
+  .tb{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;font-weight:700;color:var(--muted);}
+  .tb .ti{width:20px;height:20px;border:1.8px solid currentColor;border-radius:5px;}
+  .tb.on{color:var(--ink);}
+  .tb.on .ti{background:var(--hl);border-color:var(--ink);}
+  .tb.add .ti{width:36px;height:36px;border-radius:50%;background:var(--ink);border-color:var(--ink);color:var(--on-ink);display:grid;place-items:center;font-size:18px;margin-top:-14px;}
+  .tb.add{color:transparent;}
+
+  /* charts */
+  .donut{width:104px;height:104px;border-radius:50%;background:conic-gradient(var(--ink) 0 34%,var(--hl) 34% 58%,#9a988c 58% 76%,#cdcbbf 76% 92%,#e7e6dd 92% 100%);position:relative;flex:none;}
+  .donut::after{content:'';position:absolute;inset:20px;background:var(--surface);border-radius:50%;border:1px solid var(--div);}
+  .legrow{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;}
+  .legrow .ld{width:10px;height:10px;border-radius:50%;flex:none;}
+  .heat{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;max-width:230px;}
+  .heat span{aspect-ratio:1;border-radius:4px;background:var(--ink);}
+  .heat span.z{background:var(--surface);border:1px solid var(--div);}
+
+  .principle{display:flex;gap:16px;align-items:flex-start;}
+  .principle .pn{font-family:var(--mono);font-size:13px;font-weight:700;background:var(--ink);color:var(--on-ink);border-radius:var(--r);width:30px;height:30px;display:grid;place-items:center;flex:none;}
+  .principle h3{margin:2px 0 4px;font-size:15px;font-weight:800;}
+  .principle p{margin:0;font-size:13px;color:var(--t2);line-height:1.5;}
+
+  .do{border-left:3px solid var(--pos);}
+  .dont{border-left:3px solid var(--ink);}
+  .do .label{color:var(--pos);}
+  code{font-family:var(--mono);font-size:.9em;background:var(--wash);padding:1px 5px;border-radius:3px;border:1px solid var(--div);}
+
+  /* accent picker */
+  .accent-row{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;}
+  .acc-opt{display:flex;flex-direction:column;align-items:center;gap:9px;cursor:pointer;background:none;border:none;padding:0;font-family:inherit;}
+  .acc-dot{width:42px;height:42px;border-radius:50%;border:2.5px solid var(--ink);transition:box-shadow .12s;}
+  .acc-opt.sel .acc-dot{box-shadow:0 0 0 3px var(--surface),0 0 0 5.5px var(--ink);}
+  .acc-opt .nm{font-size:12px;font-weight:800;}
+  .acc-opt .hx{font-family:var(--mono);font-size:9.5px;color:var(--muted);}
+
+  /* compact phone mock for the appearance screen */
+  .ds-phone{width:288px;border:2.5px solid var(--ink);border-radius:34px;background:var(--surface);overflow:hidden;box-shadow:7px 7px 0 rgba(20,18,12,.06);}
+  html[data-theme="dark"] .ds-phone{box-shadow:7px 7px 0 rgba(0,0,0,.45);}
+  .ds-phone .ph-sb{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:11px;font-weight:700;}
+  .ds-phone .ph-ct{padding:6px 18px 22px;display:flex;flex-direction:column;gap:16px;}
+  .ds-ab{display:flex;align-items:center;gap:10px;padding:4px 0 2px;}
+  .ds-ab .bk{font-size:21px;font-weight:700;}
+  .ds-ab .tt{font-size:18px;font-weight:800;letter-spacing:-.01em;}
+  .set-row{display:flex;flex-direction:column;gap:9px;}
+  .set-row .rk{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);}
+  .mini-seg{display:flex;border:1.5px solid var(--ink);border-radius:3px;overflow:hidden;}
+  .mini-seg div{flex:1;text-align:center;font-size:12px;font-weight:700;padding:8px 4px;cursor:pointer;}
+  .mini-seg div.on{background:var(--ink);color:var(--on-ink);}
+  .mini-acc{display:flex;gap:16px;align-items:center;padding:2px 0;}
+  .mini-dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--ink);cursor:pointer;}
+  .mini-dot.sel{box-shadow:0 0 0 2.5px var(--surface),0 0 0 4.5px var(--ink);}
+</style>
+</head>
+<body>
+  <aside>
+    <div class="logo">unmiser<span class="dot"></span></div>
+    <div class="sub">Design System · v1</div>
+    <div class="toggle" id="themeToggle" style="display:inline-flex;border:1.5px solid var(--ink);border-radius:20px;overflow:hidden;cursor:pointer;margin-bottom:22px;"><span class="on" data-t="light" style="padding:4px 13px;font-size:11px;font-weight:700;background:var(--ink);color:var(--on-ink);">Light</span><span data-t="dark" style="padding:4px 13px;font-size:11px;font-weight:700;">Dark</span></div>
+    <nav>
+      <a href="#foundations"><span class="n">00</span>Foundations</a>
+      <a href="#color"><span class="n">01</span>Color</a>
+      <a href="#accent"><span class="n">02</span>Accent</a>
+      <a href="#type"><span class="n">03</span>Typography</a>
+      <a href="#space"><span class="n">04</span>Space &amp; shape</a>
+      <a href="#illo"><span class="n">05</span>Illustration</a>
+      <a href="#buttons"><span class="n">06</span>Buttons</a>
+      <a href="#tags"><span class="n">07</span>Chips &amp; #tags</a>
+      <a href="#cards"><span class="n">08</span>Cards</a>
+      <a href="#nav"><span class="n">09</span>Navigation</a>
+      <a href="#txn"><span class="n">10</span>Transactions</a>
+      <a href="#charts"><span class="n">11</span>Charts</a>
+      <a href="#voice"><span class="n">12</span>Voice</a>
+    </nav>
+    <div class="foot">Derived from the Minna Bank (みんなの銀行) iOS visual language. Black &amp; white, hairline rules, line illustrations — plus one unmiser signature: highlighter yellow.</div>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <h1>unmiser</h1>
+      <p class="lede">A money tracker that reads your bank SMS on-device and quietly bends your spending habits. The look is borrowed from Minna Bank: editorial black &amp; white, sharp hairline cards, charming line drawings — disciplined enough to make numbers calm.</p>
+      <div class="meta">
+        <span class="pill fill">Mono-first</span>
+        <span class="pill hl">Yellow accent</span>
+        <span class="pill">Sharp corners</span>
+        <span class="pill">Hairline rules</span>
+        <span class="pill">₹ INR · offline</span>
+      </div>
+    </div>
+
+    <!-- FOUNDATIONS -->
+    <section id="foundations">
+      <div class="sec-h"><span class="num">00</span><h2>Foundations</h2></div>
+      <p class="sec-sub">Five principles the whole system answers to. When a decision is unclear, these break the tie.</p>
+      <div class="grid g2">
+        <div class="card"><div class="principle"><div class="pn">1</div><div><h3>Numbers are the hero</h3><p>Balances and totals are set in big, tight, tabular weights. Everything else recedes to support them. A screen should answer one money question at a glance.</p></div></div></div>
+        <div class="card"><div class="principle"><div class="pn">2</div><div><h3>Ink, not color</h3><p>The interface is black on white. Color carries meaning only — yellow marks the one thing that matters on a screen; green means money came in. Never decorate.</p></div></div></div>
+        <div class="card"><div class="principle"><div class="pn">3</div><div><h3>Hairlines &amp; sharp edges</h3><p>Structure comes from thin 1–1.5px rules and near-square 3px corners, not shadows or fills. The result feels like fine print — precise, trustworthy.</p></div></div></div>
+        <div class="card"><div class="principle"><div class="pn">4</div><div><h3>Drawings, not icons</h3><p>Money types get warm single-weight line illustrations (a wallet, a piggy bank). They humanise an otherwise austere, data-dense surface.</p></div></div></div>
+        <div class="card"><div class="principle"><div class="pn">5</div><div><h3>Tags over taxonomy</h3><p>Spending is organised by lightweight <code>#hashtags</code>, not a rigid category tree. Flexible, personal, and fast to assign from a parsed SMS.</p></div></div></div>
+        <div class="card soft" style="display:flex;align-items:center;justify-content:center;background:var(--ink);color:var(--on-ink);border-color:var(--ink);"><div style="text-align:center;"><div style="font-size:30px;font-weight:900;letter-spacing:-.02em;">offline<br/>by default</div><div class="label" style="color:#86847a;margin-top:8px;">no cloud · no login · on-device AI</div></div></div>
+      </div>
+    </section>
+
+    <!-- COLOR -->
+    <section id="color">
+      <div class="sec-h"><span class="num">01</span><h2>Color</h2></div>
+      <p class="sec-sub">A monochrome ink scale does the structural work. Yellow is the single accent — used sparingly for the active/important element on a screen. Green is reserved strictly for credits.</p>
+      <div class="grid g4">
+        <div class="sw"><div class="chip" style="background:#15140f"></div><div class="meta"><div class="name">Ink</div><div class="val">#15140F</div><div class="use">Text, borders, fills, active states.</div></div></div>
+        <div class="sw"><div class="chip" style="background:#56544c"></div><div class="meta"><div class="name">Ink 70</div><div class="val">#56544C</div><div class="use">Secondary text, body copy.</div></div></div>
+        <div class="sw"><div class="chip" style="background:#9a988c"></div><div class="meta"><div class="name">Muted</div><div class="val">#9A988C</div><div class="use">Captions, metadata, placeholders.</div></div></div>
+        <div class="sw"><div class="chip" style="background:#cdcbbf"></div><div class="meta"><div class="name">Hairline</div><div class="val">#CDCBBF</div><div class="use">Soft borders, inactive chip edges.</div></div></div>
+        <div class="sw"><div class="chip" style="background:#e3e1d5"></div><div class="meta"><div class="name">Divider</div><div class="val">#E3E1D5</div><div class="use">List separators, faint rules.</div></div></div>
+        <div class="sw"><div class="chip" style="background:#f4f3ec;border-bottom:1px solid var(--div)"></div><div class="meta"><div class="name">Paper</div><div class="val">#F4F3EC</div><div class="use">App canvas, wash fills.</div></div></div>
+        <div class="sw"><div class="chip" style="background:#e9e83f"></div><div class="meta"><div class="name">Accent · Yellow</div><div class="val">#E9E83F</div><div class="use">The one thing that matters. Active tab, key highlight, chart marker.</div></div></div>
+        <div class="sw"><div class="chip" style="background:#1f7a3d"></div><div class="meta"><div class="name">Credit</div><div class="val">#1F7A3D</div><div class="use">Positive amounts only (+₹). Never decorative.</div></div></div>
+      </div>
+      <div class="grid g2" style="margin-top:14px;">
+        <div class="card do"><div class="label">Do</div><p style="font-size:13px;color:var(--t2);margin:6px 0 0;line-height:1.5;">Use yellow for a single focal point per screen — the live month, the urgent nudge, the chart's current bar.</p></div>
+        <div class="card dont"><div class="label">Don't</div><p style="font-size:13px;color:var(--t2);margin:6px 0 0;line-height:1.5;">Fill cards or backgrounds with yellow, or use green for anything other than incoming money.</p></div>
+      </div>
+    </section>
+
+    <!-- ACCENT -->
+    <section id="accent">
+      <div class="sec-h"><span class="num">02</span><h2>Accent</h2></div>
+      <p class="sec-sub">Yellow is the default, but the accent is the one thing the user can personalise — changed in <b>Settings → Appearance</b>. It recolors every active state, chart marker, highlight and key action in a single move; everything else stays ink. Text on the accent is always ink (<code>--on-hl</code>), and the accent is never used for surfaces or large fills. <b>Tap a swatch to preview the whole system live.</b></p>
+      <div class="grid g2" style="align-items:start;gap:30px;">
+        <div style="display:flex;flex-direction:column;gap:22px;">
+          <div class="card">
+            <div class="label" style="margin-bottom:16px;">Accent options · tap to preview</div>
+            <div class="accent-row" id="accentRow">
+              <button class="acc-opt sel" data-acc="#e9e83f"><span class="acc-dot" style="background:#e9e83f"></span><span class="nm">Yellow</span><span class="hx">#E9E83F</span></button>
+              <button class="acc-opt" data-acc="#b8f04a"><span class="acc-dot" style="background:#b8f04a"></span><span class="nm">Lime</span><span class="hx">#B8F04A</span></button>
+              <button class="acc-opt" data-acc="#ff7a59"><span class="acc-dot" style="background:#ff7a59"></span><span class="nm">Coral</span><span class="hx">#FF7A59</span></button>
+              <button class="acc-opt" data-acc="#7ab8ff"><span class="acc-dot" style="background:#7ab8ff"></span><span class="nm">Sky</span><span class="hx">#7AB8FF</span></button>
+            </div>
+          </div>
+          <div class="card soft" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="label">Live preview</div>
+            <div class="demo-wrap" style="background:none;border:none;padding:0;gap:10px;">
+              <div class="btn hl">Log all 142 →</div>
+              <span class="uchip hl">1Y</span>
+              <span class="badge hl">HIGH</span>
+            </div>
+            <div style="display:flex;gap:16px;align-items:center;"><div class="donut"></div><div id="accent-bars" style="flex:1;"></div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+          <div class="ds-phone">
+            <div class="ph-sb"><span>9:41</span><span style="font-size:9px;">••• 5G ▮</span></div>
+            <div class="ph-ct">
+              <div class="ds-ab"><span class="bk">‹</span><span class="tt">Appearance</span></div>
+              <div class="set-row">
+                <span class="rk">Theme</span>
+                <div class="mini-seg" id="mockTheme"><div class="on" data-t="light">Light</div><div data-t="dark">Dark</div></div>
+              </div>
+              <div class="set-row">
+                <span class="rk">Accent</span>
+                <div class="mini-acc" id="mockAccent">
+                  <span class="mini-dot sel" data-acc="#e9e83f" style="background:#e9e83f"></span>
+                  <span class="mini-dot" data-acc="#b8f04a" style="background:#b8f04a"></span>
+                  <span class="mini-dot" data-acc="#ff7a59" style="background:#ff7a59"></span>
+                  <span class="mini-dot" data-acc="#7ab8ff" style="background:#7ab8ff"></span>
+                </div>
+              </div>
+              <div class="set-row">
+                <span class="rk">Text size</span>
+                <div style="height:9px;background:var(--wash);border:1px solid var(--hair);border-radius:2px;overflow:hidden;"><div style="width:50%;height:100%;background:var(--ink);"></div></div>
+              </div>
+              <div class="set-row">
+                <span class="rk">Preview</span>
+                <div class="ucard soft" style="gap:8px;">
+                  <div style="font-size:22px;font-weight:800;letter-spacing:-.02em;">₹42,300</div>
+                  <div class="demo-wrap" style="background:none;border:none;padding:0;gap:7px;"><span class="badge hl">on track</span><span class="uchip" style="font-size:11px;">June</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="label" style="text-align:center;">Settings → Appearance (in-app)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TYPE -->
+    <section id="type">
+      <div class="sec-h"><span class="num">03</span><h2>Typography</h2></div>
+      <p class="sec-sub"><b>Hanken Grotesk</b> across the board — a warm geometric grotesk that goes very heavy for titles and numbers. <b>Space Mono</b> for captions, metadata and anything that should read like a machine printout. Numerals are always tabular.</p>
+      <div class="card">
+        <div class="specrow"><span class="tag">Display / 900</span><span class="d-display">Banking</span></div>
+        <div class="specrow"><span class="tag">Page title / 800</span><span class="d-title">Record</span></div>
+        <div class="specrow"><span class="tag">Balance / 800 tab</span><span class="d-balance">₹1,54,591</span></div>
+        <div class="specrow"><span class="tag">Heading / 800</span><span class="d-h">Food delivery is up 40%</span></div>
+        <div class="specrow"><span class="tag">Body / 500</span><span class="d-body">We read your bank SMS on-device to log every rupee automatically.</span></div>
+        <div class="specrow"><span class="tag">Caption / mono</span><span class="d-cap">TOTAL · JUNE · ON-DEVICE</span></div>
+        <div class="specrow"><span class="tag">Tag / 700</span><span class="d-tag">groceries</span></div>
+      </div>
+    </section>
+
+    <!-- SPACE -->
+    <section id="space">
+      <div class="sec-h"><span class="num">04</span><h2>Space &amp; shape</h2></div>
+      <p class="sec-sub">An 8px rhythm, near-square corners, and hairline borders. Shadows are avoided — depth comes from rules and the rare inverted (black) surface.</p>
+      <div class="grid g2">
+        <div class="card">
+          <div class="label" style="margin-bottom:14px;">Radius</div>
+          <div class="tok"><div class="demo" style="width:46px;height:34px;border:1.5px solid var(--ink);border-radius:2px;"></div><div class="info"><b>2px</b> — badges, chart bars <span class="mono">--r-xs</span></div></div>
+          <div class="tok"><div class="demo" style="width:46px;height:34px;border:1.5px solid var(--ink);border-radius:3px;"></div><div class="info"><b>3px</b> — cards, buttons, chips <span class="mono">--r (default)</span></div></div>
+          <div class="tok"><div class="demo" style="width:46px;height:34px;border:1.5px solid var(--ink);border-radius:14px;"></div><div class="info"><b>14px</b> — bottom sheets only <span class="mono">--r-sheet</span></div></div>
+          <div class="tok" style="border:none;"><div class="demo" style="width:46px;height:34px;border:1.5px solid var(--ink);border-radius:50%;"></div><div class="info"><b>round</b> — txn icons, avatars, FAB</div></div>
+        </div>
+        <div class="card">
+          <div class="label" style="margin-bottom:14px;">Border weight</div>
+          <div class="tok"><div class="demo" style="width:70px;height:30px;border:1px solid var(--hair);border-radius:3px;"></div><div class="info"><b>1px hairline</b> <span class="mono">--hair</span> — soft cards, dividers, inactive edges</div></div>
+          <div class="tok"><div class="demo" style="width:70px;height:30px;border:1.5px solid var(--ink);border-radius:3px;"></div><div class="info"><b>1.5px ink</b> — primary cards, buttons, structure</div></div>
+          <div class="tok" style="border:none;"><div class="demo" style="width:70px;height:30px;background:var(--ink);border-radius:3px;"></div><div class="info"><b>Inverted</b> — hero/feature surfaces, the FAB, dark review screens</div></div>
+          <div style="margin-top:16px;" class="label">Spacing scale</div>
+          <div style="display:flex;gap:8px;align-items:flex-end;margin-top:10px;">
+            <div style="text-align:center;"><div style="width:4px;height:4px;background:var(--ink);margin:0 auto;"></div><div class="mono" style="font-size:9px;color:var(--muted);margin-top:5px;">4</div></div>
+            <div style="text-align:center;"><div style="width:8px;height:8px;background:var(--ink);margin:0 auto;"></div><div class="mono" style="font-size:9px;color:var(--muted);margin-top:5px;">8</div></div>
+            <div style="text-align:center;"><div style="width:12px;height:12px;background:var(--ink);margin:0 auto;"></div><div class="mono" style="font-size:9px;color:var(--muted);margin-top:5px;">12</div></div>
+            <div style="text-align:center;"><div style="width:16px;height:16px;background:var(--ink);margin:0 auto;"></div><div class="mono" style="font-size:9px;color:var(--muted);margin-top:5px;">16</div></div>
+            <div style="text-align:center;"><div style="width:24px;height:24px;background:var(--ink);margin:0 auto;"></div><div class="mono" style="font-size:9px;color:var(--muted);margin-top:5px;">24</div></div>
+            <div style="text-align:center;"><div style="width:32px;height:32px;background:var(--ink);margin:0 auto;"></div><div class="mono" style="font-size:9px;color:var(--muted);margin-top:5px;">32</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ILLUSTRATION -->
+    <section id="illo">
+      <div class="sec-h"><span class="num">05</span><h2>Illustration</h2></div>
+      <p class="sec-sub">Single-weight (2px) black line drawings on white, sharp-cornered frame. One per money type. They carry the brand's warmth — keep them simple, slightly playful, never shaded or filled.</p>
+      <div class="grid g3" id="illo-grid"></div>
+    </section>
+
+    <!-- BUTTONS -->
+    <section id="buttons">
+      <div class="sec-h"><span class="num">06</span><h2>Buttons</h2></div>
+      <p class="sec-sub">Sharp 3px corners, 1.5px ink border. Solid black is the primary action; outline is secondary; yellow is reserved for the single most-wanted action in a flow (e.g. "Log all 142").</p>
+      <div class="demo-wrap">
+        <div class="btn solid">Connect my SMS</div>
+        <div class="btn outline">Skip</div>
+        <div class="btn hl">Log all 142 →</div>
+        <div class="btn solid sm">Confirm</div>
+        <div class="btn outline sm">Edit</div>
+      </div>
+    </section>
+
+    <!-- TAGS -->
+    <section id="tags">
+      <div class="sec-h"><span class="num">07</span><h2>Chips &amp; #tags</h2></div>
+      <p class="sec-sub">Filter <b>chips</b> select a view; <b>#tags</b> categorise money. Both are sharp pills. Selected state inverts to ink. Tags always carry a leading <code>#</code>.</p>
+      <div class="grid g2">
+        <div class="card"><div class="label" style="margin-bottom:12px;">Filter chips</div><div class="demo-wrap" style="background:none;border:none;padding:0;"><span class="uchip on">Banks</span><span class="uchip">PF / EPF</span><span class="uchip">Insurance</span><span class="uchip">Funds</span><span class="uchip hl">1Y</span></div></div>
+        <div class="card"><div class="label" style="margin-bottom:12px;">#tags &amp; badges</div><div class="demo-wrap" style="background:none;border:none;padding:0;"><span class="ht on">food</span><span class="ht">groceries</span><span class="ht">transport</span><span class="ht">bills</span><span class="badge hl">HIGH</span><span class="badge gray">low</span><span class="badge">get</span></div></div>
+      </div>
+    </section>
+
+    <!-- CARDS -->
+    <section id="cards">
+      <div class="sec-h"><span class="num">08</span><h2>Cards</h2></div>
+      <p class="sec-sub">Three weights. <b>Ink card</b> for structure and hero numbers, <b>soft card</b> for grouped lists, <b>inverted</b> for a feature moment. A hero card pairs a big number with a line illustration.</p>
+      <div class="grid g3">
+        <div class="ucard"><div class="label">net worth (5)</div><div style="font-size:30px;font-weight:800;letter-spacing:-.02em;margin:4px 0 8px;">₹6.84L</div><span class="uchip hl" style="display:inline-block;">▲ +₹14,200</span></div>
+        <div class="ucard soft"><div class="txn"><div class="tdot in">🏦</div><div class="tmid"><div class="tm">Savings</div><div class="ts">HDFC + ICICI</div></div><div class="ta">₹1.18L</div></div><div class="txn"><div class="tdot in">📈</div><div class="tmid"><div class="tm">Mutual funds</div><div class="ts">Groww · SIP</div></div><div class="ta">₹3.10L</div></div></div>
+        <div class="ucard" style="background:var(--ink);color:var(--on-ink);border-color:var(--ink);"><div class="label" style="color:#86847a;">week 23 · review</div><div style="font-size:19px;font-weight:800;margin-top:8px;line-height:1.2;">You spent <span style="color:var(--hl);">₹4,100 less</span> than last week.</div></div>
+      </div>
+    </section>
+
+    <!-- NAV -->
+    <section id="nav">
+      <div class="sec-h"><span class="num">09</span><h2>Navigation</h2></div>
+      <p class="sec-sub">Underlined <b>sub-tabs</b> switch views inside a screen. A <b>month scrubber</b> moves through time. A <b>segmented control</b> toggles two modes. The bottom <b>tab bar</b> has a centered ink FAB for manual capture.</p>
+      <div class="grid g2">
+        <div class="card col"><div class="label" style="margin-bottom:14px;">Sub-tabs</div><div class="subtabs"><span class="on">Trend</span><span>By tag</span><span>Detail</span></div></div>
+        <div class="card"><div class="label" style="margin-bottom:14px;">Month scrubber</div><div class="scrub"><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span class="on">9</span></div></div>
+        <div class="card"><div class="label" style="margin-bottom:14px;">Segmented</div><div class="seg"><div class="on">Activity</div><div>Insights</div></div></div>
+        <div class="card"><div class="label" style="margin-bottom:14px;">Callout pill (収支)</div><div class="cb-pill">収入 ₹0<span class="sep"></span>支出 ₹37,965</div></div>
+      </div>
+      <div class="card" style="margin-top:14px;display:flex;justify-content:center;">
+        <div class="tabbar">
+          <div class="tb on"><div class="ti"></div>Home</div>
+          <div class="tb"><div class="ti"></div>Log</div>
+          <div class="tb add"><div class="ti">+</div></div>
+          <div class="tb"><div class="ti"></div>Grow</div>
+          <div class="tb"><div class="ti"></div>Hub</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TXN -->
+    <section id="txn">
+      <div class="sec-h"><span class="num">10</span><h2>Transaction rows</h2></div>
+      <p class="sec-sub">The atom of the app. Round outline icon (arrow up = spend, down = credit), merchant, date + <code>#tag</code>, tabular amount. Credits render in green with a leading <code>+</code>; spends are ink.</p>
+      <div class="card">
+        <div class="txn"><div class="tdot in">↓</div><div class="tmid"><div class="tm">Salary · Acme</div><div class="ts">1 Jun · NEFT · <span class="tg">income</span></div></div><div class="ta pos">+₹62,000</div></div>
+        <div class="txn"><div class="tdot">↑</div><div class="tmid"><div class="tm">Swiggy</div><div class="ts">3 Jun · UPI · <span class="tg">food</span></div></div><div class="ta">−₹480</div></div>
+        <div class="txn"><div class="tdot">↑</div><div class="tmid"><div class="tm">Indian Oil</div><div class="ts">3 Jun · card · <span class="tg">transport</span></div></div><div class="ta">−₹1,500</div></div>
+        <div class="txn"><div class="tdot">↑</div><div class="tmid"><div class="tm">UPI/9876 · unknown</div><div class="ts">2 Jun · needs a tag</div></div><div class="ta"><span class="badge gray">?</span></div></div>
+      </div>
+    </section>
+
+    <!-- CHARTS -->
+    <section id="charts">
+      <div class="sec-h"><span class="num">11</span><h2>Charts</h2></div>
+      <p class="sec-sub">Four chart types, all monochrome with yellow marking the current point. Bars use a 45° hatch with one solid active bar + dotted marker and a 収支 callout — the Minna signature. Donut for category share; calendar heatmap for daily intensity; line for trends.</p>
+      <div class="grid g2">
+        <div class="card"><div class="label" style="margin-bottom:12px;">Hatched bar + scrubber</div><div id="bar-demo"></div></div>
+        <div class="card"><div class="label" style="margin-bottom:12px;">Line + marker</div><div id="line-demo"></div></div>
+        <div class="card"><div class="label" style="margin-bottom:14px;">Category donut</div><div style="display:flex;gap:20px;align-items:center;"><div class="donut"></div><div style="display:flex;flex-direction:column;gap:8px;"><div class="legrow"><span class="ld" style="background:#15140f"></span>Bills <span class="mono" style="color:var(--muted);margin-left:auto;">34%</span></div><div class="legrow"><span class="ld" style="background:#e9e83f"></span>Food <span class="mono" style="color:var(--muted);margin-left:auto;">24%</span></div><div class="legrow"><span class="ld" style="background:#9a988c"></span>Shopping <span class="mono" style="color:var(--muted);margin-left:auto;">18%</span></div></div></div></div>
+        <div class="card"><div class="label" style="margin-bottom:14px;">Calendar heatmap</div><div class="heat" id="heat-demo"></div></div>
+      </div>
+    </section>
+
+    <!-- VOICE -->
+    <section id="voice">
+      <div class="sec-h"><span class="num">12</span><h2>Voice &amp; tone</h2></div>
+      <p class="sec-sub">unmiser talks like a sharp, kind friend who's good with money — plain, specific, never preachy. It states the number, then offers one action.</p>
+      <div class="grid g2">
+        <div class="card do"><div class="label">We say</div><p style="font-size:14px;font-weight:700;margin:8px 0 4px;">"Food delivery is up 40% this week."</p><p style="font-size:13px;color:var(--t2);margin:0;line-height:1.5;">Specific, observed, leads to one action. Numbers in plain words.</p></div>
+        <div class="card dont"><div class="label">We don't say</div><p style="font-size:14px;font-weight:700;margin:8px 0 4px;">"You're overspending! Be careful! 😰"</p><p style="font-size:13px;color:var(--t2);margin:0;line-height:1.5;">No shame, no alarms, no emoji clutter, no vague scolding.</p></div>
+      </div>
+    </section>
+
+    <div style="padding:30px 56px;font-size:12px;color:var(--muted);font-family:var(--mono);">unmiser design system · derived from Minna Bank iOS · for the wireframe set see <b>unmiser Wireframes.html</b></div>
+  </main>
+
+<script>
+const I = {
+  Wallet:`<svg viewBox="0 0 120 78" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"><rect x="14" y="30" width="58" height="34" rx="2"/><rect x="26" y="20" width="58" height="34" rx="2" fill="var(--surface)"/><rect x="40" y="12" width="58" height="34" rx="2" fill="var(--surface)"/><circle cx="69" cy="29" r="7"/><path d="M48 17h6M84 41h6"/></svg>`,
+  'Savings (PF)':`<svg viewBox="0 0 120 78" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"><path d="M86 34c0-13-13-20-28-20S30 22 30 36c0 7 4 13 10 17v9h9v-6h12v6h9v-9c4-3 6-7 6-12Z"/><circle cx="48" cy="34" r="2.5" fill="#15140f"/><path d="M86 32l9-5M30 40h-7M62 16v-5"/><rect x="50" y="12" width="14" height="3" rx="1.5"/></svg>`,
+  'Credit card':`<svg viewBox="0 0 120 78" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"><rect x="20" y="22" width="80" height="48" rx="4" transform="rotate(-7 60 46)"/><path d="M22 38l78-10" stroke-width="7"/><circle cx="84" cy="54" r="6"/></svg>`,
+  Insurance:`<svg viewBox="0 0 120 78" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"><path d="M60 10l30 10v18c0 18-13 28-30 32-17-4-30-14-30-32V20l30-10Z"/><path d="M48 39l9 9 17-18"/></svg>`,
+  Investments:`<svg viewBox="0 0 120 78" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"><path d="M22 64h78M30 64V44M48 64V32M66 64V40M84 64V22"/><path d="M26 30l16-6 16 8 20-14" stroke-width="2"/><path d="M86 6l-4 12 12-2Z" fill="#15140f"/></svg>`,
+  'SMS → log':`<svg viewBox="0 0 120 78" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"><rect x="42" y="8" width="36" height="62" rx="6"/><path d="M54 14h12"/><path d="M48 30l8 6-8 6M48 46l8 6-8 6" opacity=".5"/><path d="M86 24l16-6-4 9 6 3-14 8"/></svg>`,
+};
+const ig=document.getElementById('illo-grid');
+Object.entries(I).forEach(([name,svg])=>{
+  const c=document.createElement('div');c.className='card soft';c.style.padding='0';
+  c.innerHTML=`<div class="illo" style="border:none;border-bottom:1px solid var(--div);border-radius:0;">${svg}</div><div style="padding:11px 14px;font-size:13px;font-weight:800;">${name}</div>`;
+  ig.appendChild(c);
+});
+
+// hatched bar chart demo
+function mbars(vals,active){
+  const W=320,H=150,base=80,max=Math.max(...vals),bw=26,gap=(W-vals.length*bw)/(vals.length+1);
+  const bars=vals.map((v,i)=>{const x=gap+i*(bw+gap);const hgt=Math.round(v/max*56);const y=base-hgt;const on=i===active;
+    return `<rect x="${x}" y="${y}" width="${bw}" height="${hgt}" fill="${on?'var(--ink)':'url(#h)'}" stroke="var(--ink)" stroke-width="1"/>${on?`<line x1="${x+bw/2}" y1="8" x2="${x+bw/2}" y2="${y}" stroke="var(--ink)" stroke-dasharray="2 3"/>`:''}`;}).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;"><defs><pattern id="h" width="5" height="5" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="5" stroke="var(--hair)" stroke-width="1.4"/></pattern></defs><line x1="0" y1="${base}" x2="${W-30}" y2="${base}" stroke="var(--muted)"/><text x="${W-26}" y="${base-3}" font-size="9" fill="var(--muted)" font-family="monospace">avg</text>${bars}</svg>`;
+}
+document.getElementById('bar-demo').innerHTML =
+  `<div style="display:flex;justify-content:center;margin-bottom:4px;"><div class="cb-pill">収入 ₹0<span class="sep"></span>支出 ₹37,965</div></div>`+
+  mbars([28,42,30,52,46,60,38],5)+
+  `<div class="scrub" style="justify-content:space-between;margin-top:4px;"><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span class="on">9</span></div>`;
+
+document.getElementById('line-demo').innerHTML =
+  `<svg viewBox="0 0 320 140" style="width:100%;display:block;"><line x1="0" y1="120" x2="320" y2="120" stroke="var(--div)" stroke-dasharray="3 4"/><line x1="0" y1="50" x2="320" y2="50" stroke="var(--div)" stroke-dasharray="3 4"/><polyline fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round" points="10,96 44,104 78,84 112,70 146,88 180,52 214,64 248,36 282,48 308,20"/><circle cx="308" cy="20" r="6" fill="#e9e83f" stroke="var(--ink)" stroke-width="2"/></svg>`;
+
+const heat=document.getElementById('heat-demo');const lv=[0,.12,.3,.6,1];
+for(let i=0;i<28;i++){const v=lv[Math.floor(Math.abs(Math.sin((i+2)*4.31))*5)%5];const s=document.createElement('span');if(v===0)s.className='z';else s.style.opacity=v;heat.appendChild(s);}
+
+document.querySelectorAll('aside nav a').forEach(a=>a.addEventListener('click',e=>{
+  e.preventDefault();document.querySelector(a.getAttribute('href')).scrollIntoView({behavior:'smooth',block:'start'});
+}));
+
+const tt=document.getElementById('themeToggle');
+tt.addEventListener('click',e=>{
+  const t=e.target.closest('span'); if(!t)return;
+  document.documentElement.setAttribute('data-theme',t.dataset.t);
+  tt.querySelectorAll('span').forEach(s=>{const on=s===t;s.classList.toggle('on',on);s.style.background=on?'var(--ink)':'transparent';s.style.color=on?'var(--on-ink)':'inherit';});
+  // keep the in-app Appearance mock's Theme control in sync
+  document.querySelectorAll('#mockTheme div').forEach(d=>d.classList.toggle('on',d.dataset.t===t.dataset.t));
+});
+
+/* ---- accent system: doc picker + in-app mock stay in sync, recolor --hl live ---- */
+const accentBars=document.getElementById('accent-bars');
+function drawAccentBars(){
+  const v=[30,46,34,58,50,66,42];const W=160,H=70,base=54,max=Math.max(...v),bw=14,gap=(W-v.length*bw)/(v.length+1);
+  accentBars.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;"><defs><pattern id="ah" width="5" height="5" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="5" stroke="var(--hair)" stroke-width="1.4"/></pattern></defs>${v.map((n,i)=>{const x=gap+i*(bw+gap),h=Math.round(n/max*40),y=base-h,on=i===5;return `<rect x="${x}" y="${y}" width="${bw}" height="${h}" fill="${on?'var(--hl)':'url(#ah)'}" stroke="var(--ink)" stroke-width="1"/>`;}).join('')}<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--muted)"/></svg>`;
+}
+drawAccentBars();
+function setAccent(c){
+  document.documentElement.style.setProperty('--hl',c);
+  document.querySelectorAll('.acc-opt').forEach(o=>o.classList.toggle('sel',o.dataset.acc===c));
+  document.querySelectorAll('#mockAccent .mini-dot').forEach(d=>d.classList.toggle('sel',d.dataset.acc===c));
+}
+document.querySelectorAll('.acc-opt, #mockAccent .mini-dot').forEach(el=>el.addEventListener('click',()=>setAccent(el.dataset.acc)));
+// in-app mock theme control also toggles the page theme
+document.querySelectorAll('#mockTheme div').forEach(d=>d.addEventListener('click',()=>{
+  document.documentElement.setAttribute('data-theme',d.dataset.t);
+  document.querySelectorAll('#mockTheme div').forEach(x=>x.classList.toggle('on',x===d));
+  tt.querySelectorAll('span').forEach(s=>{const on=s.dataset.t===d.dataset.t;s.classList.toggle('on',on);s.style.background=on?'var(--ink)':'transparent';s.style.color=on?'var(--on-ink)':'inherit';});
+}));
+</script>
+</body>
+</html>

@@ -3,3 +3,59 @@
 @import "heroui-native/styles";
 
 @source './node_modules/heroui-native/lib';
+
+/* ---- unmiser palette: override heroui semantic tokens (values only) ---- */
+@layer theme {
+  @variant light {
+    --background: #f4f3ec; /* paper */
+    --foreground: #15140f; /* ink */
+    --surface: #ffffff;
+    --surface-foreground: #15140f;
+    --surface-secondary: #f4f3ec; /* wash */
+    --surface-secondary-foreground: #15140f;
+    --overlay: #ffffff;
+    --overlay-foreground: #15140f;
+    --muted: #9a988c; /* tertiary text */
+    --border: #cdcbbf; /* hairline */
+    --separator: #e3e1d5; /* divider */
+    --accent: #e9e83f; /* unmiser yellow */
+    --accent-foreground: #15140f; /* text on accent is always ink */
+    --success: #1f7a3d; /* credit green */
+    --success-foreground: #ffffff;
+    --segment: #ffffff;
+    --segment-foreground: #15140f;
+  }
+  @variant dark {
+    --background: #0e0d0b; /* paper */
+    --foreground: #f1f0e8; /* ink */
+    --surface: #1a1916;
+    --surface-foreground: #f1f0e8;
+    --surface-secondary: #221f19; /* wash */
+    --surface-secondary-foreground: #f1f0e8;
+    --overlay: #1a1916;
+    --overlay-foreground: #f1f0e8;
+    --muted: #86847a;
+    --border: #3a382f; /* hairline */
+    --separator: #2c2a23; /* divider */
+    --accent: #e9e83f; /* accent + on-accent stay constant across themes */
+    --accent-foreground: #15140f;
+    --success: #5fcf86; /* credit green (dark) */
+    --success-foreground: #15140f;
+    --segment: #1a1916;
+    --segment-foreground: #f1f0e8;
+  }
+}
+
+/* ---- near-square shape + weight-named font families ---- */
+@theme {
+  --radius: 0.1875rem; /* 3px base → cards/buttons/chips land sharp */
+  --radius-xs: 2px; /* badges, chart bars */
+
+  --font-normal: "HankenGrotesk_400Regular";
+  --font-medium: "HankenGrotesk_500Medium";
+  --font-semibold: "HankenGrotesk_600SemiBold";
+  --font-bold: "HankenGrotesk_700Bold";
+  --font-extrabold: "HankenGrotesk_800ExtraBold";
+  --font-black: "HankenGrotesk_900Black";
+  --font-mono: "SpaceMono_400Regular";
+}
