@@ -1,8 +1,9 @@
 # Phase 2 Handoff
 
-Status as of 2026-06-12: **Phase 2 complete and device-verified.** `ROADMAP.md` Phase 2 section
+Status as of 2026-06-12: **Phase 2 complete and device-verified.** `docs/phase-2-design-record.md`
 holds the full decided design (registry, wizard, bundled allowlist, scan hardening) and the
-verification evidence; this doc keeps only the operational knowledge a future session needs.
+verification evidence (extracted from `ROADMAP.md` in the 2026-06-13 cleanup); this doc keeps only
+the operational knowledge a future session needs.
 
 ## What shipped (pointers, not duplication)
 

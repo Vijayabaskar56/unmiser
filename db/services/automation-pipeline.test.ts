@@ -7,6 +7,7 @@ import {
   categories,
   merchantMappings,
   ruleApplications,
+  subscriptions,
   transactions,
 } from "@/db/schema";
 import { saveRule } from "@/db/services/rule-ops";
@@ -70,6 +71,10 @@ describe("automation pipeline", () => {
     const [row] = await db.select().from(transactions);
     expect(row.categoryId).toBe(ruleCategoryId);
     expect(row.isRecurring).toBe(true);
+    expect(row.subscriptionId).not.toBeNull();
+    const [subscription] = await db.select().from(subscriptions);
+    expect(subscription.merchantName).toBe("Netflix");
+    expect(subscription.nextPaymentDate).toBe("2026-07-12");
     const audits = await db.select().from(ruleApplications);
     expect(audits).toHaveLength(1);
     sqlite.close();

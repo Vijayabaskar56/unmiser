@@ -7,6 +7,7 @@ import {
   insertRuleApplications,
   listActiveRules,
 } from "@/db/services/rule-ops";
+import { syncSubscriptionFromRecurringTransaction } from "@/db/services/subscription-ops";
 import { evaluateRules } from "@/lib/rules/interpreter";
 import type { RuleDefinition, RuleTransactionDraft } from "@/lib/rules/types";
 
@@ -58,11 +59,12 @@ export async function previewApplyToPast(
 export async function applyToPast(
   db: Db,
   ruleIds?: string[],
-): Promise<{ processed: number; updated: number }> {
+): Promise<{ processed: number; updated: number; ambiguous: number }> {
   const rules = await selectedRules(db, ruleIds);
   const lookups = await buildRuleLookupContext(db);
   const rows = await db.select().from(transactions).where(eq(transactions.isDeleted, false));
   let updated = 0;
+  let ambiguous = 0;
 
   for (let i = 0; i < rows.length; i += 500) {
     for (const row of rows.slice(i, i + 500)) {
@@ -82,9 +84,15 @@ export async function applyToPast(
         })
         .where(eq(transactions.id, row.id));
       await insertRuleApplications(db, row.id, result.applications);
+      if (result.transaction.isRecurring) {
+        const subscriptionMatch = await syncSubscriptionFromRecurringTransaction(db, row.id);
+        // An ambiguous match links nothing; track it separately so the summary does not
+        // overstate how many rows were successfully reconciled with a subscription.
+        if (subscriptionMatch.kind === "ambiguous") ambiguous += 1;
+      }
       updated += 1;
     }
   }
 
-  return { processed: rows.length, updated };
+  return { processed: rows.length, updated, ambiguous };
 }

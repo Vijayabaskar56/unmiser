@@ -77,7 +77,11 @@ function conditionMatches(
     case "NOT_IN":
       return !target.split(",").some((item) => value.toLowerCase() === item.trim().toLowerCase());
     case "REGEX_MATCHES":
-      return new RegExp(target).test(value);
+      try {
+        return new RegExp(target).test(value);
+      } catch {
+        return false;
+      }
     case "IS_EMPTY":
       return value.trim().length === 0;
     case "IS_NOT_EMPTY":

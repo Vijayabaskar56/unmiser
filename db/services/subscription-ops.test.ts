@@ -13,7 +13,11 @@ import {
   monthlyEquivalent,
   predictNextPayment,
 } from "@/lib/subscriptions/matching";
-import { matchAndLinkSubscriptionPayment, upsertFromMandate } from "@/db/services/subscription-ops";
+import {
+  matchAndLinkSubscriptionPayment,
+  syncSubscriptionFromRecurringTransaction,
+  upsertFromMandate,
+} from "@/db/services/subscription-ops";
 
 const mandate = {
   amount: "1499",
@@ -55,7 +59,7 @@ describe("subscription helpers", () => {
     );
     expect(
       predictNextPayment({ linkedPaymentDates: ["2026-01-01", "2026-02-01", "2026-03-01"] }),
-    ).toBe("2026-03-31");
+    ).toBe("2026-03-30");
   });
 });
 
@@ -116,6 +120,87 @@ describe("subscription ops", () => {
     expect(updatedTxn.subscriptionId).toBe(subscriptionId);
     expect(updatedSub.lastPaidDate).toBe("2026-07-15");
     expect(updatedSub.nextPaymentDate).toBe("2026-08-15");
+    sqlite.close();
+  });
+
+  it("creates a subscription from a recurring transaction and links it", async () => {
+    const { db, sqlite } = createTestDb();
+    const categoryId = await seedCategory(db);
+    const [transaction] = await db
+      .insert(transactions)
+      .values({
+        amount: "427",
+        merchantName: "X Corp",
+        categoryId,
+        transactionType: "EXPENSE",
+        dateTime: "2026-06-07T02:56:38Z",
+        transactionHash: "x-corp-recurring",
+        isRecurring: true,
+        billingCycle: "monthly",
+        currency: "INR",
+      })
+      .returning();
+
+    const result = await syncSubscriptionFromRecurringTransaction(db, transaction.id);
+    expect(result.kind).toBe("linked");
+    const [subscription] = await db.select().from(subscriptions);
+    const [updatedTxn] = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.id, transaction.id));
+
+    expect(subscription.merchantName).toBe("X Corp");
+    expect(subscription.amount).toBe("427.00");
+    expect(subscription.nextPaymentDate).toBe("2026-07-07");
+    expect(subscription.lastPaidDate).toBe("2026-06-07");
+    expect(subscription.billingCycle).toBe("monthly");
+    expect(updatedTxn.subscriptionId).toBe(subscription.id);
+    sqlite.close();
+  });
+
+  it("reuses the same subscription for later recurring payments", async () => {
+    const { db, sqlite } = createTestDb();
+    const categoryId = await seedCategory(db);
+    const [first] = await db
+      .insert(transactions)
+      .values({
+        amount: "427",
+        merchantName: "X Corp",
+        categoryId,
+        transactionType: "EXPENSE",
+        dateTime: "2026-05-07T03:00:59Z",
+        transactionHash: "x-corp-may",
+        isRecurring: true,
+        billingCycle: "monthly",
+      })
+      .returning();
+    const [second] = await db
+      .insert(transactions)
+      .values({
+        amount: "427",
+        merchantName: "X Corp Paid Features",
+        categoryId,
+        transactionType: "EXPENSE",
+        dateTime: "2026-06-07T02:56:38Z",
+        transactionHash: "x-corp-june",
+        isRecurring: true,
+        billingCycle: "monthly",
+      })
+      .returning();
+
+    const firstResult = await syncSubscriptionFromRecurringTransaction(db, first.id);
+    const secondResult = await syncSubscriptionFromRecurringTransaction(db, second.id);
+    const rows = await db.select().from(subscriptions);
+    const [linkedSecond] = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.id, second.id));
+
+    expect(rows).toHaveLength(1);
+    expect(secondResult).toEqual(firstResult);
+    expect(rows[0].lastPaidDate).toBe("2026-06-07");
+    expect(rows[0].nextPaymentDate).toBe("2026-07-07");
+    expect(linkedSecond.subscriptionId).toBe(rows[0].id);
     sqlite.close();
   });
 });

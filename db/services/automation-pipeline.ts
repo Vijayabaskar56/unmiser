@@ -9,7 +9,10 @@ import {
   insertRuleApplications,
   listActiveRules,
 } from "@/db/services/rule-ops";
-import { matchAndLinkSubscriptionPayment } from "@/db/services/subscription-ops";
+import {
+  matchAndLinkSubscriptionPayment,
+  syncSubscriptionFromRecurringTransaction,
+} from "@/db/services/subscription-ops";
 import { evaluateRules } from "@/lib/rules/interpreter";
 import type { RuleTransactionDraft } from "@/lib/rules/types";
 
@@ -51,6 +54,7 @@ function toDraft(input: AddTransactionInput, names: Awaited<ReturnType<typeof lo
     description: input.description ?? null,
     smsBody: input.smsBody ?? null,
     bankName: input.sourcePluginId ?? null,
+    isRecurring: input.isRecurring ?? false,
     billingCycle: input.billingCycle ?? null,
   } satisfies RuleTransactionDraft;
 }
@@ -91,8 +95,11 @@ export async function saveTransactionThroughPipeline(
   if (!options.explicitUserFields?.includes("description")) {
     finalInput.description = evaluated.transaction.description;
   }
-  finalInput.isRecurring = evaluated.transaction.isRecurring ?? finalInput.isRecurring;
-  finalInput.billingCycle = evaluated.transaction.billingCycle ?? finalInput.billingCycle;
+  // evaluated.transaction holds the authoritative post-rule value (it starts as a copy of the
+  // draft, which now carries isRecurring/billingCycle from mappedInput), so assign directly. A
+  // ?? fallback here would resurrect the pre-rule value and defeat a rule CLEAR action.
+  finalInput.isRecurring = evaluated.transaction.isRecurring;
+  finalInput.billingCycle = evaluated.transaction.billingCycle;
   if (!options.explicitUserFields?.includes("categoryId")) {
     finalInput.categoryId = evaluated.transaction.categoryId;
     finalInput.subcategoryId = evaluated.transaction.subcategoryId ?? null;
@@ -100,6 +107,15 @@ export async function saveTransactionThroughPipeline(
 
   const transactionId = await addTransaction(db, finalInput);
   await insertRuleApplications(db, transactionId, evaluated.applications);
-  await matchAndLinkSubscriptionPayment(db, transactionId);
+  const subscriptionMatch = finalInput.isRecurring
+    ? await syncSubscriptionFromRecurringTransaction(db, transactionId)
+    : await matchAndLinkSubscriptionPayment(db, transactionId);
+  if (subscriptionMatch.kind === "ambiguous") {
+    console.warn(
+      `[automation-pipeline] transaction ${transactionId} matched multiple subscriptions ` +
+        `(${subscriptionMatch.subscriptionIds.join(", ")}); none linked. ` +
+        `No user-facing review surface exists to resolve this yet.`,
+    );
+  }
   return { kind: "saved", transactionId };
 }

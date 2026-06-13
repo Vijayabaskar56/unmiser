@@ -9,7 +9,7 @@ import {
   accountCollection,
   transactionCollection,
 } from "@/db/collections/finance";
-import { pluginCollection, smsReviewCollection } from "@/db/collections";
+import { pluginCollection, smsReviewCollection, subscriptionCollection } from "@/db/collections";
 import { appDb } from "@/db/app-db";
 import { createAccount } from "@/db/services/account-ops";
 import {
@@ -191,6 +191,7 @@ export default function ExtensionsScreen() {
     await Promise.all([
       pluginCollection.utils.refetch(),
       smsReviewCollection.utils.refetch(),
+      subscriptionCollection.utils.refetch(),
       accountCollection.utils.refetch(),
       transactionCollection.utils.refetch(),
       accountBalanceCollection.utils.refetch(),

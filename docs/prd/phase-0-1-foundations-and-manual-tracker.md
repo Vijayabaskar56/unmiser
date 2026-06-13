@@ -115,9 +115,9 @@ the expected workflow for the deep modules.
 ## Out of Scope
 
 - All SMS/parser-engine work and ingestion (Phase 2) — but accounts/transactions/mandate-target shapes are designed to receive it.
-- Rules engine and subscriptions (Phase 3); budgets and behavior-change (Phase 4+).
-- Cross-currency transfers and multi-currency aggregation/exchange rates (Phase 6) — v1 transfers are same-currency only (CONTEXT "Transfer").
-- iOS, AI/chat, PDF import, webhooks/sync (per ROADMAP §6).
+- Rules engine and subscriptions (Phase 3); budgets and behavior-change (Phase 5+, post-2026-06-13 renumbering).
+- Cross-currency transfers and multi-currency aggregation/exchange rates (Phase 7) — v1 transfers are same-currency only (CONTEXT "Transfer").
+- iOS, AI/chat, PDF import, webhooks/sync (per ROADMAP §5 "Out of Scope").
 - Dropping `iconResId`/`chatMessages` columns (later migration).
 - Registry telemetry and the SMS "install a parser" prompt (the minimal `unrecognizedSms` capture is Phase 2; see ADR-0015).
 

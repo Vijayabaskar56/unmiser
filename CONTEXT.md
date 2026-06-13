@@ -249,7 +249,7 @@ An ISO code (default `INR`) stored as a sibling column next to every amount, nev
 amount value. Money math takes currency as an explicit argument; see ADR-0001.
 
 **Sample data** (`isSample`):
-A dev/seed-only marker on rows, never a shipped feature (ROADMAP §6). A `__DEV__`-gated loader
+A dev/seed-only marker on rows, never a shipped feature (ROADMAP §5 "Out of Scope"). A `__DEV__`-gated loader
 inserts `isSample = true` rows; one shared filter helper excludes them and sample loading is compiled
 out of production. Not surfaced in the UI.
 
@@ -425,7 +425,7 @@ out of production. Not surfaced in the UI.
 - **"plugin" vs "skill"** — two distinct downloadable-capability concepts that must NOT be blurred:
   - **Bank-parser manifest** ("plugin"): declarative regex/field-maps, consumed by the **Unmiser
     app** at runtime, stored in local SQLite (`plugins`/`plugin_assets`), downloaded from a parser
-    registry. "Stale" = a bank changed its SMS format. (ROADMAP §3.)
+    registry. "Stale" = a bank changed its SMS format. (`docs/plugin-architecture.md`.)
   - **Agent Skill** (`@tanstack/intent`): markdown/YAML procedural knowledge, consumed by an **AI
     coding agent** at dev time, shipped inside an npm package and auto-discovered from
     `node_modules`. "Stale" = a referenced source doc drifted.

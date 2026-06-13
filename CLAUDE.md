@@ -16,7 +16,8 @@ paths:
 
 - `parser-core/src/main/.../com/ritesh/parser/core/` — the already-extracted SMS parser engine
   (`ParsedTransaction`, `MandateInfo`, `SmsFilter`, `CompiledPatterns`, `TransactionType`) and
-  per-bank parsers under `.../bank/`. This is the model for the RN plugin engine (ROADMAP §3).
+  per-bank parsers under `.../bank/`. This is the model for the RN plugin engine
+  (`docs/plugin-architecture.md`).
   (Note: `parser-core/bin/` is compiled output — read `src/`, not `bin/`.)
 - `app/src/main/java/com/ritesh/cashiro/` — the app: `data/`, `domain/model/`, `presentation/`
   (accounts, transactions, budgets, subscriptions, rules, settings/sms, settings/rules).

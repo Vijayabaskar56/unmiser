@@ -6,7 +6,7 @@ import { nowIso, parseIso, toIso } from "@/lib/dates";
 import { transactionHash } from "@/lib/dedup-hash";
 
 /**
- * Dev-only sample-data utility (ROADMAP §6, CONTEXT "Sample data").
+ * Dev-only sample-data utility (ROADMAP §5 "Out of Scope", CONTEXT "Sample data").
  *
  * `isSample` is a seed/dev marker, NEVER a shipped feature: there is no UI for
  * it. `loadSampleData` inserts a small, realistic set of rows flagged

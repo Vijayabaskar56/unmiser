@@ -6,8 +6,8 @@
 
 ## 0. Required reading (in this order, before any code)
 
-1. `ROADMAP.md` → "Phase 3 — Rules Engine + Subscriptions/Mandates" — the spec. The **DECIDED**
-   block (grilling 2026-06-12) and every SCOPE bullet are binding.
+1. `docs/phase-3-design-record.md` — the spec (extracted from `ROADMAP.md` in the 2026-06-13
+   cleanup). The **DECIDED** block (grilling 2026-06-12) and every SCOPE bullet are binding.
 2. `CONTEXT.md` → "Language" section — binding domain vocabulary: _Transaction Automation
    Pipeline_, _Blocked Automated Transaction_, _Apply-to-Past_, _Rule Application_, _Rule
    Extension_, _Rule Builder_, _Mandate-Sourced Subscription_, _Fallback Subscription Identity_,
@@ -87,7 +87,8 @@ app: `scripts/sync-bundled-manifests.ts` re-run output.
 
 **Spec:**
 
-- Add optional `mandate` block to the manifest zod schema, exactly the ROADMAP §3.2 sketch:
+- Add optional `mandate` block to the manifest zod schema (now implemented in
+  `lib/parser/manifest-schema.ts`; `docs/plugin-architecture.md` §3.2 lists the block shape):
   `{ detectKeyword, amount, date, merchant, umn, dateFormat }` (regexes with `(?<value>…)` named
   captures; `umn` optional — some banks have none).
 - `parsePreparedSms` ordering (THE trap): **after dispatch, BEFORE the filter**, if

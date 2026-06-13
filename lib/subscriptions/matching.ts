@@ -58,7 +58,12 @@ export function predictNextPayment(input: {
     const right = new Date(`${date}T00:00:00`).getTime();
     return Math.round((right - left) / 86_400_000);
   });
-  const median = gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)];
+  const sortedGaps = gaps.sort((a, b) => a - b);
+  const mid = Math.floor(sortedGaps.length / 2);
+  const median =
+    sortedGaps.length % 2 === 0
+      ? Math.round((sortedGaps[mid - 1] + sortedGaps[mid]) / 2)
+      : sortedGaps[mid];
   const last = dates.at(-1)!;
   const next = new Date(`${last}T00:00:00`);
   next.setDate(next.getDate() + median);

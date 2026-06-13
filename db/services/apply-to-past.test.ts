@@ -47,7 +47,7 @@ describe("apply to past", () => {
     const result = await applyToPast(db);
     const [row] = await db.select().from(transactions);
 
-    expect(result).toEqual({ processed: 1, updated: 0 });
+    expect(result).toEqual({ processed: 1, updated: 0, ambiguous: 0 });
     expect(row.id).toBe(transactionId);
     expect(row.isDeleted).toBe(false);
     sqlite.close();
