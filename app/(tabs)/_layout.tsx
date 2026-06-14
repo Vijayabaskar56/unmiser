@@ -30,6 +30,10 @@ export default function TabLayout() {
       iconColor={{ default: inactiveIcon, selected: activeIcon }}
       indicatorColor={accent}
       tintColor={activeIcon}
+      // Kill the default dark Material ripple — on press it bounds to the pill
+      // and momentarily darkens the yellow indicator (the "janky" blob under the
+      // thumb). The pill + icon fill are the press feedback.
+      rippleColor="transparent"
       labelVisibilityMode="unlabeled"
       backBehavior="history"
     >
