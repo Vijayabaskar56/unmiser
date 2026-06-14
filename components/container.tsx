@@ -34,6 +34,8 @@ export function Container({
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
           contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
           {...scrollViewProps}
         >
           {children}
