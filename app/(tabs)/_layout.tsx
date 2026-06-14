@@ -1,36 +1,43 @@
 import { useThemeColor } from "heroui-native";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
+import { useAppTheme } from "@/contexts/app-theme-context";
+
 /**
- * Bottom navigation — NATIVE tabs variant (`expo-router/unstable-native-tabs`)
- * for comparison against the custom bar. Home · Log · ＋ · Grow · Hub as real
- * native tab items, styled to the design with the native styling props:
- * inverted dark bar (`backgroundColor`), dim/white icons (`iconColor`), yellow
- * Android active indicator (`indicatorColor`), icon-only (`labelVisibilityMode`).
+ * Bottom navigation — NATIVE tabs (`expo-router/unstable-native-tabs`).
+ * Home · Log · ＋ · Grow · Hub styled to the design: inverted dark bar
+ * (`backgroundColor`), yellow Android active indicator (`indicatorColor`),
+ * icon-only (`labelVisibilityMode`), filled-on-active icons where a filled glyph
+ * exists (Home → home_filled, Hub → dashboard; line icons stay as-is).
  *
- * Tradeoffs vs the custom bar (alpha API): the active marker is Android's
- * Material pill (not a yellow dot), iOS shows only a tint, and ＋ is a real tab
- * (native tabs can't host a non-navigating centre action). The secondary screens
- * (accounts/categories/rules/extensions/store/subscriptions) had to move to the
- * root stack — native tabs can't keep hidden-but-navigable routes.
+ * Inactive icons use a higher-contrast tint (brighter than `muted`) so they read
+ * clearly on the dark bar; the active icon is ink on the yellow pill.
  */
 export default function TabLayout() {
   const ink = useThemeColor("foreground");
-  const paper = useThemeColor("background");
-  const muted = useThemeColor("muted");
   const accent = useThemeColor("accent");
+  const { isDark } = useAppTheme();
+
+  // Inactive icon: a bright dim that tracks the bar (paper-ish on the dark bar in
+  // light mode, ink-ish on the light bar in dark mode). Active icon: ink, for
+  // contrast on the constant yellow pill.
+  const inactiveIcon = isDark ? "rgba(14,13,11,0.55)" : "rgba(244,243,236,0.78)";
+  const activeIcon = "#15140f";
 
   return (
     <NativeTabs
       backgroundColor={ink}
-      iconColor={{ default: muted, selected: paper }}
+      iconColor={{ default: inactiveIcon, selected: activeIcon }}
       indicatorColor={accent}
-      tintColor={paper}
+      tintColor={activeIcon}
       labelVisibilityMode="unlabeled"
       backBehavior="history"
     >
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Icon sf="house.fill" md="home" />
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "house", selected: "house.fill" }}
+          md={{ default: "home", selected: "home_filled" }}
+        />
         <NativeTabs.Trigger.Label hidden />
       </NativeTabs.Trigger>
 
@@ -50,7 +57,10 @@ export default function TabLayout() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="settings">
-        <NativeTabs.Trigger.Icon sf="square.grid.2x2.fill" md="grid_view" />
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }}
+          md={{ default: "grid_view", selected: "dashboard" }}
+        />
         <NativeTabs.Trigger.Label hidden />
       </NativeTabs.Trigger>
     </NativeTabs>
