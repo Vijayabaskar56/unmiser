@@ -1,10 +1,11 @@
 import { useLiveQuery } from "@tanstack/react-db";
 import { eq } from "drizzle-orm";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { Container } from "@/components/container";
+import { AppBar } from "@/components/ui";
 import { subscriptionCollection } from "@/db/collections";
 import { appDb } from "@/db/app-db";
 import { subscriptions } from "@/db/schema";
@@ -12,6 +13,7 @@ import { hideSubscription } from "@/db/services/subscription-ops";
 import { monthlyEquivalent } from "@/lib/subscriptions/matching";
 
 export default function SubscriptionsScreen() {
+  const router = useRouter();
   const { data } = useLiveQuery((q) =>
     q
       .from({ subscription: subscriptionCollection })
@@ -49,18 +51,21 @@ export default function SubscriptionsScreen() {
   };
 
   return (
-    <Container>
-      <View className="gap-4 p-4">
-        <View>
-          <Text className="text-foreground text-2xl font-semibold">Subscriptions</Text>
-          <Text className="text-muted mt-1">{active.length} active</Text>
-        </View>
+    <View className="flex-1 bg-background">
+      <AppBar
+        title="Subscriptions"
+        onBack={() => (router.canGoBack() ? router.back() : router.replace("/settings"))}
+      />
+      <Container>
+        <View className="gap-4 p-4">
+          <Text className="text-muted">{active.length} active</Text>
 
-        <Section title="Upcoming 30 Days" rows={upcoming} onHide={hideSubscriptionAndRefresh} />
-        <Section title="Active" rows={active} onHide={hideSubscriptionAndRefresh} />
-        <Section title="Hidden" rows={hidden} actionLabel="Reactivate" onHide={reactivate} />
-      </View>
-    </Container>
+          <Section title="Upcoming 30 Days" rows={upcoming} onHide={hideSubscriptionAndRefresh} />
+          <Section title="Active" rows={active} onHide={hideSubscriptionAndRefresh} />
+          <Section title="Hidden" rows={hidden} actionLabel="Reactivate" onHide={reactivate} />
+        </View>
+      </Container>
+    </View>
   );
 
   async function hideSubscriptionAndRefresh(id: number) {

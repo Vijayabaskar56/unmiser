@@ -117,7 +117,7 @@ const SECTIONS: SettingsSection[] = [
         key: "data-privacy",
         icon: "shield-checkmark-outline",
         title: "Data & Privacy",
-        description: "export · import · on-device AI",
+        description: "export · import · backup",
         href: "/data-privacy",
       },
     ],

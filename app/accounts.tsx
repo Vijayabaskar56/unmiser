@@ -1,10 +1,12 @@
 import { useLiveQuery } from "@tanstack/react-db";
+import { useRouter } from "expo-router";
 import { useThemeColor } from "heroui-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, Text, TextInput, View } from "react-native";
 
 import { Container } from "@/components/container";
 import { Icon } from "@/components/icon";
+import { AppBar } from "@/components/ui";
 import { appDb } from "@/db/app-db";
 import { db } from "@/db/index";
 import { accountBalanceCollection, accountCollection } from "@/db/collections/finance";
@@ -75,6 +77,7 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function AccountsScreen() {
+  const router = useRouter();
   // Sorted in the live query so ordering is maintained incrementally instead
   // of re-sorting on every render.
   const { data: accounts, isLoading } = useLiveQuery((q) =>
@@ -224,182 +227,189 @@ export default function AccountsScreen() {
   const sorted = accounts ?? [];
 
   return (
-    <Container className="px-4 pt-6 pb-4">
-      <View className="flex-row items-center justify-between mb-1">
-        <Text className="text-3xl font-semibold text-foreground tracking-tight">Accounts</Text>
-        <Pressable
-          onPress={editing === "new" ? closeForm : openAdd}
-          className="rounded-xl bg-foreground px-4 py-2 active:opacity-70"
-        >
-          <Text className="text-background font-medium">
-            {editing === "new" ? "Cancel" : "Add"}
-          </Text>
-        </Pressable>
-      </View>
-      <Text className="text-muted text-sm mb-5">{sorted.length} accounts</Text>
+    <View className="flex-1 bg-background">
+      <AppBar
+        title="Accounts"
+        onBack={() => (router.canGoBack() ? router.back() : router.replace("/settings"))}
+        right={
+          <Pressable
+            onPress={editing === "new" ? closeForm : openAdd}
+            className="rounded-xl bg-foreground px-4 py-2 active:opacity-70"
+          >
+            <Text className="text-background font-medium">
+              {editing === "new" ? "Cancel" : "Add"}
+            </Text>
+          </Pressable>
+        }
+      />
+      <Container className="px-4 pb-4">
+        <Text className="text-muted text-sm mb-5">{sorted.length} accounts</Text>
 
-      {editing !== null && (
-        <View className="mb-6 rounded-xl border border-border p-4 gap-4">
-          <Text className="text-foreground font-medium">
-            {editing === "new" ? "New account" : "Edit account"}
-          </Text>
+        {editing !== null && (
+          <View className="mb-6 rounded-xl border border-border p-4 gap-4">
+            <Text className="text-foreground font-medium">
+              {editing === "new" ? "New account" : "Edit account"}
+            </Text>
 
-          <View>
-            <Text className="text-muted text-xs mb-1">Bank name</Text>
-            <TextInput
-              value={form.bankName}
-              onChangeText={(v) => setForm((f) => ({ ...f, bankName: v }))}
-              placeholder="e.g. HDFC"
-              placeholderTextColor={mutedColor}
-              className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
-            />
-          </View>
-
-          <View>
-            <Text className="text-muted text-xs mb-1">Last 4 digits</Text>
-            <TextInput
-              value={form.accountLast4}
-              onChangeText={(v) => setForm((f) => ({ ...f, accountLast4: v }))}
-              placeholder="1234"
-              placeholderTextColor={mutedColor}
-              keyboardType="number-pad"
-              maxLength={4}
-              className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
-            />
-          </View>
-
-          <View>
-            <Text className="text-muted text-xs mb-1">Currency</Text>
-            <TextInput
-              value={form.currency}
-              onChangeText={(v) => setForm((f) => ({ ...f, currency: v }))}
-              placeholder="INR"
-              placeholderTextColor={mutedColor}
-              autoCapitalize="characters"
-              maxLength={3}
-              className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
-            />
-          </View>
-
-          <View>
-            <Text className="text-muted text-xs mb-2">Type</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {KINDS.map((k) => {
-                const active = k === form.kind;
-                return (
-                  <Pressable
-                    key={k}
-                    onPress={() => setForm((f) => ({ ...f, kind: k }))}
-                    className={
-                      active
-                        ? "rounded-full bg-foreground px-3 py-2"
-                        : "rounded-full border border-border px-3 py-2"
-                    }
-                  >
-                    <Text
-                      className={active ? "text-background text-xs" : "text-foreground text-xs"}
-                    >
-                      {k}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          {form.kind === "credit" && (
             <View>
-              <Text className="text-muted text-xs mb-1">Credit limit</Text>
+              <Text className="text-muted text-xs mb-1">Bank name</Text>
               <TextInput
-                value={form.creditLimit}
-                onChangeText={(v) => setForm((f) => ({ ...f, creditLimit: v }))}
-                placeholder="0.00"
+                value={form.bankName}
+                onChangeText={(v) => setForm((f) => ({ ...f, bankName: v }))}
+                placeholder="e.g. HDFC"
                 placeholderTextColor={mutedColor}
-                keyboardType="decimal-pad"
                 className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
               />
             </View>
-          )}
 
-          <Pressable
-            onPress={() => void onSubmit()}
-            disabled={!canSubmit}
-            className={
-              canSubmit
-                ? "rounded-xl bg-foreground px-4 py-3 items-center active:opacity-70"
-                : "rounded-xl bg-secondary px-4 py-3 items-center"
-            }
-          >
-            <Text className={canSubmit ? "text-background font-medium" : "text-muted font-medium"}>
-              {submitting ? "Saving…" : editing === "new" ? "Add account" : "Save changes"}
-            </Text>
-          </Pressable>
-        </View>
-      )}
+            <View>
+              <Text className="text-muted text-xs mb-1">Last 4 digits</Text>
+              <TextInput
+                value={form.accountLast4}
+                onChangeText={(v) => setForm((f) => ({ ...f, accountLast4: v }))}
+                placeholder="1234"
+                placeholderTextColor={mutedColor}
+                keyboardType="number-pad"
+                maxLength={4}
+                className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
+              />
+            </View>
 
-      {isLoading ? (
-        <Text className="text-muted text-sm">Loading…</Text>
-      ) : sorted.length === 0 ? (
-        <Text className="text-muted text-sm">No accounts yet — add one above.</Text>
-      ) : (
-        <View className="gap-2">
-          {sorted.map((account) => {
-            const reading = latest.get(account.id);
-            const isMain = account.id === mainAccountId;
-            return (
-              <View key={account.id} className="rounded-xl border border-border p-3">
-                <View className="flex-row items-center">
-                  <Icon
-                    iconName={account.iconName}
-                    color={account.color}
-                    fallback={account.bankName}
-                  />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-foreground font-medium">{account.bankName}</Text>
-                    <Text className="text-muted text-xs">
-                      {account.accountLast4 ? `•••• ${account.accountLast4}` : account.currency}
-                      {account.isCreditCard
-                        ? " · credit"
-                        : account.isWallet
-                          ? " · wallet"
-                          : " · bank"}
-                    </Text>
-                  </View>
-                  <View className="items-end">
-                    <Text className="text-foreground font-semibold">
-                      {reading ? money.format(reading.balance, account.currency) : "—"}
-                    </Text>
+            <View>
+              <Text className="text-muted text-xs mb-1">Currency</Text>
+              <TextInput
+                value={form.currency}
+                onChangeText={(v) => setForm((f) => ({ ...f, currency: v }))}
+                placeholder="INR"
+                placeholderTextColor={mutedColor}
+                autoCapitalize="characters"
+                maxLength={3}
+                className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
+              />
+            </View>
+
+            <View>
+              <Text className="text-muted text-xs mb-2">Type</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {KINDS.map((k) => {
+                  const active = k === form.kind;
+                  return (
                     <Pressable
-                      onPress={() => void onSetMain(account.id)}
-                      className="mt-1 active:opacity-70"
+                      key={k}
+                      onPress={() => setForm((f) => ({ ...f, kind: k }))}
+                      className={
+                        active
+                          ? "rounded-full bg-foreground px-3 py-2"
+                          : "rounded-full border border-border px-3 py-2"
+                      }
                     >
                       <Text
-                        className={
-                          isMain ? "text-success text-xs font-medium" : "text-accent text-xs"
-                        }
+                        className={active ? "text-background text-xs" : "text-foreground text-xs"}
                       >
-                        {isMain ? "★ Main" : "Set main"}
+                        {k}
                       </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            {form.kind === "credit" && (
+              <View>
+                <Text className="text-muted text-xs mb-1">Credit limit</Text>
+                <TextInput
+                  value={form.creditLimit}
+                  onChangeText={(v) => setForm((f) => ({ ...f, creditLimit: v }))}
+                  placeholder="0.00"
+                  placeholderTextColor={mutedColor}
+                  keyboardType="decimal-pad"
+                  className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
+                />
+              </View>
+            )}
+
+            <Pressable
+              onPress={() => void onSubmit()}
+              disabled={!canSubmit}
+              className={
+                canSubmit
+                  ? "rounded-xl bg-foreground px-4 py-3 items-center active:opacity-70"
+                  : "rounded-xl bg-secondary px-4 py-3 items-center"
+              }
+            >
+              <Text
+                className={canSubmit ? "text-background font-medium" : "text-muted font-medium"}
+              >
+                {submitting ? "Saving…" : editing === "new" ? "Add account" : "Save changes"}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        {isLoading ? (
+          <Text className="text-muted text-sm">Loading…</Text>
+        ) : sorted.length === 0 ? (
+          <Text className="text-muted text-sm">No accounts yet — add one above.</Text>
+        ) : (
+          <View className="gap-2">
+            {sorted.map((account) => {
+              const reading = latest.get(account.id);
+              const isMain = account.id === mainAccountId;
+              return (
+                <View key={account.id} className="rounded-xl border border-border p-3">
+                  <View className="flex-row items-center">
+                    <Icon
+                      iconName={account.iconName}
+                      color={account.color}
+                      fallback={account.bankName}
+                    />
+                    <View className="ml-3 flex-1">
+                      <Text className="text-foreground font-medium">{account.bankName}</Text>
+                      <Text className="text-muted text-xs">
+                        {account.accountLast4 ? `•••• ${account.accountLast4}` : account.currency}
+                        {account.isCreditCard
+                          ? " · credit"
+                          : account.isWallet
+                            ? " · wallet"
+                            : " · bank"}
+                      </Text>
+                    </View>
+                    <View className="items-end">
+                      <Text className="text-foreground font-semibold">
+                        {reading ? money.format(reading.balance, account.currency) : "—"}
+                      </Text>
+                      <Pressable
+                        onPress={() => void onSetMain(account.id)}
+                        className="mt-1 active:opacity-70"
+                      >
+                        <Text
+                          className={
+                            isMain ? "text-success text-xs font-medium" : "text-accent text-xs"
+                          }
+                        >
+                          {isMain ? "★ Main" : "Set main"}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  <View className="flex-row gap-4 mt-3 pl-1">
+                    <Pressable onPress={() => openEdit(account)} className="active:opacity-70">
+                      <Text className="text-accent text-xs">Edit</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => onDelete(account.id, account.bankName)}
+                      className="active:opacity-70"
+                    >
+                      <Text className="text-danger text-xs">Delete</Text>
                     </Pressable>
                   </View>
                 </View>
-
-                <View className="flex-row gap-4 mt-3 pl-1">
-                  <Pressable onPress={() => openEdit(account)} className="active:opacity-70">
-                    <Text className="text-accent text-xs">Edit</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => onDelete(account.id, account.bankName)}
-                    className="active:opacity-70"
-                  >
-                    <Text className="text-danger text-xs">Delete</Text>
-                  </Pressable>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
-    </Container>
+              );
+            })}
+          </View>
+        )}
+      </Container>
+    </View>
   );
 }

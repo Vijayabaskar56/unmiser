@@ -191,12 +191,11 @@ routes pushed from Settings, not `href:null` tabs; the bar itself is now `Native
 - Dedicated `▸ CreateRule` edit screen (vs our inline-only builder).
 - `▸ UnrecognizedSms` as its own screen (we surface reviews inline in extensions).
 
-**Unresolved (product direction — confirm before building):**
+**Out of scope (resolved):**
 
-- `▸ Chat` / on-device AI — **conflict to resolve.** Saved product memory says *"no offline AI,"*
-  but the current `design/` hi-fi (Settings hub "Data & Privacy → on-device AI", hidden
-  "AI Chat Assistant · Qwen 2.5 · 1,638 MB") **includes it.** The Data & Privacy screen + memory
-  hinge on this answer.
+- `▸ Chat` / on-device AI — **OUT.** The user confirmed: no on-device / offline AI. Ignore the
+  on-device-AI bits in the `design/` hi-fi (Settings "Data & Privacy → on-device AI", the hidden
+  "AI Chat Assistant · Qwen 2.5") — those are stale. Data & Privacy is export / import / backup only.
 
 ### In-screen integration gap (cross-cutting)
 
