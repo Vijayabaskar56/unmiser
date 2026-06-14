@@ -19,20 +19,19 @@ export default function TabLayout() {
   const { isDark } = useAppTheme();
 
   // Inactive icon: a bright dim that tracks the bar (paper-ish on the dark bar in
-  // light mode, ink-ish on the light bar in dark mode). Active icon: ink, for
-  // contrast on the constant yellow pill.
+  // light mode, ink-ish on the light bar in dark mode). Active = yellow + filled
+  // icon — no oval indicator (it clashes with the boxy design language).
   const inactiveIcon = isDark ? "rgba(14,13,11,0.55)" : "rgba(244,243,236,0.78)";
-  const activeIcon = "#15140f";
 
   return (
     <NativeTabs
       backgroundColor={ink}
-      iconColor={{ default: inactiveIcon, selected: activeIcon }}
-      indicatorColor={accent}
-      tintColor={activeIcon}
-      // Kill the default dark Material ripple — on press it bounds to the pill
-      // and momentarily darkens the yellow indicator (the "janky" blob under the
-      // thumb). The pill + icon fill are the press feedback.
+      iconColor={{ default: inactiveIcon, selected: accent }}
+      // No pill/oval active indicator — active state is conveyed purely by the
+      // icon turning accent-yellow and filled (Home → home_filled, Hub →
+      // dashboard). `rippleColor` transparent removes the dark tap splash too.
+      disableIndicator
+      tintColor={accent}
       rippleColor="transparent"
       labelVisibilityMode="unlabeled"
       backBehavior="history"
