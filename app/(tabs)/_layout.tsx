@@ -1,93 +1,37 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { useThemeColor } from "heroui-native";
 
+import { TabBar } from "@/components/ui";
+
+/**
+ * Bottom navigation (wireframe IA): Home · Log · ＋ · Grow · Hub, rendered by the
+ * design-system `TabBar` (custom `tabBar` prop). The four real tabs are index
+ * (Home), transactions (Log), grow, and settings (Hub); the centre FAB opens
+ * manual capture (/add).
+ *
+ * The secondary screens (accounts, categories, rules, extensions, store,
+ * subscriptions) stay in this navigator but drop out of the bar (`href: null`).
+ * They're reached by pushing from the Hub/Settings hub. `backBehavior="history"`
+ * so hardware-back returns to the screen you came from.
+ */
 export default function TabLayout() {
-  const themeColorForeground = useThemeColor("foreground");
-  const themeColorBackground = useThemeColor("background");
-
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        headerStyle: {
-          backgroundColor: themeColorBackground,
-        },
-        headerTintColor: themeColorForeground,
-        headerTitleStyle: {
-          color: themeColorForeground,
-          fontWeight: "600",
-        },
-        tabBarStyle: {
-          backgroundColor: themeColorBackground,
-        },
-      }}
+      backBehavior="history"
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-      {/* index just redirects to Transactions; hidden from the tab bar. */}
-      <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen
-        name="transactions"
-        options={{
-          title: "Transactions",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="swap-horizontal" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="accounts"
-        options={{
-          title: "Accounts",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="categories"
-        options={{
-          title: "Categories",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="pricetags-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="extensions"
-        options={{
-          title: "Extensions",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="extension-puzzle-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="rules"
-        options={{
-          title: "Rules",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="options-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="subscriptions"
-        options={{
-          title: "Subscriptions",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="repeat-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="store"
-        options={{
-          title: "Store",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="storefront-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="transactions" />
+      <Tabs.Screen name="grow" />
+      <Tabs.Screen name="settings" />
+
+      {/* Secondary screens — routable from the Hub, not shown in the tab bar. */}
+      <Tabs.Screen name="accounts" options={{ href: null }} />
+      <Tabs.Screen name="categories" options={{ href: null }} />
+      <Tabs.Screen name="rules" options={{ href: null }} />
+      <Tabs.Screen name="extensions" options={{ href: null }} />
+      <Tabs.Screen name="store" options={{ href: null }} />
+      <Tabs.Screen name="subscriptions" options={{ href: null }} />
     </Tabs>
   );
 }

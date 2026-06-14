@@ -100,50 +100,54 @@ SMS-parsing-progress; generic delete dialogs.
 
 Navigation: file-based under `app/`. `(tabs)` and `(onboarding)` are layout groups.
 
-**7 bottom-nav tabs.** Add/edit flows are **inline state-toggled forms**; pickers are
+**Phase 4 IA (wireframe):** a custom design-system `TabBar` (`components/ui/tab-bar.tsx`,
+passed to expo-router `Tabs` via the `tabBar` prop) — a **flush dark/inverted bar, icon-only,
+with a yellow active-dot**. Four real tabs around a centre **＋** action: **Home · Log · ＋ ·
+Grow · Hub**. `backBehavior="history"` so hardware-back returns to the previous screen. Most
+add/edit flows are still **inline forms + chip selectors** (no `@gorhom/bottom-sheet` yet); the
+design-system primitive kit (`components/ui/`) + the Settings hub are the first Phase-4 UI.
 
-**horizontal chip selectors**, not bottom sheets. Only one real modal component exists
-
-(`PasteSmsSheet`, an RN `Modal`); there is **no `@gorhom/bottom-sheet` usage yet**.
+Legend additions: `●` = real screen on the design-system kit · `▱` = `ComingSoon` stub ·
+`(href:null)` = in the tab navigator but **not** in the bar (reached by pushing from the Hub).
 
 ```
-Root Stack  (app/_layout.tsx — SmsOnboardingGate redirects first-run Android to /sms-setup)
-├─ (tabs)  (app/(tabs)/_layout.tsx)
-│   ├─ index            → redirects to /transactions (hidden tab)
-│   ├─ ★ transactions   (app/(tabs)/transactions.tsx)
-│   │   ↳ inline add form (amount, merchant, account/category/subcategory/type chips, transfer target)
-│   │   ↳ search · type-filter chips · bulk-select + bulk delete
-│   │   ↳ row tap → /transaction/[id] (modal)
-│   ├─ ★ accounts       (app/(tabs)/accounts.tsx)
-│   │   ↳ inline add/edit form (bank, last4, currency, type, credit limit) · set-main · delete (Alert)
-│   ├─ ★ categories     (app/(tabs)/categories.tsx)
-│   │   ↳ inline add/edit form (name, 8-color picker, income toggle)
-│   │   ↳ accordion subcategories with inline add/edit/delete
-│   ├─ ★ extensions     (app/(tabs)/extensions.tsx)
-│   │   ↳ SMS permission + full/resume/cancel scan controls + live progress
-│   │   ↳ install bundled extensions · per-plugin enable toggle · provider account linker
-│   │   ↳ inline paste-SMS section · SMS Review list (newest 25) · dev UAT button
-│   ├─ ★ rules          (app/(tabs)/rules.tsx)
-│   │   ↳ inline rule builder (merchant-contains, set-category, priority) · save/preview/apply
-│   │   ↳ active rules list · system templates list · recent applications
-│   ├─ ★ subscriptions  (app/(tabs)/subscriptions.tsx)
-│   │   ↳ Upcoming-30-days / Active / Hidden sections · inline hide / reactivate
-│   └─ ★ store          (app/(tabs)/store.tsx)
-│       ↳ PasteSmsSheet (components/paste-sms-sheet.tsx, RN Modal) ✓
-│       ↳ SMS-setup link → /sms-setup · search + check-for-updates · catalog grouped by country
+Root Stack  (app/_layout.tsx — fonts/splash; SmsOnboardingGate redirects first-run → /sms-setup)
+├─ (tabs)  (app/(tabs)/_layout.tsx — custom TabBar)
+│   ├─ ★ index          Home   ▱ (app/(tabs)/index.tsx)          → dashboard (Phase 5)
+│   ├─ ★ transactions   Log    ● (app/(tabs)/transactions.tsx)   transaction feed
+│   │   ↳ inline add form · search · type-filter chips · bulk delete · row → /transaction/[id]
+│   ├─ ＋  (centre action) → /add  (not a tab; manual capture)
+│   ├─ ★ grow            Grow   ▱ (app/(tabs)/grow.tsx)           → insights/net-worth/subs (P5/6)
+│   ├─ ★ settings        Hub    ● (app/(tabs)/settings.tsx)       Settings hub
+│   │   ↳ ink profile card (live txn count) → /profile ▱
+│   │   ↳ ListGroup rows → /appearance ▱ · /language ▱ · /accounts ● · /budgets ▱ ·
+│   │     /categories ● · /rules ● · /data-privacy ▱
+│   │
+│   ├─ accounts (href:null)      ● — add/edit/set-main/delete · reached from Hub
+│   ├─ categories (href:null)    ● — inline add/edit + subcategory accordion · from Hub
+│   ├─ rules (href:null)         ● — inline rule builder + templates + applications · from Hub
+│   ├─ extensions (href:null)    ● — SMS scan/permission/install/review  ⚠ ORPHANED (no entry yet)
+│   ├─ store (href:null)         ● — extension marketplace + PasteSmsSheet ⚠ ORPHANED (no entry yet)
+│   └─ subscriptions (href:null) ● — Upcoming/Active/Hidden                ⚠ ORPHANED (no entry yet)
 │
-├─ transaction/[id]  (app/transaction/[id].tsx, presentation: modal)
-│   ↳ view mode · inline edit mode (chip pickers) · delete + undo · mark-as-recurring
-├─ modal  (app/modal.tsx, presentation: modal)   — placeholder/template, unused
-├─ +not-found
+├─ add            ▱ (app/add.tsx)            — ＋ destination; manual add (Phase 4/5)
+├─ profile        ▱ (app/profile.tsx)        ┐
+├─ appearance     ▱ (app/appearance.tsx)     │ Settings sub-screens — designs in design/,
+├─ language       ▱ (app/language.tsx)       │ ComingSoon stubs for now (pushed over tabs,
+├─ budgets        ▱ (app/budgets.tsx)        │ AppBar with back)
+├─ data-privacy   ▱ (app/data-privacy.tsx)   ┘
+│
+├─ transaction/[id]  ● (modal) — view / inline edit / delete+undo / mark-recurring
+├─ design-system     ● (app/design-system.tsx) — __DEV__ primitive preview (/design-system)
+├─ modal · +not-found
 │
 └─ (onboarding)  (app/(onboarding)/_layout.tsx) — SMS-setup wizard at /sms-setup
-    ├─ index        country select → /sms-setup/providers
-    ├─ providers    install providers → /sms-setup/account
-    ├─ account      optional account rename → /sms-setup/permissions
-    ├─ permissions  grant SMS access (↳ PasteSmsSheet fallback) → /sms-setup/scan
-    └─ scan         inbox scan + summary → finish → /(tabs)
+    ├─ index → providers → account → permissions (↳ PasteSmsSheet) → scan → finish → /(tabs)
 ```
+
+**⚠ Known gap:** folding the old 7 tabs orphaned **extensions**, **store**, and **subscriptions**
+— they're routable but have **no in-app entry point** yet. Planned homes: Subscriptions under
+**Grow**; Extensions + Store under **Hub**.
 
 ---
 
@@ -176,20 +180,22 @@ Root Stack  (app/_layout.tsx — SmsOnboardingGate redirects first-run Android t
 - `▸ AccountDetail` — per-account transaction history. We have an accounts list but no drill-in.
 - `▸ AddTransaction` proper (esp. the **Subscription tab** for creating a subscription by hand) — ours has no manual subscription-create path at all.
 
-**Settings tree (we have no Settings hub at all):**
+**Settings tree (hub ✅ built as the Hub tab; sub-screens are stubs):**
 
-- `▸ Settings` hub screen — currently absent; nothing links the config screens.
-- `▸ Appearance` (theme/dark-mode), `▸ Profile`, `▸ NotificationSettings`.
-- `▸ DataPrivacy` — export / PDF import / duplicate comparison.
-- `▸ Webhooks` + `▸ WebhookEditor`.
-- `▸ About` / `▸ Licenses` / `▸ DeveloperOptions`.
-- `▸ AppLock` — PIN/biometric gate.
+- `▸ Settings` hub — ✅ **done** (`app/(tabs)/settings.tsx`, the Hub tab), links the config screens.
+- `▸ Appearance`, `▸ Profile`, `▸ Language`, `▸ Budgets`, `▸ DataPrivacy` — ▱ **`ComingSoon` stubs**
+  wired from the hub; designs exist in `design/` (Appearance, Profile, Data & Privacy ready to build).
+- `▸ NotificationSettings`, `▸ Webhooks` + `▸ WebhookEditor`, `▸ About` / `▸ Licenses` /
+  `▸ DeveloperOptions`, `▸ AppLock` — still missing (not in the current hub design).
 - Dedicated `▸ CreateRule` edit screen (vs our inline-only builder).
 - `▸ UnrecognizedSms` as its own screen (we surface reviews inline in extensions).
 
-**Likely de-scoped (per product direction — confirm before building):**
+**Unresolved (product direction — confirm before building):**
 
-- `▸ Chat` (AI assistant) — memory note says **no offline AI**; probably intentionally dropped.
+- `▸ Chat` / on-device AI — **conflict to resolve.** Saved product memory says *"no offline AI,"*
+  but the current `design/` hi-fi (Settings hub "Data & Privacy → on-device AI", hidden
+  "AI Chat Assistant · Qwen 2.5 · 1,638 MB") **includes it.** The Data & Privacy screen + memory
+  hinge on this answer.
 
 ### In-screen integration gap (cross-cutting)
 

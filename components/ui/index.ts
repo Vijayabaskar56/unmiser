@@ -8,5 +8,6 @@ export * from "./card";
 export * from "./txn-row";
 export * from "./segmented";
 export * from "./sub-tabs";
+export * from "./tab-bar";
 export * from "./month-scrubber";
 export * from "./callout-pill";

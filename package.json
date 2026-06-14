@@ -4,7 +4,7 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "start": "expo start",
+    "start": "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start",
     "dev": "expo start --clear",
     "android": "expo run:android",
     "ios": "expo run:ios",
