@@ -56,13 +56,19 @@ function SmsOnboardingGate() {
 function StackLayout() {
   return (
     <>
-      <Stack screenOptions={{}}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ title: "Modal", presentation: "modal" }} />
+      {/* Default to no native header: tab screens, the Settings sub-screens, and
+          the screens moved out of the tab bar (accounts/categories/rules/…) all
+          render their own headers/AppBar. The two modals re-enable it. */}
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen
+          name="modal"
+          options={{ title: "Modal", presentation: "modal", headerShown: true }}
+        />
         <Stack.Screen
           name="transaction/[id]"
-          options={{ title: "Transaction", presentation: "modal" }}
+          options={{ title: "Transaction", presentation: "modal", headerShown: true }}
         />
       </Stack>
       <SmsOnboardingGate />

@@ -5,5 +5,5 @@ import { ComingSoon } from "@/components/coming-soon";
  * add-transaction / add-subscription flow; placeholder for now.
  */
 export default function AddScreen() {
-  return <ComingSoon title="Add" />;
+  return <ComingSoon title="Add" showBack={false} />;
 }

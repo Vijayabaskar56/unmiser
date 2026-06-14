@@ -1,37 +1,58 @@
-import { Tabs } from "expo-router";
-
-import { TabBar } from "@/components/ui";
+import { useThemeColor } from "heroui-native";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 /**
- * Bottom navigation (wireframe IA): Home · Log · ＋ · Grow · Hub, rendered by the
- * design-system `TabBar` (custom `tabBar` prop). The four real tabs are index
- * (Home), transactions (Log), grow, and settings (Hub); the centre FAB opens
- * manual capture (/add).
+ * Bottom navigation — NATIVE tabs variant (`expo-router/unstable-native-tabs`)
+ * for comparison against the custom bar. Home · Log · ＋ · Grow · Hub as real
+ * native tab items, styled to the design with the native styling props:
+ * inverted dark bar (`backgroundColor`), dim/white icons (`iconColor`), yellow
+ * Android active indicator (`indicatorColor`), icon-only (`labelVisibilityMode`).
  *
- * The secondary screens (accounts, categories, rules, extensions, store,
- * subscriptions) stay in this navigator but drop out of the bar (`href: null`).
- * They're reached by pushing from the Hub/Settings hub. `backBehavior="history"`
- * so hardware-back returns to the screen you came from.
+ * Tradeoffs vs the custom bar (alpha API): the active marker is Android's
+ * Material pill (not a yellow dot), iOS shows only a tint, and ＋ is a real tab
+ * (native tabs can't host a non-navigating centre action). The secondary screens
+ * (accounts/categories/rules/extensions/store/subscriptions) had to move to the
+ * root stack — native tabs can't keep hidden-but-navigable routes.
  */
 export default function TabLayout() {
-  return (
-    <Tabs
-      backBehavior="history"
-      tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="transactions" />
-      <Tabs.Screen name="grow" />
-      <Tabs.Screen name="settings" />
+  const ink = useThemeColor("foreground");
+  const paper = useThemeColor("background");
+  const muted = useThemeColor("muted");
+  const accent = useThemeColor("accent");
 
-      {/* Secondary screens — routable from the Hub, not shown in the tab bar. */}
-      <Tabs.Screen name="accounts" options={{ href: null }} />
-      <Tabs.Screen name="categories" options={{ href: null }} />
-      <Tabs.Screen name="rules" options={{ href: null }} />
-      <Tabs.Screen name="extensions" options={{ href: null }} />
-      <Tabs.Screen name="store" options={{ href: null }} />
-      <Tabs.Screen name="subscriptions" options={{ href: null }} />
-    </Tabs>
+  return (
+    <NativeTabs
+      backgroundColor={ink}
+      iconColor={{ default: muted, selected: paper }}
+      indicatorColor={accent}
+      tintColor={paper}
+      labelVisibilityMode="unlabeled"
+      backBehavior="history"
+    >
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Icon sf="house.fill" md="home" />
+        <NativeTabs.Trigger.Label hidden />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="transactions">
+        <NativeTabs.Trigger.Icon sf="list.bullet" md="receipt_long" />
+        <NativeTabs.Trigger.Label hidden />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="add">
+        <NativeTabs.Trigger.Icon sf="plus" md="add" />
+        <NativeTabs.Trigger.Label hidden />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="grow">
+        <NativeTabs.Trigger.Icon sf="chart.line.uptrend.xyaxis" md="trending_up" />
+        <NativeTabs.Trigger.Label hidden />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="settings">
+        <NativeTabs.Trigger.Icon sf="square.grid.2x2.fill" md="grid_view" />
+        <NativeTabs.Trigger.Label hidden />
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
