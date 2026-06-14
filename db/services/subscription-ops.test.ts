@@ -14,7 +14,11 @@ import {
   predictNextPayment,
 } from "@/lib/subscriptions/matching";
 import {
+  createSubscription,
+  deleteSubscription,
+  editSubscription,
   matchAndLinkSubscriptionPayment,
+  setSubscriptionState,
   syncSubscriptionFromRecurringTransaction,
   upsertFromMandate,
 } from "@/db/services/subscription-ops";
@@ -201,6 +205,105 @@ describe("subscription ops", () => {
     expect(rows[0].lastPaidDate).toBe("2026-06-07");
     expect(rows[0].nextPaymentDate).toBe("2026-07-07");
     expect(linkedSecond.subscriptionId).toBe(rows[0].id);
+    sqlite.close();
+  });
+});
+
+describe("createSubscription", () => {
+  it("inserts an active subscription and returns its id", async () => {
+    const { db, sqlite } = createTestDb();
+    const id = await createSubscription(db, {
+      merchantName: "Spotify",
+      amount: "119",
+      currency: "INR",
+      billingCycle: "monthly",
+      nextPaymentDate: "2026-07-01",
+    });
+    const [row] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    expect(row.merchantName).toBe("Spotify");
+    expect(row.amount).toBe("119");
+    expect(row.state).toBe("ACTIVE");
+    expect(row.nextPaymentDate).toBe("2026-07-01");
+    sqlite.close();
+  });
+
+  it("denormalizes the category name when linked", async () => {
+    const { db, sqlite } = createTestDb();
+    const categoryId = await seedCategory(db);
+    const id = await createSubscription(db, {
+      merchantName: "Netflix",
+      amount: "499",
+      categoryId,
+    });
+    const [row] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    expect(row.categoryId).toBe(categoryId);
+    expect(row.categoryName).toBe("Subscription");
+    sqlite.close();
+  });
+});
+
+describe("editSubscription", () => {
+  it("updates editable fields and refreshes the category snapshot", async () => {
+    const { db, sqlite } = createTestDb();
+    const categoryId = await seedCategory(db);
+    const id = await createSubscription(db, { merchantName: "Netflix", amount: "499" });
+
+    await editSubscription(db, id, {
+      merchantName: "Netflix Premium",
+      amount: "649",
+      billingCycle: "yearly",
+      categoryId,
+    });
+
+    const [row] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    expect(row.merchantName).toBe("Netflix Premium");
+    expect(row.amount).toBe("649");
+    expect(row.billingCycle).toBe("yearly");
+    expect(row.categoryName).toBe("Subscription");
+    sqlite.close();
+  });
+
+  it("clears the category snapshot when unlinked", async () => {
+    const { db, sqlite } = createTestDb();
+    const categoryId = await seedCategory(db);
+    const id = await createSubscription(db, {
+      merchantName: "Netflix",
+      amount: "499",
+      categoryId,
+    });
+
+    await editSubscription(db, id, { categoryId: null });
+
+    const [row] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    expect(row.categoryId).toBeNull();
+    expect(row.categoryName).toBeNull();
+    sqlite.close();
+  });
+});
+
+describe("setSubscriptionState", () => {
+  it("hides and reactivates a subscription", async () => {
+    const { db, sqlite } = createTestDb();
+    const id = await createSubscription(db, { merchantName: "Netflix", amount: "499" });
+
+    await setSubscriptionState(db, id, "HIDDEN");
+    let [row] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    expect(row.state).toBe("HIDDEN");
+
+    await setSubscriptionState(db, id, "ACTIVE");
+    [row] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    expect(row.state).toBe("ACTIVE");
+    sqlite.close();
+  });
+});
+
+describe("deleteSubscription", () => {
+  it("removes the row", async () => {
+    const { db, sqlite } = createTestDb();
+    const id = await createSubscription(db, { merchantName: "Netflix", amount: "499" });
+    await deleteSubscription(db, id);
+    const rows = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    expect(rows).toHaveLength(0);
     sqlite.close();
   });
 });

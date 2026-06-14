@@ -52,6 +52,19 @@ export type SubscriptionState = (typeof SUBSCRIPTION_STATES)[number];
 export const CARD_TYPES = ["DEBIT", "CREDIT"] as const;
 export type CardType = (typeof CARD_TYPES)[number];
 
+// Account "source" kinds (Unmiser net-worth model). BANK/CREDIT/CASH are wired
+// this phase; PF/INSURANCE/INVESTMENT are reserved — the Add-a-source UI shows
+// them disabled until their feature phase. The canonical kind lives in
+// accounts.sourceKind; the legacy isWallet/isCreditCard booleans are derived
+// from it (CREDIT→isCreditCard, CASH→isWallet) so the balance cascade and seed
+// keep working unchanged.
+export const SOURCE_KINDS = ["BANK", "CREDIT", "CASH", "PF", "INSURANCE", "INVESTMENT"] as const;
+export type SourceKind = (typeof SOURCE_KINDS)[number];
+
+// Subtype shown for BANK sources only (the secondary "savings ••4410" line).
+export const BANK_SUBTYPES = ["savings", "salary", "current"] as const;
+export type BankSubtype = (typeof BANK_SUBTYPES)[number];
+
 export const BUDGET_PERIODS = ["CUSTOM", "DAILY", "WEEKLY", "MONTHLY", "YEARLY"] as const;
 export type BudgetPeriod = (typeof BUDGET_PERIODS)[number];
 

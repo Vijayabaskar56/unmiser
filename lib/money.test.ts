@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   add,
   compare,
+  formatCompact,
   isZero,
   multiply,
   negate,
@@ -119,5 +120,27 @@ describe("money — format: three-decimal currency (BHD)", () => {
 
   it("rounds extra precision to 3dp HALF_EVEN (1.2345 -> 1.234)", () => {
     expect(format("1.2345", "BHD")).toBe("BD1.234");
+  });
+});
+
+describe("formatCompact", () => {
+  it("shows amounts under 1000 in full", () => {
+    expect(formatCompact("612", "INR")).toBe("₹612");
+    expect(formatCompact("0", "INR")).toBe("₹0");
+  });
+
+  it("abbreviates thousands with k (one decimal, trailing .0 dropped)", () => {
+    expect(formatCompact("9400", "INR")).toBe("₹9.4k");
+    expect(formatCompact("6500", "INR")).toBe("₹6.5k");
+    expect(formatCompact("2000", "INR")).toBe("₹2k");
+  });
+
+  it("uses lakh (L) and crore (Cr) for larger Indian magnitudes", () => {
+    expect(formatCompact("192000", "INR")).toBe("₹1.9L");
+    expect(formatCompact("12000000", "INR")).toBe("₹1.2Cr");
+  });
+
+  it("keeps the sign for negatives", () => {
+    expect(formatCompact("-480", "INR")).toBe("-₹480");
   });
 });

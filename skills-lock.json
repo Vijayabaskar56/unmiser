@@ -73,6 +73,12 @@
       "skillPath": "skills/turborepo/SKILL.md",
       "computedHash": "b7c3165ae67a2892d6195a5b2cba15c8d96341f5c64ddd0d3ce4225c94a2ae83"
     },
+    "uniwind": {
+      "source": "uni-stack/uniwind",
+      "sourceType": "github",
+      "skillPath": "skills/uniwind/SKILL.md",
+      "computedHash": "c690ea4c1e231c090523f9a86905062dd0cf56f2dcea6aaec46b76ff76888468"
+    },
     "vercel-composition-patterns": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",

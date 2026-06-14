@@ -5,7 +5,12 @@ import { accountBalances, accounts, cards, categories, transactions } from "@/db
 import { getMainAccountId, setMainAccount } from "@/db/services/app-settings";
 import { createTestDb } from "@/db/test-support/harness";
 
-import { createAccount, deleteAccount, editAccount } from "@/db/services/account-ops";
+import {
+  createAccount,
+  deleteAccount,
+  editAccount,
+  setManualBalance,
+} from "@/db/services/account-ops";
 
 describe("account-ops service", () => {
   it("createAccount('bank') stores a non-wallet, non-credit account", async () => {
@@ -48,25 +53,113 @@ describe("account-ops service", () => {
     sqlite.close();
   });
 
-  it("createAccount('wallet') sets isWallet and persists optional presentation fields", async () => {
+  it("createAccount('cash') sets isWallet and persists optional presentation fields", async () => {
     const { db, sqlite } = createTestDb();
 
     const id = await createAccount(db, {
       bankName: "Paytm",
       accountLast4: "0000",
       currency: "INR",
-      kind: "wallet",
+      kind: "cash",
       color: "#FF0000",
       iconName: "wallet",
       canonicalBank: "in.paytm.wallet",
     });
 
     const [row] = await db.select().from(accounts).where(eq(accounts.id, id));
+    expect(row.sourceKind).toBe("CASH");
     expect(row.isWallet).toBe(true);
     expect(row.isCreditCard).toBe(false);
     expect(row.color).toBe("#FF0000");
     expect(row.iconName).toBe("wallet");
     expect(row.canonicalBank).toBe("in.paytm.wallet");
+
+    sqlite.close();
+  });
+
+  it("createAccount sets the canonical sourceKind for bank and credit", async () => {
+    const { db, sqlite } = createTestDb();
+
+    const bankId = await createAccount(db, {
+      bankName: "HDFC",
+      accountLast4: "4410",
+      currency: "INR",
+      kind: "bank",
+      bankSubtype: "savings",
+    });
+    const creditId = await createAccount(db, {
+      bankName: "Amex",
+      accountLast4: "9999",
+      currency: "USD",
+      kind: "credit",
+    });
+
+    const [bank] = await db.select().from(accounts).where(eq(accounts.id, bankId));
+    const [credit] = await db.select().from(accounts).where(eq(accounts.id, creditId));
+    expect(bank.sourceKind).toBe("BANK");
+    expect(bank.bankSubtype).toBe("savings");
+    expect(credit.sourceKind).toBe("CREDIT");
+    expect(credit.bankSubtype).toBeNull();
+
+    sqlite.close();
+  });
+
+  it("createAccount('pf'/'insurance'/'investment') is a plain asset (neither flag set)", async () => {
+    const { db, sqlite } = createTestDb();
+
+    const id = await createAccount(db, {
+      bankName: "EPF",
+      accountLast4: "",
+      currency: "INR",
+      kind: "pf",
+    });
+
+    const [row] = await db.select().from(accounts).where(eq(accounts.id, id));
+    expect(row.sourceKind).toBe("PF");
+    expect(row.isWallet).toBe(false);
+    expect(row.isCreditCard).toBe(false);
+
+    sqlite.close();
+  });
+
+  it("editAccount can change the bank subtype", async () => {
+    const { db, sqlite } = createTestDb();
+
+    const id = await createAccount(db, {
+      bankName: "ICICI",
+      accountLast4: "2261",
+      currency: "INR",
+      kind: "bank",
+      bankSubtype: "savings",
+    });
+
+    await editAccount(db, id, { bankSubtype: "salary" });
+
+    const [row] = await db.select().from(accounts).where(eq(accounts.id, id));
+    expect(row.bankSubtype).toBe("salary");
+
+    sqlite.close();
+  });
+
+  it("setManualBalance writes a MANUAL balance reading for the account", async () => {
+    const { db, sqlite } = createTestDb();
+
+    const id = await createAccount(db, {
+      bankName: "Cash",
+      accountLast4: "",
+      currency: "INR",
+      kind: "cash",
+    });
+
+    await setManualBalance(db, id, "16000.00");
+
+    const readings = await db
+      .select()
+      .from(accountBalances)
+      .where(eq(accountBalances.accountId, id));
+    expect(readings).toHaveLength(1);
+    expect(readings[0].balance).toBe("16000.00");
+    expect(readings[0].sourceType).toBe("MANUAL");
 
     sqlite.close();
   });

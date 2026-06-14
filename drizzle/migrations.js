@@ -7,6 +7,8 @@ import m0003 from "./20260608105256_daily_epoch/migration.sql";
 import m0004 from "./20260609093941_awesome_the_captain/migration.sql";
 import m0005 from "./20260609150104_gigantic_fixer/migration.sql";
 import m0006 from "./20260612100323_huge_patriot/migration.sql";
+import m0007 from "./20260614105749_dry_mongoose/migration.sql";
+import m0008 from "./20260614144721_rainy_lorna_dane/migration.sql";
 
 export default {
   migrations: {
@@ -17,5 +19,7 @@ export default {
     "20260609093941_awesome_the_captain": m0004,
     "20260609150104_gigantic_fixer": m0005,
     "20260612100323_huge_patriot": m0006,
+    "20260614105749_dry_mongoose": m0007,
+    "20260614144721_rainy_lorna_dane": m0008,
   },
 };

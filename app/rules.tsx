@@ -1,149 +1,178 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useMemo, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
-
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo } from "react";
+import { Pressable, View } from "react-native";
+import { withUniwind } from "uniwind";
 
 import { Container } from "@/components/container";
-import { AppBar } from "@/components/ui";
-import { transactionRuleCollection, ruleApplicationCollection } from "@/db/collections";
-import { appDb } from "@/db/app-db";
-import { applyToPast, previewApplyToPast } from "@/db/services/apply-to-past";
-import { saveRule } from "@/db/services/rule-ops";
+import { AppBar, Badge, BottomBar, Card, Text } from "@/components/ui";
+import {
+  ruleApplicationCollection,
+  smsReviewCollection,
+  transactionRuleCollection,
+} from "@/db/collections";
+import { useAccent } from "@/lib/appearance/use-accent";
+import { parseActions, parseConditions } from "@/lib/rules/dsl";
+import { describeAction, describeCondition } from "@/lib/rules/summary";
+
+const StyledIonicons = withUniwind(Ionicons);
+
+/** A dark/accent value chip, e.g. the "swiggy" / "food" pills in the mockup. */
+function ValueChip({ children, accent }: { children: string; accent?: boolean }) {
+  const accentColor = useAccent();
+  if (!children) return null;
+  return (
+    <View
+      className={
+        accent
+          ? "self-start rounded-[3px] border-[1.3px] border-foreground px-2 py-0.5"
+          : "self-start rounded-[3px] border-[1.3px] border-foreground bg-foreground px-2 py-0.5"
+      }
+      style={accent ? { backgroundColor: accentColor } : undefined}
+    >
+      <Text
+        className={
+          accent
+            ? "text-[13px] font-bold text-accent-foreground"
+            : "text-[13px] font-bold text-background"
+        }
+      >
+        {children}
+      </Text>
+    </View>
+  );
+}
 
 export default function RulesScreen() {
   const router = useRouter();
+
   const { data: rules } = useLiveQuery((q) =>
     q.from({ rule: transactionRuleCollection }).orderBy(({ rule }) => rule.priority, "asc"),
   );
-  const { data: applications } = useLiveQuery((q) =>
-    q
-      .from({ app: ruleApplicationCollection })
-      .orderBy(({ app }) => app.appliedAt, "desc")
-      .limit(8),
+  const { data: applications } = useLiveQuery((q) => q.from({ app: ruleApplicationCollection }));
+  const { data: review } = useLiveQuery((q) => q.from({ r: smsReviewCollection }));
+
+  const refetch = useCallback(
+    () =>
+      Promise.all([
+        transactionRuleCollection.utils.refetch(),
+        ruleApplicationCollection.utils.refetch(),
+        smsReviewCollection.utils.refetch(),
+      ]),
+    [],
   );
-  const [merchant, setMerchant] = useState("swiggy");
-  const [category, setCategory] = useState("Food & Drinks");
-  const [priority, setPriority] = useState("100");
-  const [message, setMessage] = useState("");
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
 
-  const activeRules = useMemo(() => (rules ?? []).filter((rule) => rule.isActive), [rules]);
-  const templates = useMemo(() => (rules ?? []).filter((rule) => rule.isSystemTemplate), [rules]);
+  const matchCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const app of applications ?? []) counts.set(app.ruleId, (counts.get(app.ruleId) ?? 0) + 1);
+    return counts;
+  }, [applications]);
 
-  const refresh = async () => {
-    await Promise.all([
-      transactionRuleCollection.utils.refetch(),
-      ruleApplicationCollection.utils.refetch(),
-    ]);
-  };
-
-  const createRule = async (isActive = true) => {
-    const id = await saveRule(appDb, {
-      name: `${merchant} -> ${category}`,
-      priority: Number(priority) || 100,
-      isActive,
-      conditions: [{ field: "MERCHANT", operator: "CONTAINS", value: merchant }],
-      actions: [{ actionType: "SET", field: "CATEGORY", value: category }],
-    });
-    await refresh();
-    setMessage(`Saved rule ${id}`);
-  };
-
-  const preview = async () => {
-    const result = await previewApplyToPast(appDb);
-    setMessage(`${result.count} past transaction(s) would change`);
-  };
-
-  const apply = async () => {
-    const result = await applyToPast(appDb);
-    await refresh();
-    setMessage(`Updated ${result.updated}/${result.processed} past transaction(s)`);
-  };
+  const rows = rules ?? [];
+  const unrecognisedCount = review?.length ?? 0;
 
   return (
     <View className="flex-1 bg-background">
       <AppBar
         title="Smart Rules"
         onBack={() => (router.canGoBack() ? router.back() : router.replace("/settings"))}
+        right={
+          <Pressable
+            onPress={() => router.push("/rule/new")}
+            accessibilityLabel="New rule"
+            className="h-9 w-9 items-center justify-center rounded-[6px] border-[1.5px] border-foreground active:opacity-70"
+          >
+            <StyledIonicons name="add" size={20} className="text-foreground" />
+          </Pressable>
+        }
       />
-      <Container>
-        <View className="gap-4 p-4">
-          <View>
-            <Text className="text-muted">Active automation rules and inactive templates</Text>
+      <Container className="px-4">
+        {/* Summary */}
+        <Card variant="soft" className="mt-3 flex-row items-center gap-3">
+          <View className="flex-1">
+            <Text variant="caption">{rows.length} RULES · AUTO-APPLIED</Text>
+            <Text variant="body" className="mt-1 text-[15px] text-foreground/80">
+              Rules tag and file transactions the moment a matching SMS is parsed.
+            </Text>
           </View>
+          <StyledIonicons name="git-branch-outline" size={28} className="text-foreground" />
+        </Card>
 
-          <View className="gap-3 rounded-lg border border-border bg-content1 p-3">
-            <Text className="text-foreground font-semibold">Rule Builder</Text>
-            <TextInput
-              className="rounded-md border border-border px-3 py-2 text-foreground"
-              value={merchant}
-              onChangeText={setMerchant}
-              placeholder="Merchant contains"
-              placeholderTextColor="#888"
-            />
-            <TextInput
-              className="rounded-md border border-border px-3 py-2 text-foreground"
-              value={category}
-              onChangeText={setCategory}
-              placeholder="Set category"
-              placeholderTextColor="#888"
-            />
-            <TextInput
-              className="rounded-md border border-border px-3 py-2 text-foreground"
-              value={priority}
-              onChangeText={setPriority}
-              keyboardType="number-pad"
-              placeholder="Priority"
-              placeholderTextColor="#888"
-            />
-            <View className="flex-row gap-2">
-              <Pressable
-                className="rounded-md bg-primary px-3 py-2"
-                onPress={() => createRule(true)}
-              >
-                <Text className="text-primary-foreground font-semibold">Save</Text>
-              </Pressable>
-              <Pressable className="rounded-md border border-border px-3 py-2" onPress={preview}>
-                <Text className="text-foreground font-semibold">Preview</Text>
-              </Pressable>
-              <Pressable className="rounded-md border border-border px-3 py-2" onPress={apply}>
-                <Text className="text-foreground font-semibold">Apply</Text>
-              </Pressable>
-            </View>
-            {message ? <Text className="text-muted">{message}</Text> : null}
-          </View>
+        {/* Unrecognised banner */}
+        {unrecognisedCount > 0 ? (
+          <Pressable
+            onPress={() => router.push("/unrecognised")}
+            className="mt-3 flex-row items-center justify-between rounded-[3px] border border-border bg-surface-secondary px-3.5 py-3 active:opacity-70"
+          >
+            <Text variant="body" className="text-[14px] text-foreground">
+              {unrecognisedCount} unrecognised SMS need a sender rule
+            </Text>
+            <StyledIonicons name="chevron-forward" size={16} className="text-muted" />
+          </Pressable>
+        ) : null}
 
-          <View className="gap-2">
-            <Text className="text-foreground text-lg font-semibold">Active</Text>
-            {activeRules.length === 0 ? <Text className="text-muted">No active rules.</Text> : null}
-            {activeRules.map((rule) => (
-              <View key={rule.id} className="rounded-lg border border-border bg-content1 p-3">
-                <Text className="text-foreground font-semibold">{rule.name}</Text>
-                <Text className="text-muted">Priority {rule.priority}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View className="gap-2">
-            <Text className="text-foreground text-lg font-semibold">System Templates</Text>
-            {templates.map((rule) => (
-              <View key={rule.id} className="rounded-lg border border-border bg-content1 p-3">
-                <Text className="text-foreground font-semibold">{rule.name}</Text>
-                <Text className="text-muted">{rule.description}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View className="gap-2">
-            <Text className="text-foreground text-lg font-semibold">Recent Applications</Text>
-            {(applications ?? []).map((application) => (
-              <Text key={application.id} className="text-muted">
-                {application.ruleName} · {application.appliedAt}
-              </Text>
-            ))}
-          </View>
-        </View>
+        {/* Rules */}
+        {rows.length > 0 ? (
+          <Card variant="soft" className="mt-3 gap-0 p-0">
+            {rows.map((rule, i) => {
+              const conditions = parseConditions(rule.conditions);
+              const actions = parseActions(rule.actions);
+              const cond = conditions[0] ? describeCondition(conditions[0]) : null;
+              const act = actions[0] ? describeAction(actions[0]) : null;
+              const matched = matchCounts.get(rule.id) ?? 0;
+              return (
+                <Pressable
+                  key={rule.id}
+                  onPress={() => router.push(`/rule/${rule.id}`)}
+                  className="active:opacity-70"
+                >
+                  {i > 0 ? <View className="mx-3.5 h-px bg-separator" /> : null}
+                  <View className="gap-2 px-3.5 py-3.5">
+                    {cond ? (
+                      <View className="flex-row flex-wrap items-center gap-2">
+                        <Badge variant="gray">IF</Badge>
+                        <Text className="text-[15px] text-foreground">{cond.label}</Text>
+                        <ValueChip>{cond.value}</ValueChip>
+                      </View>
+                    ) : null}
+                    {act ? (
+                      <View className="flex-row flex-wrap items-center gap-2">
+                        <Badge variant="accent">THEN</Badge>
+                        <Text className="text-[15px] text-foreground">{act.label}</Text>
+                        <ValueChip accent>{act.value}</ValueChip>
+                        <Text variant="body" className="text-[13px]">
+                          · {matched} matched
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </Card>
+        ) : (
+          <Text variant="body" className="pt-3">
+            No rules yet — create one below.
+          </Text>
+        )}
       </Container>
+
+      <BottomBar>
+        <Pressable
+          onPress={() => router.push("/rule/new")}
+          className="items-center rounded-[3px] border border-border py-4 active:opacity-70"
+        >
+          <Text variant="heading" className="text-[16px]">
+            New rule
+          </Text>
+        </Pressable>
+      </BottomBar>
     </View>
   );
 }

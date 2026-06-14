@@ -9,10 +9,10 @@
 
 Plugin = typed declarative capability, user-installed. Two types, two trust tiers:
 
-| Type         | Does                                                  | Data flow                                  | Trust                                          | Status               |
-| ------------ | ----------------------------------------------------- | ------------------------------------------ | ---------------------------------------------- | -------------------- |
-| `sms-parser` | Bank SMS → `ParsedTransaction`                        | Pure fn over local string; no network/creds | Safe-by-construction → open install            | **BUILT (P2)**       |
-| `api-source` | Pulls txns from external APIs (brokers, PF via AA)    | Outbound calls w/ user credentials          | Vetted/allowlisted only; secrets in Keychain   | Design now, build last |
+| Type         | Does                                               | Data flow                                   | Trust                                        | Status                 |
+| ------------ | -------------------------------------------------- | ------------------------------------------- | -------------------------------------------- | ---------------------- |
+| `sms-parser` | Bank SMS → `ParsedTransaction`                     | Pure fn over local string; no network/creds | Safe-by-construction → open install          | **BUILT (P2)**         |
+| `api-source` | Pulls txns from external APIs (brokers, PF via AA) | Outbound calls w/ user credentials          | Vetted/allowlisted only; secrets in Keychain | Design now, build last |
 
 Engine-first, extension-driven: app ships generic interpreter; bank behavior lives in manifests. Gnarly banks (HDFC merchant waterfalls, SBI post-parse overrides) → richer manifest DSL primitives, NOT app-bundled bank code. Scraping-style sources may stay built-in.
 
@@ -52,9 +52,9 @@ Simple banks = basic regex maps; gnarly banks = pipeline primitives. No compiled
 
 Android allows `READ_SMS`/`RECEIVE_SMS` → direct read. Native module feeds engine `(sender, body)`:
 
-| Source         | Path                                                       | Notes                                          |
-| -------------- | ---------------------------------------------------------- | ----------------------------------------------- |
-| **Real-time**  | `RECEIVE_SMS` broadcast → engine on arrival                | Mirrors `SmsBroadcastReceiver`; needs dev build |
-| **Historical** | One-time `READ_SMS` scan (first run / opt-in re-scan)      | Mirrors `SmsReaderWorker`                       |
+| Source         | Path                                                  | Notes                                           |
+| -------------- | ----------------------------------------------------- | ----------------------------------------------- |
+| **Real-time**  | `RECEIVE_SMS` broadcast → engine on arrival           | Mirrors `SmsBroadcastReceiver`; needs dev build |
+| **Historical** | One-time `READ_SMS` scan (first run / opt-in re-scan) | Mirrors `SmsReaderWorker`                       |
 
 Engine is source-agnostic → iOS later (paste/Share Sheet/forwarding) = additive adapter, same manifests. Paste-SMS fallback ships on Android too (permission-denied users).

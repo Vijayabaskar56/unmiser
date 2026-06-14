@@ -3,6 +3,8 @@ import { Text, View } from "react-native";
 import { cn } from "heroui-native";
 import { tv } from "tailwind-variants";
 
+import { accentBackground, useAccent } from "@/lib/appearance/use-accent";
+
 type BadgeVariant = "default" | "accent" | "gray";
 
 export interface BadgeProps {
@@ -23,7 +25,7 @@ const badge = tv({
         label: "text-foreground",
       },
       accent: {
-        container: "bg-accent border-foreground",
+        container: "border-foreground", // bg applied at runtime (useAccent)
         label: "text-accent-foreground",
       },
       gray: {
@@ -39,8 +41,9 @@ const badge = tv({
 
 export function Badge({ variant = "default", children, className }: BadgeProps) {
   const { container, label } = badge({ variant });
+  const accent = useAccent();
   return (
-    <View className={cn(container(), className)}>
+    <View className={cn(container(), className)} style={accentBackground(variant, accent)}>
       <Text className={label()}>{children}</Text>
     </View>
   );

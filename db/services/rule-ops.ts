@@ -1,7 +1,13 @@
 import { asc, eq, inArray } from "drizzle-orm";
 import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 
-import { categories, ruleApplications, subcategories, transactionRules } from "@/db/schema";
+import {
+  accounts,
+  categories,
+  ruleApplications,
+  subcategories,
+  transactionRules,
+} from "@/db/schema";
 import { nowIso } from "@/db/utils";
 import {
   parseActions,
@@ -86,7 +92,7 @@ export function ruleRowToDefinition(row: typeof transactionRules.$inferSelect): 
 }
 
 export async function buildRuleLookupContext(db: Db): Promise<RuleLookupContext> {
-  const [categoryRows, subcategoryRows] = await Promise.all([
+  const [categoryRows, subcategoryRows, accountRows] = await Promise.all([
     db.select({ id: categories.id, name: categories.name }).from(categories),
     db
       .select({
@@ -95,6 +101,7 @@ export async function buildRuleLookupContext(db: Db): Promise<RuleLookupContext>
         categoryId: subcategories.categoryId,
       })
       .from(subcategories),
+    db.select({ id: accounts.id, name: accounts.bankName }).from(accounts),
   ]);
 
   return {
@@ -102,7 +109,33 @@ export async function buildRuleLookupContext(db: Db): Promise<RuleLookupContext>
     categoryByName: new Map(categoryRows.map((row) => [row.name.trim().toLowerCase(), row])),
     subcategoryById: new Map(subcategoryRows.map((row) => [row.id, row])),
     subcategoryByName: new Map(subcategoryRows.map((row) => [row.name.trim().toLowerCase(), row])),
+    accountByName: buildAccountByName(accountRows),
   };
+}
+
+/**
+ * Build the SET-ACCOUNT lookup keyed by normalized bank name. bankName is NOT
+ * unique (the unique constraint is on (bankName, accountLast4)), so two accounts
+ * can share a name. When a name maps to more than one account we cannot know which
+ * one the rule meant, so we mark it ambiguous with a sentinel (id = -1). The
+ * interpreter treats a negative id as unresolved and makes SET ACCOUNT a no-op,
+ * upholding the "a typo never moves money to the wrong account" guarantee — here a
+ * collision is the same risk as a typo.
+ */
+function buildAccountByName(
+  accountRows: Array<{ id: number; name: string }>,
+): Map<string, { id: number; name: string }> {
+  const map = new Map<string, { id: number; name: string }>();
+  const AMBIGUOUS = { id: -1, name: "" };
+  for (const row of accountRows) {
+    const normalized = row.name.trim().toLowerCase();
+    if (map.has(normalized)) {
+      map.set(normalized, AMBIGUOUS);
+    } else {
+      map.set(normalized, row);
+    }
+  }
+  return map;
 }
 
 export async function insertRuleApplications(

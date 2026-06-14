@@ -85,6 +85,11 @@ async function cachedManifests(): Promise<SmsParserManifest[]> {
   return manifestCache;
 }
 
+const checkpointStore = createKvScanCheckpointStore({
+  get: (key) => getSetting(appDb, key),
+  set: (key, value) => setSetting(appDb, key, value),
+});
+
 export const smsScanTask = createScanTask({
   getTotalCount: () => getHistoricalSmsCount(),
   fetchPage: async (offset, limit) => {
@@ -97,13 +102,23 @@ export const smsScanTask = createScanTask({
   },
   parseBatch: parseBatchWithWorkletFallback,
   persist: persistScanRecord,
-  checkpoint: createKvScanCheckpointStore({
-    get: (key) => getSetting(appDb, key),
-    set: (key, value) => setSetting(appDb, key, value),
-  }),
+  checkpoint: checkpointStore,
   onSettled: () => {
     manifestCache = null;
   },
 });
+
+/**
+ * Clear the scan parse cache (Developer options → Clear parse cache): drop the
+ * resume checkpoint, the cached manifest set, and the engine-mode probe so the
+ * next scan recounts and reloads from scratch. Dedup keeps a fresh full scan
+ * safe. Refreshes the scan task so any "Resume scan" affordance disappears.
+ */
+export async function clearParseCache(): Promise<void> {
+  manifestCache = null;
+  engineMode = "unknown";
+  await checkpointStore.clear();
+  await smsScanTask.refreshResumeAvailable();
+}
 
 export type { ScanTaskState, ScanPhase } from "@/lib/scan/scan-task";

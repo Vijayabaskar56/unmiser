@@ -100,96 +100,120 @@ SMS-parsing-progress; generic delete dialogs.
 
 Navigation: file-based under `app/`. `(tabs)` and `(onboarding)` are layout groups.
 
-**Phase 4 IA (wireframe):** a custom design-system `TabBar` (`components/ui/tab-bar.tsx`,
-passed to expo-router `Tabs` via the `tabBar` prop) — a **flush dark/inverted bar, icon-only,
-with a yellow active-dot**. Four real tabs around a centre **＋** action: **Home · Log · ＋ ·
-Grow · Hub**. `backBehavior="history"` so hardware-back returns to the previous screen. Most
-add/edit flows are still **inline forms + chip selectors** (no `@gorhom/bottom-sheet` yet); the
-design-system primitive kit (`components/ui/`) + the Settings hub are the first Phase-4 UI.
+**Current IA (verified 2026-06-15):** the bar is now **`NativeTabs`** (`app/(tabs)/_layout.tsx`) —
+the custom `components/ui/tab-bar.tsx` is **dead/unused** (safe to delete). Four tabs around a centre
+**＋** action: **Home · Log · ＋ · Grow · Hub**. Everything else is a **root-stack route pushed from
+the Hub** (no `href:null` tabs anymore). Most add/edit flows use **inline form sheets + chip
+selectors** (no `@gorhom/bottom-sheet` yet); the design-system primitive kit (`components/ui/`) backs
+all real screens.
 
-Legend additions: `●` = real screen on the design-system kit · `▱` = `ComingSoon` stub ·
-`(href:null)` = in the tab navigator but **not** in the bar (reached by pushing from the Hub).
+Legend additions: `●` = real, shipped screen · `◐` = real shell, some rows/tabs noop or phase-blocked ·
+`▱` = `ComingSoon` stub · `▸DEV` = `__DEV__`/hidden utility (not product UI).
 
 ```
 Root Stack  (app/_layout.tsx — fonts/splash; SmsOnboardingGate redirects first-run → /sms-setup)
-├─ (tabs)  (app/(tabs)/_layout.tsx — custom TabBar)
-│   ├─ ★ index          Home   ▱ (app/(tabs)/index.tsx)          → dashboard (Phase 5)
+├─ (tabs)  (app/(tabs)/_layout.tsx — NativeTabs)
+│   ├─ ★ index          Home   ▱ (app/(tabs)/index.tsx)          dashboard stub → Phase 5/6
 │   ├─ ★ transactions   Log    ● (app/(tabs)/transactions.tsx)   transaction feed
 │   │   ↳ inline add form · search · type-filter chips · bulk delete · row → /transaction/[id]
 │   ├─ ＋  (centre action) → /add  (not a tab; manual capture)
-│   ├─ ★ grow            Grow   ▱ (app/(tabs)/grow.tsx)           → insights/net-worth/subs (P5/6)
-│   ├─ ★ settings        Hub    ● (app/(tabs)/settings.tsx)       Settings hub
-│   │   ↳ ink profile card (live txn count) → /profile ▱
-│   │   ↳ ListGroup rows → /appearance ▱ · /language ▱ · /accounts ● · /budgets ▱ ·
-│   │     /categories ● · /rules ● · /data-privacy ▱
-│   │
-│   ├─ accounts (href:null)      ● — add/edit/set-main/delete · reached from Hub
-│   ├─ categories (href:null)    ● — inline add/edit + subcategory accordion · from Hub
-│   ├─ rules (href:null)         ● — inline rule builder + templates + applications · from Hub
-│   ├─ extensions (href:null)    ● — SMS scan/permission/install/review  ⚠ ORPHANED (no entry yet)
-│   ├─ store (href:null)         ● — extension marketplace + PasteSmsSheet ⚠ ORPHANED (no entry yet)
-│   └─ subscriptions (href:null) ● — Upcoming/Active/Hidden                ⚠ ORPHANED (no entry yet)
+│   ├─ ★ grow            Grow   ▱ (app/(tabs)/grow.tsx)           insights/net-worth/budgets stub → P5/6
+│   └─ ★ settings        Hub    ● (app/(tabs)/settings.tsx)       Settings hub (links 13 screens)
+│       ↳ profile card (live txn count) → /profile ●
+│       ↳ Money:  /accounts ● · /budgets ▱ · /categories ● · /rules ● · /subscriptions ●
+│       ↳ App:    /appearance ● · /language ◐ · /notifications ● · /extensions ● · /store ●
+│       ↳ Data:   /data-privacy ◐
+│       ↳ About:  /about ◐
 │
-├─ add            ▱ (app/add.tsx)            — ＋ destination; manual add (Phase 4/5)
-├─ profile        ▱ (app/profile.tsx)        ┐
-├─ appearance     ▱ (app/appearance.tsx)     │ Settings sub-screens — designs in design/,
-├─ language       ▱ (app/language.tsx)       │ ComingSoon stubs for now (pushed over tabs,
-├─ budgets        ▱ (app/budgets.tsx)        │ AppBar with back)
-├─ data-privacy   ▱ (app/data-privacy.tsx)   ┘
+│   Pushed from Hub / list screens (root-stack routes):
+├─ accounts        ● — list + kind picker + add/edit sheet · set-main/delete
+│   └─ account/[id]      ● — detail + activity tab + edit/delete/set-main  (Insights tab ▱ → P6)
+├─ categories      ● — Expense/Income tabs + form sheet
+│   └─ category/[id]     ● — detail + subcategories + recent txns + edit/delete  (Insights tab ▱ → P6)
+├─ rules           ● — list + unrecognised banner + match counts
+│   ├─ rule/new          ● — builder (field/op/value + cat/acct/flag actions) + live preview + apply-to-past
+│   ├─ rule/[id]         ● — IF/THEN + matched txns + toggle/run-on-past/delete  (no edit — backlog §4)
+│   └─ unrecognised      ● — unrecognised-SMS list + dismiss / add-sender-rule (reached from rules banner)
+├─ subscriptions   ● — Upcoming/Active/Hidden + form sheet
+│   └─ subscription/[id] ● — detail + edit/hide/delete
+├─ extensions      ● — SMS console: install bundled parsers, link accounts, paste/scan, realtime, review
+├─ store           ● — registry browse + install/update (99-extension catalog via jsDelivr) + PasteSmsSheet
+├─ profile         ● — banner/archetype picker + name + financial overview + stats
+├─ appearance      ● — theme/accent/text-scale/toggles + preview      (backlog §8 follow-ups)
+├─ notifications   ● — master switch + money/app toggles + scheduled sync  (backlog §5 follow-ups)
+├─ language        ◐ — 14-language catalog renders, but NOT persisted, no i18n runtime
+├─ data-privacy    ◐ — on-device statement + wipe-all real; export/import/webhooks/app-lock rows noop
+├─ about           ◐ — hero + real version/build; What's-new/Rate/Share/Licenses/legal rows noop
+│   └─ developer        ● — dev toggles + re-parse/seed/clear-cache + build info (7-tap gate on version)
+├─ budgets         ▱ (app/budgets.tsx)  — whole budgeting pillar → Phase 5
+├─ add             ▱ (app/add.tsx)      — ＋ destination; manual add (+ manual subscription-create) → P4/5
 │
 ├─ transaction/[id]  ● (modal) — view / inline edit / delete+undo / mark-recurring
-├─ design-system     ● (app/design-system.tsx) — __DEV__ primitive preview (/design-system)
-├─ modal · +not-found
+├─ design-system     ▸DEV (app/design-system.tsx) — primitive preview (/design-system)
+├─ modal ▸DEV (leftover template demo, never linked — safe to delete) · +not-found
 │
 └─ (onboarding)  (app/(onboarding)/_layout.tsx) — SMS-setup wizard at /sms-setup
     ├─ index → providers → account → permissions (↳ PasteSmsSheet) → scan → finish → /(tabs)
 ```
 
-**Wired up:** the previously-orphaned **Subscriptions** (Money section), **Extensions** and
-**Store** (App section) are now reached from the **Settings hub**, grouped into Money · App · Data
-sections. (Note: the tree above predates the native-tabs switch — those screens are now root stack
-routes pushed from Settings, not `href:null` tabs; the bar itself is now `NativeTabs`.)
+**Reality vs. the old tree:** the Settings hub now links **13** screens (Money · App · Data · About +
+a profile card), and the previously-"ComingSoon" sub-screens — **profile, appearance, accounts,
+categories, rules, subscriptions, notifications** — are all **built**. Detail drill-ins
+(`account/[id]`, `category/[id]`, `subscription/[id]`, `rule/[id]`, `rule/new`, `unrecognised`) exist.
+Remaining stubs are **Home, Grow, add, budgets**; `language`/`data-privacy`/`about` are partial.
+Per-screen status detail lives in `docs/phase-4-ui-backlog.md` §0.
 
 ---
 
 ## 3. Gap analysis
 
-### Routes we already have (parity or new)
+### Routes we already have (parity or new)  — verified 2026-06-15
 
+| Area                     | Cashiro                          | Unmiser                          | Notes                                                 |
+| ------------------------ | -------------------------------- | -------------------------------- | ----------------------------------------------------- |
+| Transactions list        | ✅                               | ✅                               | ours inline-add vs their FAB/AddScreen                |
+| Transaction detail       | ✅                               | ✅ `/transaction/[id]`           | ours inline-edit; missing their sheets                |
+| Subscriptions            | ✅                               | ✅ list **+ detail/edit**        | `subscription/[id]` (edit/hide/delete) now built      |
+| Categories               | ✅                               | ✅ list **+ detail**             | `category/[id]`; still no icon-picker / migration sheet |
+| Accounts (manage)        | ✅                               | ✅ list **+ detail**             | `account/[id]` drill-in; no merge / balance-history   |
+| Rules                    | ✅ Settings›Rules + CreateRule   | ✅ list + `rule/new` + `rule/[id]` | dedicated builder + detail; no **edit** yet (backlog §4) |
+| SMS settings / review    | ✅ SmsSettings + UnrecognizedSms | ✅ extensions + `/unrecognised`  | review folded into extensions; `/unrecognised` is its own screen |
+| Profile                  | ✅ (sheet)                       | ✅ `/profile`                    | banner/archetype/name/overview/stats                  |
+| Appearance               | ✅                               | ✅ `/appearance`                 | theme/accent/text-scale/toggles (follow-ups backlog §8) |
+| Notifications            | ✅ NotificationSettings          | ✅ `/notifications`              | toggles + scheduled sync (follow-ups backlog §5)      |
+| DeveloperOptions         | ✅                               | ✅ `/developer`                  | 7-tap gate on About version                           |
+| Onboarding               | ✅ single screen                 | ✅ 5-step SMS wizard             | ours is richer                                        |
+| **Extensions (plugins)** | ✗                                | ✅ **new**                       | our USP — plugin layer                                |
+| **Store (marketplace)**  | ✗                                | ✅ **new**                       | our USP — 99-extension store                          |
 
-| Area                     | Cashiro                         | Unmiser                      | Notes                                         |
-| ------------------------ | ------------------------------- | ---------------------------- | --------------------------------------------- |
-| Transactions list        | ✅                               | ✅                            | ours inline-add vs their FAB/AddScreen        |
-| Transaction detail       | ✅                               | ✅ `/transaction/[id]`        | ours inline-edit; missing their sheets        |
-| Subscriptions            | ✅                               | ✅                            | ours list-only; no detail/edit                |
-| Categories               | ✅                               | ✅                            | ours inline; no icon picker / migration sheet |
-| Accounts (manage)        | ✅                               | ✅ accounts tab               | ours inline; no merge / balance-history       |
-| Rules                    | ✅ Settings›Rules + CreateRule   | ✅ rules tab                  | ours inline builder, no dedicated edit screen |
-| SMS settings / review    | ✅ SmsSettings + UnrecognizedSms | ✅ folded into extensions tab |                                               |
-| Onboarding               | ✅ single screen                 | ✅ 5-step SMS wizard          | ours is richer                                |
-| **Extensions (plugins)** | ✗                               | ✅ **new**                    | our USP — plugin layer                        |
-| **Store (marketplace)**  | ✗                               | ✅ **new**                    | our USP — 99-extension store                  |
+### Partial — shell built, sub-flows noop or phase-blocked
 
+- `◐ Language` — catalog renders but selection **not persisted**, no i18n runtime.
+- `◐ DataPrivacy` — wipe-all real; **export/import** (→ Phase 8) + **webhooks** (→ P8) + **app-lock**
+  (unscheduled) rows are noop.
+- `◐ About` — version real; What's-new / Rate / Share / **Licenses** / legal links noop.
+- `◐ Account/Category detail "Insights" tab` — placeholder; depends on **Phase 6 analytics**.
 
 ### Routes still needed (present in Cashiro, missing in ours)
 
 **High value (core tracker parity):**
 
-- `▸ Home / Dashboard` — overview, balances, widgets, currency switcher. We have **no home**; index just redirects to transactions.
-- `▸ Analytics` — charts, date-range, spend breakdown. **Entirely missing.**
-- `▸ Budgets` + `▸ BudgetDetail` + `▸ BudgetHistory` — the whole budgeting pillar. **Missing** (no schema, no routes).
-- `▸ AccountDetail` — per-account transaction history. We have an accounts list but no drill-in.
-- `▸ AddTransaction` proper (esp. the **Subscription tab** for creating a subscription by hand) — ours has no manual subscription-create path at all.
+- `▸ Home / Dashboard` — ▱ stub today; overview/balances/widgets → **Phase 5/6**.
+- `▸ Grow / Analytics` — ▱ stub today; charts/date-range/breakdown → **Phase 6**.
+- `▸ Budgets` + `▸ BudgetDetail` + `▸ BudgetHistory` — ▱ stub; whole pillar (no schema) → **Phase 5**.
+- `▸ AddTransaction` proper (esp. the **Subscription tab** to create a subscription by hand) — ▱ `add`
+  stub; ours has no manual subscription-create path → **Phase 4/5**.
 
-**Settings tree (hub ✅ built as the Hub tab; sub-screens are stubs):**
+**Settings tree (hub ✅; most sub-screens now built):**
 
-- `▸ Settings` hub — ✅ **done** (`app/(tabs)/settings.tsx`, the Hub tab), links the config screens.
-- `▸ Appearance`, `▸ Profile`, `▸ Language`, `▸ Budgets`, `▸ DataPrivacy` — ▱ **`ComingSoon` stubs**
-  wired from the hub; designs exist in `design/` (Appearance, Profile, Data & Privacy ready to build).
-- `▸ NotificationSettings`, `▸ Webhooks` + `▸ WebhookEditor`, `▸ About` / `▸ Licenses` /
-  `▸ DeveloperOptions`, `▸ AppLock` — still missing (not in the current hub design).
-- Dedicated `▸ CreateRule` edit screen (vs our inline-only builder).
-- `▸ UnrecognizedSms` as its own screen (we surface reviews inline in extensions).
+- `▸ Settings` hub — ✅ **done**, links 13 screens (Money · App · Data · About + profile card).
+- `▸ Appearance`, `▸ Profile`, `▸ Notifications`, `▸ DeveloperOptions` — ✅ **built**.
+- `▸ Language`, `▸ DataPrivacy`, `▸ About` — ◐ **partial** (see above).
+- `▸ Budgets` — ▱ stub (Phase 5).
+- `▸ Webhooks` + `▸ WebhookEditor` — still missing → **Phase 8**.
+- `▸ Licenses` — still missing (own screen; `about` row is noop).
+- `▸ AppLock` — still missing (unscheduled).
+- Rule **edit** (reopen `rule/new` pre-filled) — missing (backlog §4); detail/create already built.
 
 **Out of scope (resolved):**
 
@@ -214,12 +238,13 @@ dependency but unused. Reaching UX parity implies building a shared sheet kit:
 - Color picker, Icon picker
 - Confirm/delete dialog primitive (we use `Alert.alert` ad hoc today)
 
-### Suggested priority order
+### Suggested priority order  (updated 2026-06-15 — ✅ = now done)
 
-1. **Dashboard/Home** + **Analytics** (the two original tabs — biggest visible gap).
-2. **Budgets** pillar (new schema + 3 screens).
-3. **Manual AddTransaction / Subscription create** + **AccountDetail** drill-in.
-4. **Settings hub** and its sub-screens (Appearance, DataPrivacy/export, Webhooks, About, AppLock).
+1. **Dashboard/Home** + **Grow/Analytics** (the stub tabs — biggest visible gap) → P5/6.
+2. **Budgets** pillar (new schema + 3 screens) → P5.
+3. **Manual AddTransaction / Subscription-create** (the `add` stub). ✅ **AccountDetail drill-in done.**
+4. ✅ **Settings hub + Appearance/Profile/Notifications/Developer done.** Remaining: DataPrivacy export
+   /import + **Webhooks** + **Licenses** + **AppLock** (→ P8 / unscheduled); finish Language i18n.
 5. **Shared bottom-sheet kit** to replace inline pickers (refactor, improves all of the above).
-6. Confirm whether **Chat** is in or out of scope.
-
+6. ✅ **Chat — resolved OUT of scope** (no on-device AI).
+7. **Cleanup:** delete dead `components/ui/tab-bar.tsx` and `app/modal.tsx`.

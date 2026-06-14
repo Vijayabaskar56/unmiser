@@ -7,16 +7,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { withUniwind } from "uniwind";
 
 import { Container } from "@/components/container";
-import { Card, Text } from "@/components/ui";
+import { Card, SpriteIcon, Text } from "@/components/ui";
 import { transactionCollection } from "@/db/collections";
 
 const StyledIonicons = withUniwind(Ionicons);
 
-type IoniconName = keyof typeof Ionicons.glyphMap;
-
 interface SettingsRow {
   key: string;
-  icon: IoniconName;
+  /** UI-sprite icon id (rendered with <SpriteIcon>). */
+  icon: string;
   title: string;
   description: string;
   /** Optional right-aligned value (e.g. current language). */
@@ -41,35 +40,35 @@ const SECTIONS: SettingsSection[] = [
     rows: [
       {
         key: "accounts",
-        icon: "wallet-outline",
+        icon: "wallet-01",
         title: "Accounts",
         description: "add & update balances",
         href: "/accounts",
       },
       {
         key: "budgets",
-        icon: "pie-chart-outline",
+        icon: "pie-chart-01",
         title: "Budgets",
         description: "monthly spending limits",
         href: "/budgets",
       },
       {
         key: "categories",
-        icon: "grid-outline",
+        icon: "grid-01",
         title: "Categories",
         description: "expense & income",
         href: "/categories",
       },
       {
         key: "rules",
-        icon: "options-outline",
+        icon: "settings-01",
         title: "Smart Rules",
         description: "auto-categorise",
         href: "/rules",
       },
       {
         key: "subscriptions",
-        icon: "repeat-outline",
+        icon: "repeat-04",
         title: "Subscriptions",
         description: "recurring payments",
         href: "/subscriptions",
@@ -81,29 +80,36 @@ const SECTIONS: SettingsSection[] = [
     rows: [
       {
         key: "appearance",
-        icon: "color-palette-outline",
+        icon: "palette",
         title: "Appearance",
         description: "theme · accent · text size",
         href: "/appearance",
       },
       {
         key: "language",
-        icon: "globe-outline",
+        icon: "globe-01",
         title: "Language",
         description: "app language",
         value: "English",
         href: "/language",
       },
       {
+        key: "notifications",
+        icon: "bell-02",
+        title: "Notifications",
+        description: "on-device reminders",
+        href: "/notifications",
+      },
+      {
         key: "extensions",
-        icon: "extension-puzzle-outline",
+        icon: "puzzle-piece-01",
         title: "Extensions",
         description: "SMS parsers & sources",
         href: "/extensions",
       },
       {
         key: "store",
-        icon: "storefront-outline",
+        icon: "building-05",
         title: "Store",
         description: "browse & install",
         href: "/store",
@@ -115,19 +121,31 @@ const SECTIONS: SettingsSection[] = [
     rows: [
       {
         key: "data-privacy",
-        icon: "shield-checkmark-outline",
+        icon: "shield-tick",
         title: "Data & Privacy",
         description: "export · import · backup",
         href: "/data-privacy",
       },
     ],
   },
+  {
+    label: "About",
+    rows: [
+      {
+        key: "about",
+        icon: "info-circle",
+        title: "About",
+        description: "version · licenses · legal",
+        href: "/about",
+      },
+    ],
+  },
 ];
 
-function RowIcon({ name }: { name: IoniconName }) {
+function RowIcon({ name }: { name: string }) {
   return (
     <View className="h-10 w-10 items-center justify-center rounded-full border border-border">
-      <StyledIonicons name={name} size={18} className="text-foreground" />
+      <SpriteIcon name={name} size={18} />
     </View>
   );
 }

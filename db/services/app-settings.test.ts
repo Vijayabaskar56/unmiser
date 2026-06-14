@@ -7,8 +7,12 @@ import {
   clearMainAccountIfDeleted,
   getBaseCurrency,
   getMainAccountId,
+  getProfile,
   getSetting,
   setMainAccount,
+  setProfileArchetypeId,
+  setProfileBannerId,
+  setProfileName,
   setSetting,
 } from "@/db/services/app-settings";
 
@@ -150,6 +154,43 @@ describe("app-settings service", () => {
     await clearMainAccountIfDeleted(db, 9999);
 
     expect(await getMainAccountId(db)).toBeNull();
+
+    sqlite.close();
+  });
+
+  it("getProfile returns nulls when nothing is set", async () => {
+    const { db, sqlite } = createTestDb();
+
+    expect(await getProfile(db)).toEqual({
+      name: null,
+      archetypeId: null,
+      bannerId: null,
+    });
+
+    sqlite.close();
+  });
+
+  it("round-trips name, archetype and banner via the profile setters", async () => {
+    const { db, sqlite } = createTestDb();
+
+    await setProfileName(db, "VJ");
+    await setProfileArchetypeId(db, "planner");
+    await setProfileBannerId(db, "dusk");
+
+    expect(await getProfile(db)).toEqual({
+      name: "VJ",
+      archetypeId: "planner",
+      bannerId: "dusk",
+    });
+
+    // setters upsert (overwrite), they do not duplicate-insert
+    await setProfileName(db, "Vijay");
+    expect((await getProfile(db)).name).toBe("Vijay");
+
+    // values land under the canonical app_settings keys, as text
+    expect(await getSetting(db, "profile.name")).toBe("Vijay");
+    expect(await getSetting(db, "profile.archetype")).toBe("planner");
+    expect(await getSetting(db, "profile.bannerId")).toBe("dusk");
 
     sqlite.close();
   });

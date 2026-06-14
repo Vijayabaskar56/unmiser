@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import {
+  accounts,
   categories,
   ruleApplications,
   subcategories,
@@ -105,6 +106,23 @@ describe("rule ops", () => {
       .where(eq(ruleApplications.transactionId, String(transaction.id)));
     expect(rows).toHaveLength(1);
     expect(JSON.parse(rows[0].fieldsModified)[0].field).toBe("NARRATION");
+    sqlite.close();
+  });
+
+  it("marks accounts sharing a bank name as ambiguous (id < 0) so SET ACCOUNT no-ops", async () => {
+    const { db, sqlite } = createTestDb();
+    await db.insert(accounts).values({ bankName: "HDFC", accountLast4: "1111", currency: "INR" });
+    await db.insert(accounts).values({ bankName: "HDFC", accountLast4: "2222", currency: "INR" });
+    const [unique] = await db
+      .insert(accounts)
+      .values({ bankName: "SBI", accountLast4: "3333", currency: "INR" })
+      .returning();
+
+    const lookups = await buildRuleLookupContext(db);
+    // Shared name resolves to the ambiguous sentinel, not a guessed account.
+    expect(lookups.accountByName?.get("hdfc")?.id).toBeLessThan(0);
+    // A name owned by exactly one account still resolves normally.
+    expect(lookups.accountByName?.get("sbi")?.id).toBe(unique.id);
     sqlite.close();
   });
 

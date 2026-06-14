@@ -46,6 +46,8 @@ export interface AddTransactionInput {
   currency?: string;
   billingCycle?: string | null;
   isRecurring?: boolean;
+  /** Set by a rule's flag-for-review action. */
+  flagged?: boolean;
   /** An SMS-stated post-transaction balance, if any — anchors the reading. */
   balanceAfter?: string | null;
   transactionHash?: string;
@@ -116,6 +118,7 @@ export async function addTransaction(db: Db, input: AddTransactionInput): Promis
       currency: input.currency ?? "INR",
       billingCycle: input.billingCycle ?? null,
       isRecurring: input.isRecurring ?? false,
+      flagged: input.flagged ?? false,
     })
     .returning();
 

@@ -1,7 +1,11 @@
-import { useThemeColor } from "heroui-native";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 import { useAppTheme } from "@/contexts/app-theme-context";
+import { appSettingsCollection } from "@/db/collections";
+import { APP_SETTING_KEYS } from "@/db/schema";
+import { parseTabBarLabels } from "@/lib/appearance/prefs";
+import { useAccent } from "@/lib/appearance/use-accent";
 
 /**
  * Bottom navigation — NATIVE tabs (`expo-router/unstable-native-tabs`).
@@ -14,9 +18,18 @@ import { useAppTheme } from "@/contexts/app-theme-context";
  * clearly on the dark bar; the active icon is ink on the yellow pill.
  */
 export default function TabLayout() {
-  const ink = useThemeColor("foreground");
-  const accent = useThemeColor("accent");
   const { isDark } = useAppTheme();
+  // Runtime accent (reflects the Appearance preference) — NOT the static
+  // `useThemeColor("accent")`, which can't change at runtime on native.
+  const accent = useAccent();
+  const ink = isDark ? "#f1f0e8" : "#15140f";
+  // Tab-bar labels are an Appearance preference (default on).
+  const { data: labelPref } = useLiveQuery((q) =>
+    q
+      .from({ s: appSettingsCollection })
+      .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceTabBarLabels)),
+  );
+  const showLabels = parseTabBarLabels(labelPref?.[0]?.value);
 
   // Inactive icon: a bright dim that tracks the bar (paper-ish on the dark bar in
   // light mode, ink-ish on the light bar in dark mode). Active = yellow + filled
@@ -33,7 +46,7 @@ export default function TabLayout() {
       disableIndicator
       tintColor={accent}
       rippleColor="transparent"
-      labelVisibilityMode="unlabeled"
+      labelVisibilityMode={showLabels ? "labeled" : "unlabeled"}
       backBehavior="history"
     >
       <NativeTabs.Trigger name="index">
@@ -41,12 +54,12 @@ export default function TabLayout() {
           sf={{ default: "house", selected: "house.fill" }}
           md={{ default: "home", selected: "home_filled" }}
         />
-        <NativeTabs.Trigger.Label hidden />
+        <NativeTabs.Trigger.Label hidden={!showLabels}>Home</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="transactions">
         <NativeTabs.Trigger.Icon sf="list.bullet" md="receipt_long" />
-        <NativeTabs.Trigger.Label hidden />
+        <NativeTabs.Trigger.Label hidden={!showLabels}>Log</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="add">
@@ -56,7 +69,7 @@ export default function TabLayout() {
 
       <NativeTabs.Trigger name="grow">
         <NativeTabs.Trigger.Icon sf="chart.line.uptrend.xyaxis" md="trending_up" />
-        <NativeTabs.Trigger.Label hidden />
+        <NativeTabs.Trigger.Label hidden={!showLabels}>Grow</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="settings">
@@ -64,7 +77,7 @@ export default function TabLayout() {
           sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }}
           md={{ default: "grid_view", selected: "dashboard" }}
         />
-        <NativeTabs.Trigger.Label hidden />
+        <NativeTabs.Trigger.Label hidden={!showLabels}>Hub</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

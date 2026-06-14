@@ -25,10 +25,10 @@ import {
   hasSmsPermissions,
   isAndroidSmsAdapterAvailable,
   requestSmsPermissions,
-  showSmsNotification,
   subscribeToIncomingSms,
   type SmsPermissionState,
 } from "@/lib/android-sms-adapter";
+import { notifyForSmsOutcome } from "@/lib/notifications";
 import { getScanEngineMode, smsScanTask } from "@/lib/scan";
 import { bundledParserBundles } from "@/lib/parser/manifests";
 import type { Plugin, UnrecognizedSms } from "@/db/schema";
@@ -184,7 +184,9 @@ export default function ExtensionsScreen() {
         const text = outcomeText(nextOutcome);
         setOutcome(nextOutcome);
         setMessage(`Realtime SMS: ${text}`);
-        await showSmsNotification("Unmiser SMS parsed", text);
+        // Notify per the user's preferences (master switch + per-category + quiet
+        // hours) instead of the old unconditional native ping.
+        await notifyForSmsOutcome(appDb, nextOutcome);
         await refreshPhase2Collections();
       })();
     });

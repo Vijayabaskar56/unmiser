@@ -265,9 +265,80 @@ export async function syncSubscriptionFromRecurringTransaction(
   return { kind: "linked", subscriptionId: subscription.id };
 }
 
-export async function hideSubscription(db: Db, id: number): Promise<void> {
+export async function setSubscriptionState(
+  db: Db,
+  id: number,
+  state: "ACTIVE" | "HIDDEN",
+): Promise<void> {
   await db
     .update(subscriptions)
-    .set({ state: "HIDDEN", updatedAt: nowIso() })
+    .set({ state, updatedAt: nowIso() })
     .where(eq(subscriptions.id, id));
+}
+
+export async function hideSubscription(db: Db, id: number): Promise<void> {
+  await setSubscriptionState(db, id, "HIDDEN");
+}
+
+export interface SubscriptionInput {
+  merchantName: string;
+  amount: string;
+  currency?: string;
+  billingCycle?: string | null;
+  nextPaymentDate?: string | null;
+  bankName?: string | null;
+  categoryId?: number | null;
+}
+
+/** Manually create a subscription (active), denormalizing the category name. */
+export async function createSubscription(db: Db, input: SubscriptionInput): Promise<number> {
+  const snapshot =
+    input.categoryId != null
+      ? await categorySnapshot(db, input.categoryId)
+      : { categoryId: null, categoryName: null };
+  const [row] = await db
+    .insert(subscriptions)
+    .values({
+      merchantName: input.merchantName,
+      amount: input.amount,
+      currency: input.currency ?? "INR",
+      billingCycle: input.billingCycle ?? null,
+      nextPaymentDate: input.nextPaymentDate ?? null,
+      bankName: input.bankName ?? null,
+      categoryId: snapshot.categoryId,
+      categoryName: snapshot.categoryName,
+      state: "ACTIVE",
+    })
+    .returning({ id: subscriptions.id });
+  return row.id;
+}
+
+/** Update editable fields; re-snapshots the category name when categoryId changes. */
+export async function editSubscription(
+  db: Db,
+  id: number,
+  patch: Partial<SubscriptionInput>,
+): Promise<void> {
+  const set: Record<string, unknown> = { updatedAt: nowIso() };
+  if (patch.merchantName !== undefined) set.merchantName = patch.merchantName;
+  if (patch.amount !== undefined) set.amount = patch.amount;
+  if (patch.currency !== undefined) set.currency = patch.currency;
+  if (patch.billingCycle !== undefined) set.billingCycle = patch.billingCycle;
+  if (patch.nextPaymentDate !== undefined) set.nextPaymentDate = patch.nextPaymentDate;
+  if (patch.bankName !== undefined) set.bankName = patch.bankName;
+  if (patch.categoryId !== undefined) {
+    if (patch.categoryId === null) {
+      set.categoryId = null;
+      set.categoryName = null;
+    } else {
+      const snapshot = await categorySnapshot(db, patch.categoryId);
+      set.categoryId = snapshot.categoryId;
+      set.categoryName = snapshot.categoryName;
+    }
+  }
+  await db.update(subscriptions).set(set).where(eq(subscriptions.id, id));
+}
+
+export async function deleteSubscription(db: Db, id: number): Promise<void> {
+  await db.delete(subscriptions).where(eq(subscriptions.id, id));
 }

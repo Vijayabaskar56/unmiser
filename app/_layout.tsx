@@ -10,8 +10,9 @@ import {
 } from "@expo-google-fonts/hanken-grotesk";
 import { SpaceMono_400Regular, SpaceMono_700Bold } from "@expo-google-fonts/space-mono";
 import { useFonts } from "expo-font";
-import { Redirect, Stack, useSegments } from "expo-router";
+import { Redirect, router, Stack, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import * as Notifications from "expo-notifications";
 import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
 import { HeroUINativeProvider } from "heroui-native";
 import { useEffect } from "react";
@@ -22,9 +23,13 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 SplashScreen.preventAutoHideAsync();
 
 import { AppThemeProvider } from "@/contexts/app-theme-context";
+import { ThemeApplier } from "@/components/theme-applier";
+import { AccentProvider } from "@/lib/appearance/use-accent";
 import { expoDb } from "@/db";
+import { appDb } from "@/db/app-db";
 import { appSettingsCollection } from "@/db/collections";
 import { useMigrations } from "@/db/use-migrations";
+import { configureNotificationHandler, syncScheduledNotifications } from "@/lib/notifications";
 import { shouldShowSmsOnboarding, SMS_SETUP_COMPLETED_AT_KEY } from "@/lib/onboarding-state";
 
 export const unstable_settings = {
@@ -72,6 +77,7 @@ function StackLayout() {
         />
       </Stack>
       <SmsOnboardingGate />
+      <ThemeApplier />
     </>
   );
 }
@@ -104,6 +110,22 @@ export default function Layout() {
     }
   }, [ready]);
 
+  // Notifications: configure foreground presentation + deep-link on tap.
+  useEffect(() => {
+    configureNotificationHandler();
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const url = response.notification.request.content.data?.url;
+      if (typeof url === "string") router.push(url as never);
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Reconcile scheduled notifications (weekly review / subscription renewals)
+  // once migrations have applied, so the queries have tables to read.
+  useEffect(() => {
+    if (success) void syncScheduledNotifications(appDb);
+  }, [success]);
+
   if (error) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
@@ -125,7 +147,9 @@ export default function Layout() {
       <KeyboardProvider>
         <AppThemeProvider>
           <HeroUINativeProvider config={{ devInfo: { stylingPrinciples: false } }}>
-            <StackLayout />
+            <AccentProvider>
+              <StackLayout />
+            </AccentProvider>
           </HeroUINativeProvider>
         </AppThemeProvider>
       </KeyboardProvider>

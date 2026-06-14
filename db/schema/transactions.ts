@@ -47,6 +47,8 @@ export const transactions = sqliteTable(
     billingCycle: text(),
     attachments: text().notNull().default(""),
     isSample: integer({ mode: "boolean" }).notNull().default(false),
+    // Set by a rule's "flag for review" action (ADR rules engine). Surfaced later.
+    flagged: integer({ mode: "boolean" }).notNull().default(false),
   },
   (t) => [
     uniqueIndex("index_transactions_transaction_hash").on(t.transactionHash),

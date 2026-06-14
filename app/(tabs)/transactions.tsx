@@ -6,6 +6,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Container } from "@/components/container";
+import { ConfirmDialog } from "@/components/ui";
 import {
   accountBalanceCollection,
   accountCollection,
@@ -141,6 +142,7 @@ export default function TransactionsScreen() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Name-lookup maps for enriching list rows (category + account names).
   const categoryById = useMemo(
@@ -401,6 +403,7 @@ export default function TransactionsScreen() {
       ]);
       setSelectedIds(new Set());
       setSelectMode(false);
+      setConfirmOpen(false);
     } finally {
       setDeleting(false);
     }
@@ -712,7 +715,7 @@ export default function TransactionsScreen() {
               <View className="flex-row items-center justify-between mb-3">
                 <Text className="text-muted text-sm">{selectedIds.size} selected</Text>
                 <Pressable
-                  onPress={() => void onBulkDelete()}
+                  onPress={() => setConfirmOpen(true)}
                   disabled={selectedIds.size === 0 || deleting}
                   className={
                     selectedIds.size === 0 || deleting
@@ -734,6 +737,16 @@ export default function TransactionsScreen() {
             )}
           </View>
         }
+      />
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={`Delete ${selectedIds.size} transaction${selectedIds.size === 1 ? "" : "s"}?`}
+        description="They stay out of your totals — you can re-import from SMS later."
+        confirmLabel={`Delete (${selectedIds.size})`}
+        busy={deleting}
+        onConfirm={() => void onBulkDelete()}
       />
     </Container>
   );

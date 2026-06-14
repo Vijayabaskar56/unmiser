@@ -178,4 +178,90 @@ describe("evaluateRules", () => {
       serializeActions([{ actionType: "SET", field: "AMOUNT" as never, value: "1" }]),
     ).toThrow();
   });
+
+  it("matches on the SMS_SENDER field", () => {
+    const matched = evaluateRules(
+      [rule({ conditions: [{ field: "SMS_SENDER", operator: "CONTAINS", value: "EPFO" }] })],
+      txn({ smsSender: "AD-EPFO" }),
+    );
+    const missed = evaluateRules(
+      [rule({ conditions: [{ field: "SMS_SENDER", operator: "CONTAINS", value: "EPFO" }] })],
+      txn({ smsSender: "VK-HDFCBK" }),
+    );
+    expect(matched.applications.length).toBe(1);
+    expect(missed.applications.length).toBe(0);
+  });
+
+  it("SET ACCOUNT resolves the account by name and updates accountId/accountName", () => {
+    const result = evaluateRules(
+      [rule({ actions: [{ actionType: "SET", field: "ACCOUNT", value: "EPF" }] })],
+      txn({ accountId: 1, accountName: "Cash" }),
+      { accountByName: new Map([["epf", { id: 9, name: "EPF" }]]) },
+    );
+    expect(result.transaction.accountId).toBe(9);
+    expect(result.transaction.accountName).toBe("EPF");
+    expect(result.mutations.map((m) => m.field)).toContain("ACCOUNT");
+  });
+
+  it("SET ACCOUNT is a no-op when the account name is unknown", () => {
+    const result = evaluateRules(
+      [rule({ actions: [{ actionType: "SET", field: "ACCOUNT", value: "Nope" }] })],
+      txn({ accountId: 1, accountName: "Cash" }),
+      { accountByName: new Map() },
+    );
+    expect(result.transaction.accountId).toBe(1);
+    expect(result.applications.length).toBe(0);
+  });
+
+  it("SET ACCOUNT is a no-op when the transaction already points at that account", () => {
+    // The draft carries only accountId (accountName null, as apply-to-past produces
+    // for legacy rows). Resolution must compare by id so an identical account does
+    // not emit a redundant change.
+    const result = evaluateRules(
+      [rule({ actions: [{ actionType: "SET", field: "ACCOUNT", value: "EPF" }] })],
+      txn({ accountId: 9, accountName: null }),
+      { accountByName: new Map([["epf", { id: 9, name: "EPF" }]]) },
+    );
+    expect(result.applications).toHaveLength(0);
+    expect(result.mutations).toHaveLength(0);
+  });
+
+  it("SET ACCOUNT is a no-op when the name is ambiguous (shared by two accounts)", () => {
+    // buildRuleLookupContext marks a name shared by multiple accounts with an
+    // id < 0 sentinel; the interpreter must not guess which account was meant.
+    const result = evaluateRules(
+      [rule({ actions: [{ actionType: "SET", field: "ACCOUNT", value: "HDFC" }] })],
+      txn({ accountId: 1, accountName: "Cash" }),
+      { accountByName: new Map([["hdfc", { id: -1, name: "" }]]) },
+    );
+    expect(result.transaction.accountId).toBe(1);
+    expect(result.applications).toHaveLength(0);
+  });
+
+  it("SET RECURRING is a no-op when already recurring", () => {
+    const result = evaluateRules(
+      [rule({ actions: [{ actionType: "SET", field: "RECURRING", value: "true" }] })],
+      txn({ isRecurring: true }),
+    );
+    expect(result.applications).toHaveLength(0);
+    expect(result.mutations).toHaveLength(0);
+  });
+
+  it("SET FLAGGED is a no-op when already flagged", () => {
+    const result = evaluateRules(
+      [rule({ actions: [{ actionType: "SET", field: "FLAGGED", value: "true" }] })],
+      txn({ flagged: true }),
+    );
+    expect(result.applications).toHaveLength(0);
+    expect(result.mutations).toHaveLength(0);
+  });
+
+  it("SET FLAGGED marks the transaction flagged", () => {
+    const result = evaluateRules(
+      [rule({ actions: [{ actionType: "SET", field: "FLAGGED", value: "true" }] })],
+      txn({ flagged: false }),
+    );
+    expect(result.transaction.flagged).toBe(true);
+    expect(result.mutations.map((m) => m.field)).toContain("FLAGGED");
+  });
 });

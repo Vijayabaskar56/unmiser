@@ -32,6 +32,40 @@ export async function setSetting(db: Db, key: string, value: string): Promise<vo
     .onConflictDoUpdate({ target: appSettings.key, set: { value } });
 }
 
+/** The user profile, read as a single object. Each field is null when unset. */
+export interface ProfilePrefs {
+  name: string | null;
+  archetypeId: string | null;
+  bannerId: string | null;
+}
+
+/**
+ * Read the user profile (name + archetype + banner) in one call. The avatar is
+ * derived from the archetype, so it is not stored. Screens normally read these
+ * reactively via a live query over the app-settings collection; this getter
+ * exists for non-reactive callers (e.g. onboarding) and tests.
+ */
+export async function getProfile(db: Db): Promise<ProfilePrefs> {
+  const [name, archetypeId, bannerId] = await Promise.all([
+    getSetting(db, APP_SETTING_KEYS.profileName),
+    getSetting(db, APP_SETTING_KEYS.profileArchetype),
+    getSetting(db, APP_SETTING_KEYS.profileBannerId),
+  ]);
+  return { name, archetypeId, bannerId };
+}
+
+export async function setProfileName(db: Db, name: string): Promise<void> {
+  await setSetting(db, APP_SETTING_KEYS.profileName, name);
+}
+
+export async function setProfileArchetypeId(db: Db, archetypeId: string): Promise<void> {
+  await setSetting(db, APP_SETTING_KEYS.profileArchetype, archetypeId);
+}
+
+export async function setProfileBannerId(db: Db, bannerId: string): Promise<void> {
+  await setSetting(db, APP_SETTING_KEYS.profileBannerId, bannerId);
+}
+
 /**
  * The main account is an app preference holding an `accounts.id` (ADR-0005),
  * stored as text. Returns null when unset (or stored as a non-numeric value).

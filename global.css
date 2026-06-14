@@ -7,11 +7,11 @@
 /* ---- unmiser palette: override heroui semantic tokens (values only) ---- */
 @layer theme {
   @variant light {
-    --background: #f4f3ec; /* paper */
+    --background: #ffffff; /* white screen */
     --foreground: #15140f; /* ink */
-    --surface: #ffffff;
+    --surface: #f5f4ed; /* paper card */
     --surface-foreground: #15140f;
-    --surface-secondary: #f4f3ec; /* wash */
+    --surface-secondary: #ebe9df; /* deeper wash for nested elements on paper cards */
     --surface-secondary-foreground: #15140f;
     --overlay: #ffffff;
     --overlay-foreground: #15140f;

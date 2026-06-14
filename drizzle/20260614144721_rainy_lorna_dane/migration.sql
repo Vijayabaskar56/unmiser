@@ -1,0 +1,1 @@
+ALTER TABLE `transactions` ADD `flagged` integer DEFAULT false NOT NULL;

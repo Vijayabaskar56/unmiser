@@ -3,6 +3,8 @@ import { Pressable, Text } from "react-native";
 import { cn } from "heroui-native";
 import { tv } from "tailwind-variants";
 
+import { accentBackground, useAccent } from "@/lib/appearance/use-accent";
+
 const chip = tv({
   slots: {
     base: "self-start rounded-[3px] border-[1.3px] px-[11px] py-[5px]",
@@ -19,7 +21,7 @@ const chip = tv({
         label: "text-background",
       },
       accent: {
-        base: "border-foreground bg-accent",
+        base: "border-foreground", // bg applied at runtime (useAccent)
         label: "text-accent-foreground",
       },
     },
@@ -42,9 +44,15 @@ export interface ChipProps {
 
 export function Chip({ variant = "default", children, onPress, className }: ChipProps) {
   const { base, label } = chip({ variant });
+  const accent = useAccent();
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" className={cn(base(), className)}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      className={cn(base(), className)}
+      style={accentBackground(variant, accent)}
+    >
       <Text className={label()}>{children}</Text>
     </Pressable>
   );

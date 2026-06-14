@@ -7,6 +7,7 @@ export const TRANSACTION_FIELDS = [
   "MERCHANT",
   "NARRATION",
   "SMS_TEXT",
+  "SMS_SENDER",
   "BANK_NAME",
   "SUBCATEGORY",
 ] as const;
@@ -44,6 +45,8 @@ export const ACTION_FIELD_ALLOWLIST = [
   "NARRATION",
   "RECURRING",
   "BILLING_CYCLE",
+  "ACCOUNT",
+  "FLAGGED",
 ] as const;
 export type ActionField = (typeof ACTION_FIELD_ALLOWLIST)[number];
 
@@ -79,9 +82,13 @@ export interface RuleTransactionDraft {
   merchantName: string;
   description?: string | null;
   smsBody?: string | null;
+  smsSender?: string | null;
   bankName?: string | null;
+  accountId?: number | null;
+  accountName?: string | null;
   isRecurring?: boolean;
   billingCycle?: string | null;
+  flagged?: boolean;
 }
 
 export interface RuleLookupContext {
@@ -89,6 +96,7 @@ export interface RuleLookupContext {
   categoryByName?: Map<string, { id: number; name: string }>;
   subcategoryById?: Map<number, { id: number; name: string; categoryId: number }>;
   subcategoryByName?: Map<string, { id: number; name: string; categoryId: number }>;
+  accountByName?: Map<string, { id: number; name: string }>;
 }
 
 export interface FieldChange {

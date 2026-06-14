@@ -1,6 +1,8 @@
+import { cn, useThemeColor } from "heroui-native";
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
-import { cn } from "heroui-native";
+
+import { SpriteIcon } from "./sprite-icon";
 
 export interface TxnRowProps {
   /** Merchant / counterparty name (primary line). */
@@ -37,6 +39,8 @@ export function TxnRow({
   className,
 }: TxnRowProps) {
   const isIn = direction === "in";
+  const foreground = useThemeColor("foreground");
+  const muted = useThemeColor("muted");
 
   return (
     <View className={cn("flex-row items-center gap-3 py-2.5 border-b border-separator", className)}>
@@ -56,9 +60,11 @@ export function TxnRow({
             icon
           )
         ) : (
-          <Text className={cn("text-[13px]", isIn ? "text-foreground" : "text-muted")}>
-            {isIn ? "↓" : "↑"}
-          </Text>
+          <SpriteIcon
+            name={isIn ? "arrow-down" : "arrow-up"}
+            size={16}
+            color={isIn ? foreground : muted}
+          />
         )}
       </View>
 

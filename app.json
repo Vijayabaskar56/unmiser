@@ -8,7 +8,7 @@
     },
     "name": "Unmiser",
     "slug": "unmiser",
-    "plugins": ["expo-font", "expo-splash-screen"],
+    "plugins": ["expo-font", "expo-splash-screen", "expo-notifications"],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

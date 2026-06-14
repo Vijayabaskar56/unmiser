@@ -69,6 +69,31 @@ function groupInteger(digits: string, grouping: Grouping): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+// One decimal place, with a trailing ".0" dropped ("9.4", "2").
+function oneDecimal(d: Decimal): string {
+  const s = d.toFixed(1, Decimal.ROUND_HALF_EVEN);
+  return s.endsWith(".0") ? s.slice(0, -2) : s;
+}
+
+/**
+ * Compact money for dense lists (₹9.4k, ₹1.9L, ₹1.2Cr). Under 1,000 shows the
+ * full integer; above uses Indian magnitudes (k / lakh / crore). Sign preserved.
+ */
+export function formatCompact(amount: string, ccy: string): string {
+  const def = CURRENCY_CONFIG[ccy] ?? DEFAULT_DEF;
+  const value = new Decimal(amount);
+  const sign = value.isNegative() && !value.isZero() ? "-" : "";
+  const abs = value.abs();
+
+  let body: string;
+  if (abs.lessThan(1000)) body = abs.toFixed(0);
+  else if (abs.lessThan(100000)) body = `${oneDecimal(abs.dividedBy(1000))}k`;
+  else if (abs.lessThan(10000000)) body = `${oneDecimal(abs.dividedBy(100000))}L`;
+  else body = `${oneDecimal(abs.dividedBy(10000000))}Cr`;
+
+  return `${sign}${def.symbol}${body}`;
+}
+
 export function format(amount: string, ccy: string): string {
   const def = CURRENCY_CONFIG[ccy] ?? DEFAULT_DEF;
   const value = new Decimal(amount);

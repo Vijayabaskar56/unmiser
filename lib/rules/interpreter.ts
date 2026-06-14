@@ -30,6 +30,8 @@ function fieldValue(transaction: RuleTransactionDraft, field: TransactionField):
       return transaction.description ?? "";
     case "SMS_TEXT":
       return transaction.smsBody ?? "";
+    case "SMS_SENDER":
+      return transaction.smsSender ?? "";
     case "BANK_NAME":
       return transaction.bankName ?? "";
     case "SUBCATEGORY":
@@ -108,6 +110,13 @@ function readActionField(transaction: RuleTransactionDraft, field: ActionField):
       return transaction.isRecurring ? "true" : "false";
     case "BILLING_CYCLE":
       return transaction.billingCycle ?? null;
+    case "ACCOUNT":
+      return (
+        transaction.accountName ??
+        (transaction.accountId != null ? String(transaction.accountId) : null)
+      );
+    case "FLAGGED":
+      return transaction.flagged ? "true" : "false";
   }
 }
 
@@ -162,16 +171,14 @@ function applyAction(
   }
 
   if (action.field === "RECURRING") {
-    const newValue =
+    const raw =
       action.actionType === "CLEAR" ? "false" : String(action.value ?? "true").toLowerCase();
-    next.isRecurring = newValue === "true" || newValue === "1" || newValue === "yes";
-    pushChange(
-      changes,
-      "RECURRING",
-      oldValue,
-      next.isRecurring ? "true" : "false",
-      action.actionType,
-    );
+    const resolved = raw === "true" || raw === "1" || raw === "yes";
+    // Short-circuit when the value is unchanged, consistent with the CATEGORY
+    // branch: no mutation to `next`, no pushChange, no audit application.
+    if (resolved === (transaction.isRecurring ?? false)) return { transaction, changes: [] };
+    next.isRecurring = resolved;
+    pushChange(changes, "RECURRING", oldValue, resolved ? "true" : "false", action.actionType);
     return { transaction: next, changes };
   }
 
@@ -179,6 +186,42 @@ function applyAction(
     const newValue = textAction(transaction.billingCycle ?? "", action);
     next.billingCycle = newValue;
     pushChange(changes, "BILLING_CYCLE", oldValue, newValue, action.actionType);
+    return { transaction: next, changes };
+  }
+
+  if (action.field === "ACCOUNT") {
+    // Resolve the target account by name; a CLEAR detaches it. An unknown name
+    // is a no-op so a typo never silently moves money to the wrong account.
+    if (action.actionType === "CLEAR") {
+      next.accountId = null;
+      next.accountName = null;
+      pushChange(changes, "ACCOUNT", oldValue, null, action.actionType);
+      return { transaction: next, changes };
+    }
+    const account = action.value ? lookups.accountByName?.get(key(action.value)) : undefined;
+    // Unknown OR ambiguous name (the lookup stores a sentinel for names shared by
+    // more than one account) is a no-op so a typo never moves money to the wrong
+    // account. account.id < 0 is the ambiguous sentinel.
+    if (!account || account.id < 0) return { transaction, changes: [] };
+    // Short-circuit when the transaction already points at this account, mirroring
+    // the CATEGORY branch. Compare by id (the draft's accountName may be null, e.g.
+    // in apply-to-past), so an identical account never produces a redundant change.
+    if (transaction.accountId === account.id) return { transaction, changes: [] };
+    next.accountId = account.id;
+    next.accountName = account.name;
+    pushChange(changes, "ACCOUNT", oldValue, account.name, action.actionType);
+    return { transaction: next, changes };
+  }
+
+  if (action.field === "FLAGGED") {
+    const flagged =
+      action.actionType === "CLEAR"
+        ? false
+        : String(action.value ?? "true").toLowerCase() === "true";
+    // Short-circuit when the value is unchanged, consistent with the CATEGORY branch.
+    if (flagged === (transaction.flagged ?? false)) return { transaction, changes: [] };
+    next.flagged = flagged;
+    pushChange(changes, "FLAGGED", oldValue, flagged ? "true" : "false", action.actionType);
     return { transaction: next, changes };
   }
 

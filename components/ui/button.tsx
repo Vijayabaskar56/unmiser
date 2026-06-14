@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Pressable, Text, type PressableProps } from "react-native";
 import { tv } from "tailwind-variants";
 
+import { accentBackground, useAccent } from "@/lib/appearance/use-accent";
+
 /**
  * Button — editorial black & white primitive.
  *
@@ -30,7 +32,7 @@ const button = tv({
         label: "text-foreground",
       },
       accent: {
-        base: "bg-accent",
+        base: "", // bg applied at runtime (useAccent)
         label: "text-accent-foreground",
       },
     },
@@ -70,6 +72,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const { base, label } = button({ variant, size, disabled });
+  const accent = useAccent();
 
   return (
     <Pressable
@@ -77,6 +80,7 @@ export function Button({
       accessibilityState={{ disabled }}
       disabled={disabled}
       className={cn(base(), className)}
+      style={accentBackground(variant, accent)}
       {...props}
     >
       {typeof children === "string" ? <Text className={label()}>{children}</Text> : children}

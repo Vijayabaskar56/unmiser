@@ -1,7 +1,7 @@
 import { integer, sqliteTable, text, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 import { nowIso } from "../utils";
-import { CARD_TYPES } from "./enums";
+import { BANK_SUBTYPES, CARD_TYPES, SOURCE_KINDS } from "./enums";
 
 // Account identity + presentation. Extracted so balance snapshots and cards
 // don't each duplicate icon/color/currency/credit-limit per row (3NF).
@@ -19,6 +19,12 @@ export const accounts = sqliteTable(
     iconName: text().notNull().default(""),
     color: text().notNull().default("#33B5E5"),
     currency: text().notNull().default("INR"),
+    // Canonical source kind (ADR-0005 net-worth model). isWallet/isCreditCard
+    // below are DERIVED from this by account-ops; kept as columns so the balance
+    // cascade (credit sign-flip) and seed (cash lookup) read them unchanged.
+    sourceKind: text({ enum: SOURCE_KINDS }).notNull().default("BANK"),
+    // Only meaningful for BANK sources — the "savings ••4410" secondary label.
+    bankSubtype: text({ enum: BANK_SUBTYPES }),
     isWallet: integer({ mode: "boolean" }).notNull().default(false),
     isCreditCard: integer({ mode: "boolean" }).notNull().default(false),
     creditLimit: text(), // BigDecimal as string

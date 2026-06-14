@@ -21,7 +21,7 @@
 Stack: Expo SDK 56, Drizzle ORM 1.0-rc, TanStack DB 0.6.5, React 19, RN 0.85.3, TS 6, Bun. **Phases 0–3 done; 4+ unstarted.**
 
 | Phase                               | State   | One-liner                                                                                                                 | Detail                                                     |
-| ----------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | **Phase 0 — Foundations**           | ✅ Done | 1:1 Drizzle port of Room v51, migrations, TanStack DB collection factory, balance cascade, money/date helpers.            | §3 Phase 0                                                 |
 | **Phase 1 — Manual tracker**        | ✅ Done | Categories/accounts/cards/transactions CRUD, transfers, soft-delete+undo, balance time-series, drawer+tabs UI. 152 tests. | §3 Phase 1                                                 |
 | **Phase 2 — SMS-parser USP**        | ✅ Done | Engine, manifests, registry, wizard, off-thread scan. Device-verified 2026-06-12 (~5.3k inbox → 161 saved, 92 review).    | `docs/phase-2-design-record.md`, `docs/phase-2-handoff.md` |
@@ -33,18 +33,18 @@ Stack: Expo SDK 56, Drizzle ORM 1.0-rc, TanStack DB 0.6.5, React 19, RN 0.85.3, 
 
 ## 3. Phased Roadmap
 
-| Phase | Goal                                                     | Status         |
-| ----- | -------------------------------------------------------- | -------------- |
-| **0** | Foundations & data primitives                            | ✅ Done        |
-| **1** | Categories (+seed), accounts/cards, manual transactions  | ✅ Done        |
-| **2** | **`sms-parser` plugin engine + ingestion (USP)**         | ✅ Done        |
-| **3** | Rules engine + subscriptions/mandates                    | ✅ Done        |
-| **4** | Production UI from wireframes                            | ⬜ Not started |
-| **5** | Budgets + first behavior-change nudges                   | ⬜ Not started |
-| **6** | Analytics/reports + full behavior-change pillar          | ⬜ Not started |
-| **7** | Multi-currency exchange rates                            | ⬜ Not started |
-| **8** | Webhooks / sync / export                                 | ⬜ Not started |
-| **9** | `api-source` plugins (vetted)                            | ⬜ Not started |
+| Phase | Goal                                                    | Status         |
+| ----- | ------------------------------------------------------- | -------------- |
+| **0** | Foundations & data primitives                           | ✅ Done        |
+| **1** | Categories (+seed), accounts/cards, manual transactions | ✅ Done        |
+| **2** | **`sms-parser` plugin engine + ingestion (USP)**        | ✅ Done        |
+| **3** | Rules engine + subscriptions/mandates                   | ✅ Done        |
+| **4** | Production UI from wireframes                           | ⬜ Not started |
+| **5** | Budgets + first behavior-change nudges                  | ⬜ Not started |
+| **6** | Analytics/reports + full behavior-change pillar         | ⬜ Not started |
+| **7** | Multi-currency exchange rates                           | ⬜ Not started |
+| **8** | Webhooks / sync / export                                | ⬜ Not started |
+| **9** | `api-source` plugins (vetted)                           | ⬜ Not started |
 
 Order: foundations → USP early → UI → core features → behavior change → rates + sync → api-source. Two behavior features pulled into P5 so pillar 2 never fully defers.
 
@@ -114,23 +114,23 @@ Spec + evidence: **`docs/phase-3-design-record.md`**. Plan: `docs/phase-3-plan.m
 
 Priority: **Core** = P5–6; **Important** = P6; **Nice-to-have** = P6+.
 
-| Feature                              | Principle                  | Data / logic                                                                                | Priority       |
-| ------------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------- | -------------- |
-| **Budget Pacing Alerts**             | Loss aversion              | `BudgetWithSpending` burn-rate projection at 50/75/90/100%; alert if projected > amount     | Core (P5)      |
-| **Pre-Spend Nudge**                  | Choice architecture        | `(currentSpending + newAmount)/amount` in Add sheet                                         | Core (P5)      |
-| **Category Creep Detection**         | Awareness vs autopilot     | Month vs trailing-3-mo category avg; alert if dev > 30% AND abs diff > threshold            | Core (P6)      |
-| **Cashflow Runway**                  | Scarcity framing           | Liquid balances / (last-30d expenses / 30); warn < 30 days                                  | Core (P6)      |
-| **Smart Spend Warnings (Home)**      | Salience at check-in       | Count budgets projected-over w/ daysRemaining > 5                                           | Core (P6)      |
-| **Weekly Spending Ritual**           | Commitment device          | Last-7d by category; top cats, biggest expense; `weekly_goals` table                        | Core (P6)      |
-| **Savings Goal Framing**             | Gain framing               | `budgetType = SAVINGS` → "saved X of Y"; milestones 25/50/75%                               | Important (P6) |
-| **Merchant Spending Context**        | Anchoring at entry         | `MerchantData` avg/min/max/last visit in add/detail                                         | Important (P6) |
-| **Anomaly Detection**                | Salience on outliers       | Amount > 2× merchant avg / > 3× category weekly avg; `is_anomaly` flag                      | Important (P6) |
-| **Subscription Pause Suggestions**   | Inertia override           | Category unused 2+ billing cycles → flag + annual waste                                     | Important (P6) |
-| **Recurring Transaction Audit**      | Quarterly forcing function | Recurring txns/subs by merchant; monthly-equivalent total                                   | Important (P6) |
-| **Monthly Report Card**              | Accountability             | Month-end budgets graded A–F vs last month; 2 action items; `monthly_report`                | Important (P6) |
-| **Streak Tracking**                  | Gamification               | Consecutive zero-discretionary days; `streak_state` prefs                                   | Nice-to-have   |
-| **Budget Auto-Adjust Suggestions**   | Realistic goals            | 3-mo utilization; suggest reallocation if <70% vs >110%                                     | Nice-to-have   |
-| **Impulse Delay Timer**              | Cooling-off                | Discretionary + > ₹1000 → 60s timer + alternative framing                                   | Nice-to-have   |
+| Feature                            | Principle                  | Data / logic                                                                            | Priority       |
+| ---------------------------------- | -------------------------- | --------------------------------------------------------------------------------------- | -------------- |
+| **Budget Pacing Alerts**           | Loss aversion              | `BudgetWithSpending` burn-rate projection at 50/75/90/100%; alert if projected > amount | Core (P5)      |
+| **Pre-Spend Nudge**                | Choice architecture        | `(currentSpending + newAmount)/amount` in Add sheet                                     | Core (P5)      |
+| **Category Creep Detection**       | Awareness vs autopilot     | Month vs trailing-3-mo category avg; alert if dev > 30% AND abs diff > threshold        | Core (P6)      |
+| **Cashflow Runway**                | Scarcity framing           | Liquid balances / (last-30d expenses / 30); warn < 30 days                              | Core (P6)      |
+| **Smart Spend Warnings (Home)**    | Salience at check-in       | Count budgets projected-over w/ daysRemaining > 5                                       | Core (P6)      |
+| **Weekly Spending Ritual**         | Commitment device          | Last-7d by category; top cats, biggest expense; `weekly_goals` table                    | Core (P6)      |
+| **Savings Goal Framing**           | Gain framing               | `budgetType = SAVINGS` → "saved X of Y"; milestones 25/50/75%                           | Important (P6) |
+| **Merchant Spending Context**      | Anchoring at entry         | `MerchantData` avg/min/max/last visit in add/detail                                     | Important (P6) |
+| **Anomaly Detection**              | Salience on outliers       | Amount > 2× merchant avg / > 3× category weekly avg; `is_anomaly` flag                  | Important (P6) |
+| **Subscription Pause Suggestions** | Inertia override           | Category unused 2+ billing cycles → flag + annual waste                                 | Important (P6) |
+| **Recurring Transaction Audit**    | Quarterly forcing function | Recurring txns/subs by merchant; monthly-equivalent total                               | Important (P6) |
+| **Monthly Report Card**            | Accountability             | Month-end budgets graded A–F vs last month; 2 action items; `monthly_report`            | Important (P6) |
+| **Streak Tracking**                | Gamification               | Consecutive zero-discretionary days; `streak_state` prefs                               | Nice-to-have   |
+| **Budget Auto-Adjust Suggestions** | Realistic goals            | 3-mo utilization; suggest reallocation if <70% vs >110%                                 | Nice-to-have   |
+| **Impulse Delay Timer**            | Cooling-off                | Discretionary + > ₹1000 → 60s timer + alternative framing                               | Nice-to-have   |
 
 ---
 
@@ -146,13 +146,13 @@ Priority: **Core** = P5–6; **Important** = P6; **Nice-to-have** = P6+.
 
 ## 6. Risks & Open Questions
 
-| Risk / question                     | Why                                                                              | Mitigation / open                                                                                                                              |
-| ----------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Android SMS native module**       | Restricted permission; Play needs declared core use case + review.                | Module behind engine boundary; prep Play declaration early; paste fallback if denied/rejected.                                                  |
-| **iOS (deferred)**                  | Post-v1.                                                                          | Engine source-agnostic → additive adapter. **Open:** which iOS ingestion (paste/Share Sheet/forwarding) has lowest friction.                     |
-| **Declarative expressiveness**      | ~18% of banks (HDFC waterfall, SBI/AMEX post-processing) don't reduce to regex+maps. | Hybrid: `fallbackToBuiltin` hook. **Open:** how rich can manifest conditionals get before a built-in is cheaper?                                |
-| **`api-source` trust**              | Outbound calls + user creds = exfiltration risk.                                  | Vetted/allowlisted only; secrets in Keychain. **Open:** who vets, what's the bar?                                                               |
-| **Banks changing SMS formats**      | Silent format change breaks a parser.                                             | Versioned manifests, no-store-review fixes. **Open:** drift detection via `unrecognizedSms` telemetry / parse confidence?                       |
-| **Registry & distribution**         | Community plugins need hosting/discovery/trust signals.                           | Catalog + integrity (checksum now). **Open:** signing, community-submission flow, `community` vs `vetted` surfacing.                            |
-| **Decimal precision**               | TEXT BigDecimal amounts; JS floats lossy.                                         | decimal.js since P0; never raw `number` for money.                                                                                              |
-| **TanStack DB ↔ Drizzle at scale**  | Financial collections add cascades (transfer dual-balance, recalc-after-edit).    | Collection factory generalized P0; test rollback + cascade edges (`recalculateBalancesAfter` flagged complex).                                  |
+| Risk / question                    | Why                                                                                  | Mitigation / open                                                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Android SMS native module**      | Restricted permission; Play needs declared core use case + review.                   | Module behind engine boundary; prep Play declaration early; paste fallback if denied/rejected.                               |
+| **iOS (deferred)**                 | Post-v1.                                                                             | Engine source-agnostic → additive adapter. **Open:** which iOS ingestion (paste/Share Sheet/forwarding) has lowest friction. |
+| **Declarative expressiveness**     | ~18% of banks (HDFC waterfall, SBI/AMEX post-processing) don't reduce to regex+maps. | Hybrid: `fallbackToBuiltin` hook. **Open:** how rich can manifest conditionals get before a built-in is cheaper?             |
+| **`api-source` trust**             | Outbound calls + user creds = exfiltration risk.                                     | Vetted/allowlisted only; secrets in Keychain. **Open:** who vets, what's the bar?                                            |
+| **Banks changing SMS formats**     | Silent format change breaks a parser.                                                | Versioned manifests, no-store-review fixes. **Open:** drift detection via `unrecognizedSms` telemetry / parse confidence?    |
+| **Registry & distribution**        | Community plugins need hosting/discovery/trust signals.                              | Catalog + integrity (checksum now). **Open:** signing, community-submission flow, `community` vs `vetted` surfacing.         |
+| **Decimal precision**              | TEXT BigDecimal amounts; JS floats lossy.                                            | decimal.js since P0; never raw `number` for money.                                                                           |
+| **TanStack DB ↔ Drizzle at scale** | Financial collections add cascades (transfer dual-balance, recalc-after-edit).       | Collection factory generalized P0; test rollback + cascade edges (`recalculateBalancesAfter` flagged complex).               |

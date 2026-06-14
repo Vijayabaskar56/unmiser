@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Container } from "@/components/container";
+import { ConfirmDialog } from "@/components/ui";
 import {
   accountBalanceCollection,
   accountCollection,
@@ -80,6 +81,7 @@ export default function TransactionDetailScreen() {
   const [deleted, setDeleted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Edit-form state, seeded from the row when entering edit mode.
   const [amount, setAmount] = useState("");
@@ -193,6 +195,7 @@ export default function TransactionDetailScreen() {
     try {
       await softDeleteTransaction(db, txn.id, txn.accountId, account.isCreditCard);
       await refetch();
+      setConfirmOpen(false);
       setDeleted(true);
     } finally {
       setBusy(false);
@@ -246,6 +249,11 @@ export default function TransactionDetailScreen() {
 
   const account = txn.accountId !== null ? (accountById.get(txn.accountId) ?? null) : null;
   const isCredit = txn.transactionType === "INCOME";
+
+  const deleteDescription = `${txn.merchantName || "—"} · ${isCredit ? "+" : "−"}${money.format(
+    txn.amount,
+    txn.currency,
+  )} · ${formatDisplay(txn.dateTime, "d MMM")}. It stays out of your totals — you can re-import it from SMS later.`;
 
   if (deleted) {
     return (
@@ -465,7 +473,7 @@ export default function TransactionDetailScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => void onDelete()}
+            onPress={() => setConfirmOpen(true)}
             disabled={busy}
             className="mt-4 rounded-xl border border-danger px-4 py-3 items-center active:opacity-70"
           >
@@ -473,6 +481,15 @@ export default function TransactionDetailScreen() {
           </Pressable>
         </View>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Delete this transaction?"
+        description={deleteDescription}
+        busy={busy}
+        onConfirm={() => void onDelete()}
+      />
     </Container>
   );
 }

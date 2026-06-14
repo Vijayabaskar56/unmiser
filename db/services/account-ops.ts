@@ -2,8 +2,10 @@ import { eq } from "drizzle-orm";
 
 import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 
-import { accounts, transactions } from "@/db/schema";
+import { accountBalances, accounts, transactions } from "@/db/schema";
+import type { BankSubtype, SourceKind } from "@/db/schema";
 import { clearMainAccountIfDeleted } from "@/db/services/app-settings";
+import { nowIso } from "@/db/utils";
 
 // `db` is dependency-injected so this module stays driver-agnostic: the app
 // passes the expo-sqlite (async) drizzle instance, tests pass better-sqlite3.
@@ -11,19 +13,33 @@ import { clearMainAccountIfDeleted } from "@/db/services/app-settings";
 type Db = BaseSQLiteDatabase<"sync" | "async", any, any>;
 
 /**
- * The three account "kinds" the UI offers. They collapse onto the two boolean
- * flags the schema stores (isWallet / isCreditCard): the Android app models the
- * same trio as those flags, and "bank" is simply "neither flag set". Keeping a
- * single `kind` at the call boundary stops callers from setting both flags at
- * once (a nonsensical wallet-credit hybrid).
+ * The source "kinds" the UI offers (lowercase at the call boundary; the schema
+ * stores the uppercase canonical `sourceKind`). BANK/CREDIT/CASH are wired this
+ * phase; PF/INSURANCE/INVESTMENT are reserved (the Add-a-source UI disables them).
+ *
+ * `sourceKind` is canonical, but the legacy isWallet/isCreditCard booleans are
+ * still derived from it here so the balance cascade (credit sign-flip) and the
+ * seed (cash lookup) keep reading them unchanged. PF/insurance/investment are
+ * plain assets — neither flag set.
  */
-export type AccountKind = "bank" | "credit" | "wallet";
+export type AccountKind = "bank" | "credit" | "cash" | "pf" | "insurance" | "investment";
+
+const KIND_TO_SOURCE: Record<AccountKind, SourceKind> = {
+  bank: "BANK",
+  credit: "CREDIT",
+  cash: "CASH",
+  pf: "PF",
+  insurance: "INSURANCE",
+  investment: "INVESTMENT",
+};
 
 export interface CreateAccountInput {
   bankName: string;
   accountLast4: string;
   currency: string;
   kind: AccountKind;
+  /** BANK-only secondary label (savings/salary/current). */
+  bankSubtype?: BankSubtype | null;
   /** Stored only for credit accounts; BigDecimal as string. */
   creditLimit?: string | null;
   canonicalBank?: string | null;
@@ -31,12 +47,13 @@ export interface CreateAccountInput {
   iconName?: string;
 }
 
-/** Editable account fields. Identity flags derive from `kind` at create time and
- *  are not flipped here; presentation + currency + credit limit are. */
+/** Editable account fields. The source kind is fixed at create time; presentation,
+ *  currency, credit limit, and bank subtype are editable. */
 export interface EditAccountChanges {
   bankName?: string;
   accountLast4?: string;
   currency?: string;
+  bankSubtype?: BankSubtype | null;
   creditLimit?: string | null;
   canonicalBank?: string | null;
   color?: string;
@@ -45,7 +62,7 @@ export interface EditAccountChanges {
 
 function kindToFlags(kind: AccountKind): { isWallet: boolean; isCreditCard: boolean } {
   return {
-    isWallet: kind === "wallet",
+    isWallet: kind === "cash",
     isCreditCard: kind === "credit",
   };
 }
@@ -66,6 +83,9 @@ export async function createAccount(db: Db, input: CreateAccountInput): Promise<
       bankName: input.bankName,
       accountLast4: input.accountLast4,
       currency: input.currency,
+      sourceKind: KIND_TO_SOURCE[input.kind],
+      // Subtype is a BANK-only label; ignored for every other kind.
+      bankSubtype: input.kind === "bank" ? (input.bankSubtype ?? null) : null,
       isWallet,
       isCreditCard,
       // Only credit accounts carry a limit; anything else stores null.
@@ -111,4 +131,20 @@ export async function deleteAccount(db: Db, id: number): Promise<void> {
   await clearMainAccountIfDeleted(db, id);
   await db.update(transactions).set({ accountId: null }).where(eq(transactions.accountId, id));
   await db.delete(accounts).where(eq(accounts.id, id));
+}
+
+/**
+ * Record a manual balance reading for an account. Manual sources (cash now; PF /
+ * insurance / investment later) have no SMS feed, so their balance is whatever
+ * the user last entered: a single timestamped `account_balances` row tagged
+ * `MANUAL`. The latest-by-timestamp reduce the screens already use then surfaces
+ * it like any other reading — no transaction cascade involved.
+ */
+export async function setManualBalance(db: Db, accountId: number, balance: string): Promise<void> {
+  await db.insert(accountBalances).values({
+    accountId,
+    balance,
+    timestamp: nowIso(),
+    sourceType: "MANUAL",
+  });
 }

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 
-import { categories, subcategories } from "@/db/schema";
+import { accounts, categories, subcategories } from "@/db/schema";
 import { addTransaction, type AddTransactionInput } from "@/db/services/transaction-ops";
 import { resolveCategory } from "@/db/services/merchant-mapping";
 import {
@@ -24,8 +24,12 @@ export type PipelineOutcome =
 
 async function loadNames(
   db: Db,
-  input: { categoryId: number; subcategoryId?: number | null },
-): Promise<{ categoryName: string | null; subcategoryName: string | null }> {
+  input: { categoryId: number; subcategoryId?: number | null; accountId?: number | null },
+): Promise<{
+  categoryName: string | null;
+  subcategoryName: string | null;
+  accountName: string | null;
+}> {
   const [category] = await db
     .select({ name: categories.name })
     .from(categories)
@@ -39,7 +43,19 @@ async function loadNames(
           .from(subcategories)
           .where(eq(subcategories.id, input.subcategoryId))
           .limit(1);
-  return { categoryName: category?.name ?? null, subcategoryName: subcategory?.name ?? null };
+  const [account] =
+    input.accountId == null
+      ? []
+      : await db
+          .select({ name: accounts.bankName })
+          .from(accounts)
+          .where(eq(accounts.id, input.accountId))
+          .limit(1);
+  return {
+    categoryName: category?.name ?? null,
+    subcategoryName: subcategory?.name ?? null,
+    accountName: account?.name ?? null,
+  };
 }
 
 function toDraft(input: AddTransactionInput, names: Awaited<ReturnType<typeof loadNames>>) {
@@ -53,9 +69,13 @@ function toDraft(input: AddTransactionInput, names: Awaited<ReturnType<typeof lo
     merchantName: input.merchantName,
     description: input.description ?? null,
     smsBody: input.smsBody ?? null,
+    smsSender: input.smsSender ?? null,
     bankName: input.sourcePluginId ?? null,
+    accountId: input.accountId,
+    accountName: names.accountName,
     isRecurring: input.isRecurring ?? false,
     billingCycle: input.billingCycle ?? null,
+    flagged: false,
   } satisfies RuleTransactionDraft;
 }
 
@@ -72,6 +92,7 @@ export async function saveTransactionThroughPipeline(
   const names = await loadNames(db, {
     categoryId: mappedInput.categoryId,
     subcategoryId: mappedInput.subcategoryId,
+    accountId: mappedInput.accountId,
   });
 
   const rules = await listActiveRules(db);
@@ -104,6 +125,11 @@ export async function saveTransactionThroughPipeline(
     finalInput.categoryId = evaluated.transaction.categoryId;
     finalInput.subcategoryId = evaluated.transaction.subcategoryId ?? null;
   }
+  // Rule-driven account reassignment + flag-for-review (ADR rules engine).
+  if (evaluated.transaction.accountId != null) {
+    finalInput.accountId = evaluated.transaction.accountId;
+  }
+  finalInput.flagged = evaluated.transaction.flagged ?? false;
 
   const transactionId = await addTransaction(db, finalInput);
   await insertRuleApplications(db, transactionId, evaluated.applications);
