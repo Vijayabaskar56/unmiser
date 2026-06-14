@@ -14,7 +14,8 @@
       "reactCompiler": true
     },
     "android": {
-      "package": "com.vijayabaskar56.unmiser"
+      "package": "com.vijayabaskar56.unmiser",
+      "predictiveBackGestureEnabled": true
     }
   }
 }
