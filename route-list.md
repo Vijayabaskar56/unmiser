@@ -145,9 +145,10 @@ Root Stack  (app/_layout.tsx — fonts/splash; SmsOnboardingGate redirects first
     ├─ index → providers → account → permissions (↳ PasteSmsSheet) → scan → finish → /(tabs)
 ```
 
-**⚠ Known gap:** folding the old 7 tabs orphaned **extensions**, **store**, and **subscriptions**
-— they're routable but have **no in-app entry point** yet. Planned homes: Subscriptions under
-**Grow**; Extensions + Store under **Hub**.
+**Wired up:** the previously-orphaned **Subscriptions** (Money section), **Extensions** and
+**Store** (App section) are now reached from the **Settings hub**, grouped into Money · App · Data
+sections. (Note: the tree above predates the native-tabs switch — those screens are now root stack
+routes pushed from Settings, not `href:null` tabs; the bar itself is now `NativeTabs`.)
 
 ---
 
