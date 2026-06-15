@@ -1,37 +1,91 @@
+import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list/react-native";
 import { useLiveQuery } from "@tanstack/react-db";
 import { router } from "expo-router";
-import { useThemeColor } from "heroui-native";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { memo, useCallback, useMemo, useState } from "react";
+import { Pressable, View } from "react-native";
+import { withUniwind } from "uniwind";
 
 import { Container } from "@/components/container";
-import { ConfirmDialog } from "@/components/ui";
+import { TransactionFormSheet } from "@/components/transactions/transaction-form-sheet";
+import {
+  AppBar,
+  Card,
+  Chip,
+  ConfirmDialog,
+  Field,
+  IconButton,
+  Tag,
+  Text,
+  TxnRow,
+} from "@/components/ui";
 import {
   accountBalanceCollection,
   accountCollection,
   categoryCollection,
-  subcategoryCollection,
   transactionCollection,
 } from "@/db/collections/finance";
-import { appDb } from "@/db/app-db";
 import { db } from "@/db/index";
-import { getMainAccountId } from "@/db/services/app-settings";
-import { saveTransactionThroughPipeline } from "@/db/services/automation-pipeline";
-import { softDeleteTransaction, transfer } from "@/db/services/transaction-ops";
+import { softDeleteTransaction } from "@/db/services/transaction-ops";
 import type { Transaction } from "@/db/schema";
-import type { TxnType } from "@/lib/balance-service";
-import { formatDisplay, nowIso } from "@/lib/dates";
+import { useAccent } from "@/lib/appearance/use-accent";
+import { formatDisplay, nowIso, parseIso, startOfPeriod, toIso } from "@/lib/dates";
 import * as money from "@/lib/money";
+import { paymentMethodLabel } from "@/lib/payment-method";
 
-const TXN_TYPES: TxnType[] = ["EXPENSE", "INCOME", "INVESTMENT", "CREDIT", "TRANSFER"];
+const StyledIonicons = withUniwind(Ionicons);
 
-// Memoized so LegendList only re-renders rows whose props actually changed
-// (selection toggles, name-map updates) instead of every visible row per render.
-const TransactionRow = memo(function TransactionRow({
+// Semantic filter (mock model): All / Spends / Income, plus dynamic category
+// "#hashtags". A category filter is keyed `cat:<id>`.
+type FilterKey = "ALL" | "SPENDS" | "INCOME" | `cat:${number}`;
+const SPEND_TYPES = new Set(["EXPENSE", "INVESTMENT"]);
+
+// A flattened list item: a date-section header (string) or a transaction row.
+type ListItem = string | Transaction;
+
+// The black SPENT/RECEIVED summary bar (Card variant="inverted").
+const SummaryBar = memo(function SummaryBar({
+  monthLabel,
+  spent,
+  received,
+}: {
+  monthLabel: string;
+  spent: string;
+  received: string;
+}) {
+  // accent-foreground is ink (meant to sit ON the accent fill); on this black
+  // card the received total must be the accent hue itself, applied at runtime.
+  const accent = useAccent();
+  return (
+    <Card variant="inverted" className="mb-4 flex-row items-start justify-between px-4 py-3.5">
+      <View>
+        <Text className="text-[10px] font-bold uppercase tracking-[2px] text-muted">
+          Spent · {monthLabel}
+        </Text>
+        <Text
+          className="mt-1 text-[26px] font-extrabold text-background"
+          style={{ fontVariant: ["tabular-nums"] }}
+        >
+          {spent}
+        </Text>
+      </View>
+      <View className="items-end">
+        <Text className="text-[10px] font-bold uppercase tracking-[2px] text-muted">Received</Text>
+        <Text
+          className="mt-1 text-[20px] font-extrabold"
+          style={{ fontVariant: ["tabular-nums"], color: accent }}
+        >
+          +{received}
+        </Text>
+      </View>
+    </Card>
+  );
+});
+
+// Memoized so LegendList only re-renders rows whose props actually changed.
+const Row = memo(function Row({
   txn,
   categoryName,
-  accountName,
   selected,
   selectMode,
   onPress,
@@ -39,304 +93,160 @@ const TransactionRow = memo(function TransactionRow({
 }: {
   txn: Transaction;
   categoryName: string;
-  accountName: string;
   selected: boolean;
   selectMode: boolean;
   onPress: (txn: Transaction) => void;
   onLongPress: (txn: Transaction) => void;
 }) {
-  const isCredit = txn.transactionType === "INCOME";
+  const isIn = txn.transactionType === "INCOME";
+  const methodLabel = paymentMethodLabel(txn.paymentMethod);
+  const sub = `${formatDisplay(txn.dateTime, "HH:mm")}${methodLabel ? ` · ${methodLabel}` : ""} · ${categoryName}`;
+  const amount = `${isIn ? "+" : "−"}${money.format(txn.amount, txn.currency)}`;
+
   return (
     <Pressable
       onPress={() => onPress(txn)}
       onLongPress={() => onLongPress(txn)}
-      className={
-        selected
-          ? "mb-2 flex-row items-center justify-between rounded-xl border border-foreground bg-secondary p-3 active:opacity-70"
-          : "mb-2 flex-row items-center justify-between rounded-xl border border-border p-3 active:opacity-70"
-      }
+      className={selected ? "bg-surface-secondary" : undefined}
     >
-      {selectMode && (
-        <View
-          className={
-            selected
-              ? "mr-3 h-5 w-5 rounded-full bg-foreground items-center justify-center"
-              : "mr-3 h-5 w-5 rounded-full border border-border"
-          }
-        >
-          {selected && <Text className="text-background text-xs">✓</Text>}
-        </View>
-      )}
-      <View className="flex-1 pr-3">
-        <Text className="text-foreground font-medium" numberOfLines={1}>
-          {txn.merchantName || "—"}
-        </Text>
-        <Text className="text-muted text-xs" numberOfLines={1}>
-          {categoryName} · {accountName}
-        </Text>
-        <Text className="text-muted text-xs">
-          {txn.transactionType} · {formatDisplay(txn.dateTime)}
-        </Text>
-      </View>
-      <Text className={isCredit ? "text-success font-semibold" : "text-foreground font-semibold"}>
-        {isCredit ? "+" : "-"}
-        {money.format(txn.amount, txn.currency)}
-      </Text>
+      <TxnRow
+        merchant={txn.merchantName || "—"}
+        sub={sub}
+        amount={amount}
+        direction={isIn ? "in" : "out"}
+        badge={
+          selectMode ? (
+            <View
+              className={
+                selected
+                  ? "h-5 w-5 items-center justify-center rounded-full bg-foreground"
+                  : "h-5 w-5 rounded-full border border-border"
+              }
+            >
+              {selected && <Text className="text-[11px] text-background">✓</Text>}
+            </View>
+          ) : undefined
+        }
+      />
     </Pressable>
   );
 });
 
+/** Date-section header: "TODAY · 12 JUN" / "YESTERDAY · 11 JUN" / "SAT · 8 JUN". */
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <Text className="mb-1 mt-4 text-[11px] font-bold uppercase tracking-[1.5px] text-muted">
+      {label}
+    </Text>
+  );
+}
+
+function dayLabel(iso: string, todayKey: string, yesterdayKey: string): string {
+  const key = iso.slice(0, 10);
+  const date = formatDisplay(iso, "d MMM").toUpperCase();
+  if (key === todayKey) return `TODAY · ${date}`;
+  if (key === yesterdayKey) return `YESTERDAY · ${date}`;
+  return formatDisplay(iso, "EEE · d MMM").toUpperCase();
+}
+
 /**
- * Transactions list + an inline Add-Transaction sheet.
- *
- * The list is a live query over the (non-deleted) transactions collection,
- * rendered with money.format and a friendly date. Adding goes through the
- * services layer — saveTransactionThroughPipeline(db, ...) runs rules, dedup
- * and the balance cascade — NOT the collection's optimistic path, so balance
- * math stays single-sourced.
- * After a successful add we refetch the transactions AND account-balances
- * collections so both the list here and the Accounts screen reflect the write.
- *
- * The add form is rendered inline (toggled by state) rather than a native
- * bottom-sheet to stay dependency-light and tsc-verifiable; swapping it for
- * heroui-native BottomSheet is a pure presentation change later.
- *
- * DEVICE-GATED QA (cannot run under vitest / no visual check here):
- *  - Picker chips: account defaults to the main account; verify selection + the
- *    keyboard-driven amount entry on a device.
- *  - Submit with empty/invalid amount or no category is blocked (button disabled).
- *  - After submit the new row appears and the form resets/closes.
+ * Transactions list (redesign) — AppBar + black month-summary bar, semantic +
+ * #hashtag filter chips, date-grouped TxnRows, a floating + FAB that opens the
+ * TransactionFormSheet, and an empty state. Bulk soft-delete (ADR-0008) is kept
+ * behind long-press → select mode. The list is a live query (newest-first,
+ * maintained incrementally by d2ts); grouping/filtering is client-side.
  */
 export default function TransactionsScreen() {
-  // Newest-first ordering lives in the live query so it is maintained
-  // incrementally (d2ts) instead of re-sorting the full array per render.
   const { data: txns, isLoading } = useLiveQuery((q) =>
     q.from({ txn: transactionCollection }).orderBy(({ txn }) => txn.dateTime, "desc"),
   );
   const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }));
   const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }));
-  const { data: subcategories } = useLiveQuery((q) =>
-    q.from({ subcategory: subcategoryCollection }),
-  );
 
-  const mutedColor = useThemeColor("muted");
-
-  const [showForm, setShowForm] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [merchant, setMerchant] = useState("");
-  const [accountId, setAccountId] = useState<number | null>(null);
-  const [toAccountId, setToAccountId] = useState<number | null>(null);
-  const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [subcategoryId, setSubcategoryId] = useState<number | null>(null);
-  const [type, setType] = useState<TxnType>("EXPENSE");
-  const [submitting, setSubmitting] = useState(false);
-  const [transferError, setTransferError] = useState<string | null>(null);
-  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
-
-  // List search + type-filter (combined, client-side over the live query).
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<TxnType | "ALL">("ALL");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [filter, setFilter] = useState<FilterKey>("ALL");
+  const [formOpen, setFormOpen] = useState(false);
 
-  // Bulk-selection mode (ADR-0008 soft-delete). When active, row taps toggle a
-  // selection checkmark instead of navigating to the detail screen.
+  // Bulk-selection (ADR-0008 soft-delete).
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // Name-lookup maps for enriching list rows (category + account names).
   const categoryById = useMemo(
     () => new Map((categories ?? []).map((c) => [c.id, c.name])),
     [categories],
   );
-  const accountById = useMemo(
-    () => new Map((accounts ?? []).map((a) => [a.id, a.bankName])),
-    [accounts],
-  );
-  // Full-account lookup so bulk-delete can derive isCreditCard from the owning
-  // account (softDeleteTransaction needs accountId + isCreditCard to re-cascade).
   const accountRowById = useMemo(() => new Map((accounts ?? []).map((a) => [a.id, a])), [accounts]);
 
-  // Subcategories for the currently-selected category (picker only shows after a
-  // category is chosen). Filtered client-side off the live subcategories query.
-  const subcategoryList = useMemo(
-    () =>
-      categoryId === null
-        ? []
-        : [...(subcategories ?? [])]
-            .filter((s) => s.categoryId === categoryId)
-            .sort((a, b) => a.name.localeCompare(b.name)),
-    [subcategories, categoryId],
+  // Current-month window for the summary bar + the #hashtag ranking.
+  const monthStart = useMemo(() => startOfPeriod(nowIso(), "MONTHLY"), []);
+  const thisMonth = useMemo(
+    () => (txns ?? []).filter((t) => t.dateTime >= monthStart),
+    [txns, monthStart],
   );
 
-  const accountList = useMemo(
-    () => [...(accounts ?? [])].sort((a, b) => a.bankName.localeCompare(b.bankName)),
-    [accounts],
-  );
-  const categoryList = useMemo(
-    () =>
-      [...(categories ?? [])].sort(
-        (a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name),
-      ),
-    [categories],
-  );
-
-  // Default the account picker to the main account (ADR-0005) once accounts load.
-  useEffect(() => {
-    if (accountId !== null || accountList.length === 0) return;
-    void (async () => {
-      const mainId = await getMainAccountId(appDb);
-      const exists = mainId !== null && accountList.some((a) => a.id === mainId);
-      setAccountId(exists ? mainId : accountList[0].id);
-    })();
-  }, [accountId, accountList]);
-
-  const selectedAccount = accountList.find((a) => a.id === accountId) ?? null;
-  const selectedToAccount = accountList.find((a) => a.id === toAccountId) ?? null;
-  const isTransfer = type === "TRANSFER";
-
-  const amountValid = (() => {
-    const trimmed = amount.trim();
-    if (!trimmed) return false;
-    if (!/^\d+(\.\d+)?$/.test(trimmed)) return false;
-    return money.compare(trimmed, "0") > 0;
-  })();
-
-  // For TRANSFER the destination must be a distinct account; the transfer()
-  // service rejects cross-currency, so we also gate on matching currencies here
-  // (Save disabled) and surface the thrown message inline on a failed attempt.
-  const transferSameAccount =
-    isTransfer &&
-    selectedAccount !== null &&
-    selectedToAccount !== null &&
-    accountId === toAccountId;
-  const transferCrossCurrency =
-    isTransfer &&
-    selectedAccount !== null &&
-    selectedToAccount !== null &&
-    selectedAccount.currency !== selectedToAccount.currency;
-  const transferValid =
-    !isTransfer || (selectedToAccount !== null && !transferSameAccount && !transferCrossCurrency);
-
-  const canSubmit =
-    amountValid && accountId !== null && categoryId !== null && transferValid && !submitting;
-
-  const resetForm = useCallback(() => {
-    setAmount("");
-    setMerchant("");
-    setCategoryId(null);
-    setSubcategoryId(null);
-    setType("EXPENSE");
-    setToAccountId(null);
-    setTransferError(null);
-    setBlockedMessage(null);
-  }, []);
-
-  // Picking a (different) category clears any subcategory selection so we never
-  // submit a subcategory that belongs to another category.
-  const onSelectCategory = useCallback((id: number) => {
-    setCategoryId((prev) => {
-      if (prev !== id) setSubcategoryId(null);
-      return id;
-    });
-  }, []);
-
-  const onSubmit = useCallback(async () => {
-    if (!selectedAccount || categoryId === null || !amountValid) return;
-    setSubmitting(true);
-    setTransferError(null);
-    setBlockedMessage(null);
-    try {
-      // Called directly on the expo db (not wrapped in db.transaction): the
-      // expo-sqlite drizzle driver is typed sync and rejects async transaction
-      // callbacks. Both services are await-style and driver-agnostic; they
-      // synthesize the dedup hash and run the balance cascade internally.
-      if (type === "TRANSFER") {
-        if (!selectedToAccount || accountId === toAccountId) return;
-        // transfer() throws on cross-currency — surface inline, leave form open.
-        await transfer(db, {
-          fromAccount: {
-            id: selectedAccount.id,
-            currency: selectedAccount.currency,
-            isCreditCard: selectedAccount.isCreditCard,
-          },
-          toAccount: {
-            id: selectedToAccount.id,
-            currency: selectedToAccount.currency,
-            isCreditCard: selectedToAccount.isCreditCard,
-          },
-          amount: money.normalize2dp(amount.trim()),
-          categoryId,
-          dateTime: nowIso(),
-          merchantName: merchant.trim(),
-        });
-      } else {
-        const outcome = await saveTransactionThroughPipeline(
-          db,
-          {
-            accountId: selectedAccount.id,
-            amount: money.normalize2dp(amount.trim()),
-            merchantName: merchant.trim(),
-            categoryId,
-            subcategoryId,
-            transactionType: type,
-            dateTime: nowIso(),
-            isCreditCard: selectedAccount.isCreditCard,
-            currency: selectedAccount.currency,
-          },
-          {
-            explicitUserFields: ["merchantName", "categoryId"],
-          },
-        );
-        if (outcome.kind === "blocked") {
-          setBlockedMessage(`Blocked by rule: ${outcome.ruleName}`);
-          return;
-        }
-      }
-      await Promise.all([
-        transactionCollection.utils.refetch(),
-        accountBalanceCollection.utils.refetch(),
-      ]);
-      resetForm();
-      setShowForm(false);
-    } catch (err) {
-      setTransferError(err instanceof Error ? err.message : "Save failed");
-    } finally {
-      setSubmitting(false);
+  const { spent, received } = useMemo(() => {
+    let s = "0";
+    let r = "0";
+    for (const t of thisMonth) {
+      if (t.transactionType === "INCOME") r = money.add(r, t.amount);
+      else if (SPEND_TYPES.has(t.transactionType)) s = money.add(s, t.amount);
     }
-  }, [
-    selectedAccount,
-    selectedToAccount,
-    accountId,
-    toAccountId,
-    categoryId,
-    subcategoryId,
-    amountValid,
-    amount,
-    merchant,
-    type,
-    resetForm,
-  ]);
+    return { spent: money.format(s, "INR"), received: money.format(r, "INR") };
+  }, [thisMonth]);
 
-  // Search (merchant + category name, case-insensitive substring) combined with
-  // the type filter. Order is preserved from the query's dateTime desc.
+  const monthLabel = useMemo(() => formatDisplay(nowIso(), "MMMM"), []);
+
+  // Top categories this month → #hashtag chips (by row count, max 3). Skip any
+  // whose name collides with a semantic chip (e.g. a category literally named
+  // "Income") so the row never shows "Income" twice.
+  const topCategories = useMemo(() => {
+    const reserved = new Set(["all", "spends", "income"]);
+    const counts = new Map<number, number>();
+    for (const t of thisMonth) counts.set(t.categoryId, (counts.get(t.categoryId) ?? 0) + 1);
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => ({ id, name: categoryById.get(id) ?? "—" }))
+      .filter((c) => !reserved.has(c.name.trim().toLowerCase()))
+      .slice(0, 3);
+  }, [thisMonth, categoryById]);
+
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return (txns ?? []).filter((t) => {
-      if (filterType !== "ALL" && t.transactionType !== filterType) return false;
+      if (filter === "SPENDS" && !SPEND_TYPES.has(t.transactionType)) return false;
+      if (filter === "INCOME" && t.transactionType !== "INCOME") return false;
+      if (filter.startsWith("cat:") && t.categoryId !== Number(filter.slice(4))) return false;
       if (!needle) return true;
       const merchantName = (t.merchantName ?? "").toLowerCase();
       const categoryName = (categoryById.get(t.categoryId) ?? "").toLowerCase();
       return merchantName.includes(needle) || categoryName.includes(needle);
     });
-  }, [txns, search, filterType, categoryById]);
+  }, [txns, search, filter, categoryById]);
 
-  const toggleSelectMode = useCallback(() => {
-    setSelectMode((on) => {
-      if (on) setSelectedIds(new Set());
-      return !on;
-    });
-  }, []);
+  // Flatten filtered rows into [header, ...rows, header, ...rows] preserving the
+  // query's dateTime-desc order, so LegendList keeps virtualizing.
+  const items = useMemo<ListItem[]>(() => {
+    const now = nowIso();
+    const todayKey = now.slice(0, 10);
+    const y = parseIso(now);
+    y.setDate(y.getDate() - 1);
+    const yesterdayKey = toIso(y).slice(0, 10);
+
+    const out: ListItem[] = [];
+    let lastKey = "";
+    for (const t of filtered) {
+      const key = t.dateTime.slice(0, 10);
+      if (key !== lastKey) {
+        out.push(dayLabel(t.dateTime, todayKey, yesterdayKey));
+        lastKey = key;
+      }
+      out.push(t);
+    }
+    return out;
+  }, [filtered]);
 
   const toggleRow = useCallback((id: number) => {
     setSelectedIds((prev) => {
@@ -363,28 +273,36 @@ export default function TransactionsScreen() {
     [selectMode, toggleRow],
   );
 
-  const keyExtractor = useCallback((item: Transaction) => String(item.id), []);
+  const exitSelect = useCallback(() => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }, []);
 
-  const renderItem = useCallback(
-    ({ item }: { item: Transaction }) => (
-      <TransactionRow
-        txn={item}
-        categoryName={categoryById.get(item.categoryId) ?? "—"}
-        accountName={item.accountId !== null ? (accountById.get(item.accountId) ?? "—") : "—"}
-        selected={selectedIds.has(item.id)}
-        selectMode={selectMode}
-        onPress={onRowPress}
-        onLongPress={onRowLongPress}
-      />
-    ),
-    [categoryById, accountById, selectedIds, selectMode, onRowPress, onRowLongPress],
+  const keyExtractor = useCallback(
+    (item: ListItem) => (typeof item === "string" ? `h:${item}` : `t:${item.id}`),
+    [],
   );
 
-  // LegendList re-renders visible rows when extraData changes identity; memoized
-  // so unrelated state (form fields, search text) doesn't churn the rows.
+  const renderItem = useCallback(
+    ({ item }: { item: ListItem }) => {
+      if (typeof item === "string") return <SectionHeader label={item} />;
+      return (
+        <Row
+          txn={item}
+          categoryName={categoryById.get(item.categoryId) ?? "—"}
+          selected={selectedIds.has(item.id)}
+          selectMode={selectMode}
+          onPress={onRowPress}
+          onLongPress={onRowLongPress}
+        />
+      );
+    },
+    [categoryById, selectedIds, selectMode, onRowPress, onRowLongPress],
+  );
+
   const extraData = useMemo(
-    () => [selectedIds, selectMode, categoryById, accountById],
-    [selectedIds, selectMode, categoryById, accountById],
+    () => [selectedIds, selectMode, categoryById],
+    [selectedIds, selectMode, categoryById],
   );
 
   const onBulkDelete = useCallback(async () => {
@@ -393,7 +311,7 @@ export default function TransactionsScreen() {
     try {
       const rows = (txns ?? []).filter((t) => selectedIds.has(t.id));
       for (const t of rows) {
-        if (t.accountId === null) continue; // no owning account to re-cascade
+        if (t.accountId === null) continue;
         const owner = accountRowById.get(t.accountId);
         await softDeleteTransaction(db, t.id, t.accountId, owner?.isCreditCard ?? false);
       }
@@ -401,343 +319,149 @@ export default function TransactionsScreen() {
         transactionCollection.utils.refetch(),
         accountBalanceCollection.utils.refetch(),
       ]);
-      setSelectedIds(new Set());
-      setSelectMode(false);
+      exitSelect();
       setConfirmOpen(false);
     } finally {
       setDeleting(false);
     }
-  }, [selectedIds, txns, accountRowById]);
+  }, [selectedIds, txns, accountRowById, exitSelect]);
+
+  const filtersActive = filter !== "ALL" || search.trim().length > 0;
+
+  const header = (
+    <View>
+      <Text className="mb-4 text-[13px] text-muted">{filtered.length} transactions</Text>
+
+      <SummaryBar monthLabel={monthLabel} spent={spent} received={received} />
+
+      {searchOpen && (
+        <View className="mb-3">
+          <Field
+            label=""
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search merchant or category"
+            autoFocus
+          />
+        </View>
+      )}
+
+      <View className="mb-1 flex-row flex-wrap gap-2">
+        <Chip variant={filter === "ALL" ? "on" : "default"} onPress={() => setFilter("ALL")}>
+          All
+        </Chip>
+        <Chip variant={filter === "SPENDS" ? "on" : "default"} onPress={() => setFilter("SPENDS")}>
+          Spends
+        </Chip>
+        <Chip variant={filter === "INCOME" ? "on" : "default"} onPress={() => setFilter("INCOME")}>
+          Income
+        </Chip>
+        {topCategories.map((c) => {
+          const key: FilterKey = `cat:${c.id}`;
+          return (
+            <Pressable key={c.id} onPress={() => setFilter(filter === key ? "ALL" : key)}>
+              <Tag variant={filter === key ? "on" : "default"}>{c.name}</Tag>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {selectMode && (
+        <View className="mb-2 mt-3 flex-row items-center justify-between">
+          <Text className="text-[13px] text-muted">{selectedIds.size} selected</Text>
+          <View className="flex-row gap-2">
+            <Pressable
+              onPress={() => setConfirmOpen(true)}
+              disabled={selectedIds.size === 0 || deleting}
+              className={
+                selectedIds.size === 0 || deleting
+                  ? "rounded-[3px] bg-surface-secondary px-3 py-1.5"
+                  : "rounded-[3px] bg-danger px-3 py-1.5 active:opacity-70"
+              }
+            >
+              <Text
+                className={
+                  selectedIds.size === 0 || deleting
+                    ? "text-[13px] font-semibold text-muted"
+                    : "text-[13px] font-semibold text-danger-foreground"
+                }
+              >
+                {deleting ? "Deleting…" : `Delete (${selectedIds.size})`}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={exitSelect}
+              className="rounded-[3px] border border-border px-3 py-1.5"
+            >
+              <Text className="text-[13px] font-semibold text-foreground">Done</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  const empty = isLoading ? (
+    <Text className="text-[13px] text-muted">Loading…</Text>
+  ) : filtersActive ? (
+    <Text className="text-[13px] text-muted">No transactions match your filters.</Text>
+  ) : (
+    <EmptyState onAddManually={() => setFormOpen(true)} />
+  );
 
   return (
-    <Container isScrollable={false} className="pt-6">
-      <LegendList
-        data={filtered}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        extraData={extraData}
-        recycleItems
-        estimatedItemSize={88}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
-        ListEmptyComponent={
-          isLoading ? (
-            <Text className="text-muted text-sm">Loading…</Text>
-          ) : (
-            <Text className="text-muted text-sm">
-              {search.trim() || filterType !== "ALL"
-                ? "No transactions match your filters."
-                : "No transactions yet — add one above."}
-            </Text>
-          )
-        }
-        ListHeaderComponent={
-          <View>
-            <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-3xl font-semibold text-foreground tracking-tight">
-                Transactions
-              </Text>
-              <View className="flex-row gap-2">
-                <Pressable
-                  onPress={toggleSelectMode}
-                  className={
-                    selectMode
-                      ? "rounded-xl border border-border px-3 py-2 active:opacity-70"
-                      : "rounded-xl border border-border px-3 py-2 active:opacity-70"
-                  }
-                >
-                  <Text className="text-foreground font-medium">
-                    {selectMode ? "Done" : "Select"}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setShowForm((s) => !s)}
-                  className="rounded-xl bg-foreground px-4 py-2 active:opacity-70"
-                >
-                  <Text className="text-background font-medium">{showForm ? "Cancel" : "Add"}</Text>
-                </Pressable>
-              </View>
-            </View>
-            <Text className="text-muted text-sm mb-5">{filtered.length} transactions</Text>
-
-            {showForm && (
-              <View className="mb-6 rounded-xl border border-border p-4 gap-4">
-                <View>
-                  <Text className="text-muted text-xs mb-1">Amount</Text>
-                  <TextInput
-                    value={amount}
-                    onChangeText={setAmount}
-                    placeholder="0.00"
-                    placeholderTextColor={mutedColor}
-                    keyboardType="decimal-pad"
-                    className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
-                  />
-                </View>
-
-                <View>
-                  <Text className="text-muted text-xs mb-1">Merchant</Text>
-                  <TextInput
-                    value={merchant}
-                    onChangeText={setMerchant}
-                    placeholder="Optional"
-                    placeholderTextColor={mutedColor}
-                    className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
-                  />
-                </View>
-
-                <View>
-                  <Text className="text-muted text-xs mb-2">Account</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
-                    <View className="flex-row gap-2 px-1">
-                      {accountList.map((a) => {
-                        const active = a.id === accountId;
-                        return (
-                          <Pressable
-                            key={a.id}
-                            onPress={() => setAccountId(a.id)}
-                            className={
-                              active
-                                ? "rounded-full bg-foreground px-3 py-2"
-                                : "rounded-full border border-border px-3 py-2"
-                            }
-                          >
-                            <Text
-                              className={
-                                active ? "text-background text-xs" : "text-foreground text-xs"
-                              }
-                            >
-                              {a.bankName}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  </ScrollView>
-                </View>
-
-                {isTransfer && (
-                  <View>
-                    <Text className="text-muted text-xs mb-2">To account</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
-                      <View className="flex-row gap-2 px-1">
-                        {accountList
-                          .filter((a) => a.id !== accountId)
-                          .map((a) => {
-                            const active = a.id === toAccountId;
-                            return (
-                              <Pressable
-                                key={a.id}
-                                onPress={() => {
-                                  setToAccountId(a.id);
-                                  setTransferError(null);
-                                  setBlockedMessage(null);
-                                }}
-                                className={
-                                  active
-                                    ? "rounded-full bg-foreground px-3 py-2"
-                                    : "rounded-full border border-border px-3 py-2"
-                                }
-                              >
-                                <Text
-                                  className={
-                                    active ? "text-background text-xs" : "text-foreground text-xs"
-                                  }
-                                >
-                                  {a.bankName}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
-                      </View>
-                    </ScrollView>
-                    {transferCrossCurrency && (
-                      <Text className="text-danger text-xs mt-2">
-                        Cross-currency transfers aren’t supported yet ({selectedAccount?.currency} →{" "}
-                        {selectedToAccount?.currency}).
-                      </Text>
-                    )}
-                    {transferError && (
-                      <Text className="text-danger text-xs mt-2">{transferError}</Text>
-                    )}
-                  </View>
-                )}
-
-                <View>
-                  <Text className="text-muted text-xs mb-2">Category</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
-                    <View className="flex-row gap-2 px-1">
-                      {categoryList.map((c) => {
-                        const active = c.id === categoryId;
-                        return (
-                          <Pressable
-                            key={c.id}
-                            onPress={() => onSelectCategory(c.id)}
-                            className={
-                              active
-                                ? "rounded-full bg-foreground px-3 py-2"
-                                : "rounded-full border border-border px-3 py-2"
-                            }
-                          >
-                            <Text
-                              className={
-                                active ? "text-background text-xs" : "text-foreground text-xs"
-                              }
-                            >
-                              {c.name}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  </ScrollView>
-                </View>
-
-                {categoryId !== null && subcategoryList.length > 0 && (
-                  <View>
-                    <Text className="text-muted text-xs mb-2">Subcategory</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
-                      <View className="flex-row gap-2 px-1">
-                        {subcategoryList.map((s) => {
-                          const active = s.id === subcategoryId;
-                          return (
-                            <Pressable
-                              key={s.id}
-                              onPress={() => setSubcategoryId(active ? null : s.id)}
-                              className={
-                                active
-                                  ? "rounded-full bg-foreground px-3 py-2"
-                                  : "rounded-full border border-border px-3 py-2"
-                              }
-                            >
-                              <Text
-                                className={
-                                  active ? "text-background text-xs" : "text-foreground text-xs"
-                                }
-                              >
-                                {s.name}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                      </View>
-                    </ScrollView>
-                  </View>
-                )}
-
-                <View>
-                  <Text className="text-muted text-xs mb-2">Type</Text>
-                  <View className="flex-row flex-wrap gap-2">
-                    {TXN_TYPES.map((t) => {
-                      const active = t === type;
-                      return (
-                        <Pressable
-                          key={t}
-                          onPress={() => {
-                            setType(t);
-                            setTransferError(null);
-                            setBlockedMessage(null);
-                            if (t !== "TRANSFER") setToAccountId(null);
-                          }}
-                          className={
-                            active
-                              ? "rounded-full bg-foreground px-3 py-2"
-                              : "rounded-full border border-border px-3 py-2"
-                          }
-                        >
-                          <Text
-                            className={
-                              active ? "text-background text-xs" : "text-foreground text-xs"
-                            }
-                          >
-                            {t}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                {blockedMessage && <Text className="text-danger text-xs">{blockedMessage}</Text>}
-
-                <Pressable
-                  onPress={() => void onSubmit()}
-                  disabled={!canSubmit}
-                  className={
-                    canSubmit
-                      ? "rounded-xl bg-foreground px-4 py-3 items-center active:opacity-70"
-                      : "rounded-xl bg-secondary px-4 py-3 items-center"
-                  }
-                >
-                  <Text
-                    className={canSubmit ? "text-background font-medium" : "text-muted font-medium"}
-                  >
-                    {submitting ? "Saving…" : "Save transaction"}
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-
-            <View className="mb-3">
-              <TextInput
-                value={search}
-                onChangeText={setSearch}
-                placeholder="Search merchant or category"
-                placeholderTextColor={mutedColor}
-                className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
-              />
-            </View>
-
-            <View className="flex-row flex-wrap gap-2 mb-4">
-              {(["ALL", ...TXN_TYPES] as const).map((t) => {
-                const active = t === filterType;
-                return (
-                  <Pressable
-                    key={t}
-                    onPress={() => setFilterType(t)}
-                    className={
-                      active
-                        ? "rounded-full bg-foreground px-3 py-2"
-                        : "rounded-full border border-border px-3 py-2"
-                    }
-                  >
-                    <Text
-                      className={active ? "text-background text-xs" : "text-foreground text-xs"}
-                    >
-                      {t === "ALL" ? "All" : t}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {selectMode && (
-              <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-muted text-sm">{selectedIds.size} selected</Text>
-                <Pressable
-                  onPress={() => setConfirmOpen(true)}
-                  disabled={selectedIds.size === 0 || deleting}
-                  className={
-                    selectedIds.size === 0 || deleting
-                      ? "rounded-xl bg-secondary px-4 py-2"
-                      : "rounded-xl bg-danger px-4 py-2 active:opacity-70"
-                  }
-                >
-                  <Text
-                    className={
-                      selectedIds.size === 0 || deleting
-                        ? "text-muted font-medium"
-                        : "text-danger-foreground font-medium"
-                    }
-                  >
-                    {deleting ? "Deleting…" : `Delete (${selectedIds.size})`}
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
+    <View className="flex-1 bg-background">
+      <AppBar
+        title="Transactions"
+        right={
+          <>
+            <IconButton
+              name="search"
+              label="Search"
+              active={searchOpen}
+              onPress={() => {
+                setSearchOpen((o) => !o);
+                if (searchOpen) setSearch("");
+              }}
+            />
+            <IconButton
+              name="funnel-outline"
+              label="Filter"
+              active={filter !== "ALL"}
+              onPress={() => setFilter("ALL")}
+            />
+          </>
         }
       />
+
+      <Container isScrollable={false}>
+        <LegendList
+          data={items}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          extraData={extraData}
+          recycleItems
+          estimatedItemSize={64}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 96 }}
+          ListHeaderComponent={header}
+          ListEmptyComponent={empty}
+        />
+      </Container>
+
+      {/* Floating + FAB → add-transaction sheet */}
+      <Pressable
+        onPress={() => setFormOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Add transaction"
+        className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-foreground active:opacity-80"
+        style={{ elevation: 4 }}
+      >
+        <StyledIonicons name="add" size={28} className="text-background" />
+      </Pressable>
+
+      <TransactionFormSheet isOpen={formOpen} onClose={() => setFormOpen(false)} />
 
       <ConfirmDialog
         isOpen={confirmOpen}
@@ -748,6 +472,42 @@ export default function TransactionsScreen() {
         busy={deleting}
         onConfirm={() => void onBulkDelete()}
       />
-    </Container>
+    </View>
+  );
+}
+
+/** Empty state (mock): hatched illustration placeholder + two CTAs. */
+function EmptyState({ onAddManually }: { onAddManually: () => void }) {
+  return (
+    <View className="pt-2">
+      <Card variant="soft" className="items-center gap-3 py-8">
+        <View className="h-16 w-24 items-center justify-center rounded-[3px] border border-border bg-surface-secondary">
+          <StyledIonicons name="wallet-outline" size={28} className="text-muted" />
+        </View>
+        <Text className="text-[10px] font-bold uppercase tracking-[1.5px] text-muted">
+          Illustration
+        </Text>
+      </Card>
+
+      <Text className="mt-6 text-center text-[22px] font-extrabold tracking-tight text-foreground">
+        Nothing logged yet
+      </Text>
+      <Text className="mt-1.5 text-center text-[13px] leading-5 text-muted">
+        Connect a bank and unmiser will fill this in from your SMS — or add one by hand.
+      </Text>
+
+      <Pressable
+        onPress={() => router.push("/accounts")}
+        className="mt-6 items-center rounded-[3px] bg-foreground px-4 py-3.5 active:opacity-80"
+      >
+        <Text className="font-semibold text-background">Connect a bank</Text>
+      </Pressable>
+      <Pressable
+        onPress={onAddManually}
+        className="mt-2.5 items-center rounded-[3px] border-[1.5px] border-foreground px-4 py-3.5 active:opacity-70"
+      >
+        <Text className="font-semibold text-foreground">Add manually</Text>
+      </Pressable>
+    </View>
   );
 }

@@ -1,21 +1,32 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
-import { Pressable, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, TextInput, View } from "react-native";
+import { useThemeColor } from "heroui-native";
 import { withUniwind } from "uniwind";
 
 import { Container } from "@/components/container";
+import { QuietHoursEditor } from "@/components/quiet-hours-editor";
 import { AppBar, AppSwitch, Card, SpriteIcon, Text } from "@/components/ui";
 import { appSettingsCollection } from "@/db/collections";
 import { appDb } from "@/db/app-db";
-import { setNotificationPref } from "@/db/services/notification-settings";
-import { type NotificationPrefs, notificationPrefsFromMap } from "@/lib/notifications/prefs";
+import {
+  setLargeThreshold,
+  setNotificationPref,
+  setQuietHours,
+} from "@/db/services/notification-settings";
+import {
+  type NotificationToggleField,
+  notificationPrefsFromMap,
+  quietHoursLabel,
+} from "@/lib/notifications/prefs";
 import { ensureNotificationPermission, syncScheduledNotifications } from "@/lib/notifications";
+import * as money from "@/lib/money";
 
 const StyledIonicons = withUniwind(Ionicons);
 
-type PrefField = keyof NotificationPrefs;
+type PrefField = NotificationToggleField;
 
 interface ToggleDef {
   field: PrefField;
@@ -124,6 +135,24 @@ export default function NotificationsScreen() {
 
   const setField = (field: PrefField) => (value: boolean) => void persist(field, value);
 
+  const mutedColor = useThemeColor("muted");
+  const [quietOpen, setQuietOpen] = useState(false);
+  const [thresholdDraft, setThresholdDraft] = useState<string | null>(null);
+
+  const persistQuiet = async (startMin: number, endMin: number) => {
+    await setQuietHours(appDb, startMin, endMin);
+    await appSettingsCollection.utils.refetch();
+  };
+
+  const commitThreshold = async () => {
+    if (thresholdDraft == null) return;
+    // Floor at 1: a threshold of 0 would make every transaction "large" and spam notifications.
+    const next = Math.max(1, Math.round(Number(thresholdDraft) || 0));
+    setThresholdDraft(null);
+    await setLargeThreshold(appDb, next);
+    await appSettingsCollection.utils.refetch();
+  };
+
   return (
     <View className="flex-1 bg-background">
       <AppBar
@@ -151,16 +180,48 @@ export default function NotificationsScreen() {
           Money
         </Text>
         <Card variant="soft" className="gap-0 p-0">
-          {MONEY_TOGGLES.map((def, i) => (
-            <ToggleRow
-              key={def.field}
-              def={def}
-              value={prefs.pushEnabled && prefs[def.field]}
-              onChange={setField(def.field)}
-              first={i === 0}
-              disabled={!prefs.pushEnabled}
-            />
-          ))}
+          {MONEY_TOGGLES.map((def, i) => {
+            const showThreshold =
+              def.field === "largeTransaction" && prefs.pushEnabled && prefs.largeTransaction;
+            const rowDef =
+              def.field === "largeTransaction"
+                ? {
+                    ...def,
+                    description: `over ${money.format(String(prefs.largeThreshold), "INR")}`,
+                  }
+                : def;
+            return (
+              <View key={def.field}>
+                <ToggleRow
+                  def={rowDef}
+                  value={prefs.pushEnabled && prefs[def.field]}
+                  onChange={setField(def.field)}
+                  first={i === 0}
+                  disabled={!prefs.pushEnabled}
+                />
+                {showThreshold ? (
+                  <View className="flex-row items-center gap-3 px-3.5 pb-3.5">
+                    <View className="w-10" />
+                    <Text variant="body" className="flex-1 text-[13px]">
+                      Alert above
+                    </Text>
+                    <View className="flex-row items-center rounded-[3px] border border-border bg-surface px-3 py-1.5">
+                      <Text className="text-[15px] font-semibold text-foreground">₹</Text>
+                      <TextInput
+                        value={thresholdDraft ?? String(prefs.largeThreshold)}
+                        onChangeText={setThresholdDraft}
+                        onEndEditing={() => void commitThreshold()}
+                        keyboardType="number-pad"
+                        returnKeyType="done"
+                        placeholderTextColor={mutedColor}
+                        className="min-w-[64px] text-[15px] font-semibold text-foreground"
+                      />
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
         </Card>
 
         {/* App */}
@@ -180,6 +241,7 @@ export default function NotificationsScreen() {
           ))}
           <View className="mx-3.5 h-px bg-separator" />
           <Pressable
+            onPress={() => setQuietOpen((o) => !o)}
             className="flex-row items-center gap-3 px-3.5 py-3.5 active:opacity-70"
             accessibilityRole="button"
           >
@@ -189,9 +251,25 @@ export default function NotificationsScreen() {
             <Text variant="heading" className="flex-1 text-[16px]">
               Quiet hours
             </Text>
-            <Text className="text-[15px] font-semibold text-foreground">10pm – 8am</Text>
-            <StyledIonicons name="chevron-forward" size={16} className="text-muted" />
+            <Text className="text-[15px] font-semibold text-foreground">
+              {quietHoursLabel(prefs.quietStartMin, prefs.quietEndMin)}
+            </Text>
+            <StyledIonicons
+              name={quietOpen ? "chevron-down" : "chevron-forward"}
+              size={16}
+              className="text-muted"
+            />
           </Pressable>
+          {quietOpen ? (
+            <>
+              <View className="mx-3.5 h-px bg-separator" />
+              <QuietHoursEditor
+                startMin={prefs.quietStartMin}
+                endMin={prefs.quietEndMin}
+                onChange={(s, e) => void persistQuiet(s, e)}
+              />
+            </>
+          ) : null}
         </Card>
 
         <View className="h-8" />
