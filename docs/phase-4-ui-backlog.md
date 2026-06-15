@@ -265,3 +265,26 @@ categories, rules, data-privacy(partial)** — all now built.
   PIN path works today. The config plugin is wired in `app.json` for the next build.
 - **TODO — no PIN-attempt lockout/reset.** Wrong PINs just clear and retry (no N-attempt cooldown,
   no forgot-PIN reset beyond disabling App-lock). Cashiro delegated this to the OS; revisit if needed.
+
+## 11. Transactions calendar scrubber 🟡 PARTIAL (2026-06-15)
+
+- **Done:** `components/ui/calendar-scrubber.tsx` — week strip that expands to a month grid, on the
+  Transactions screen (`app/(tabs)/transactions.tsx`). Tapping a day filters the list to that day
+  (default = today); summary bar + counts are day-scoped, hashtag chips stay month-scoped. Header
+  mirrors the reference: **[Today]** pill · **"EEE, MMM d"** · **‹ ›** chevrons. Boxy day cells —
+  selected fills with the runtime accent, today gets an ink ring, days with activity show an accent
+  dot. Three animations, all Reanimated + gesture-handler (no `react-native-calendars`):
+  - knob **tap or finger-drag** to expand/collapse (height + per-page week-pin),
+  - **3-page carousel** (prev/current/next) so a horizontal swipe slides the neighbouring
+    week/month in (collapsed → ±week, expanded → ±month),
+  - **list slide-in** keyed on the selected day (direction follows the change).
+- **Why custom:** `react-native-calendars` `ExpandableCalendar` renders **blank** on our stack
+  (RN 0.85 / Expo 56, new arch) even with the reference's exact theme-based approach — see the
+  `calendar-scrubber-custom` memory. The dep was installed, failed to render, and removed.
+- **TODO — polish before release** (feel needs more device iteration):
+  - tune the carousel commit (velocity thresholds, snap-back vs commit feel, faded edge of the
+    incoming page) to match the reference more closely;
+  - smoother coupling between the knob drag and the height spring (drag currently updates progress
+    linearly, releases to a spring);
+  - month-row-count height jump when paging between months of different week counts;
+  - consider syncing the list's horizontal swipe to also page days (currently only the calendar pages).

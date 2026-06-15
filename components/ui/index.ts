@@ -9,6 +9,7 @@ export * from "./card";
 export * from "./confirm-dialog";
 export * from "./txn-row";
 export * from "./icon-button";
+export * from "./calendar-scrubber";
 export * from "./segmented";
 export * from "./sub-tabs";
 export * from "./month-scrubber";

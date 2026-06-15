@@ -1,15 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list/react-native";
 import { useLiveQuery } from "@tanstack/react-db";
+import { format } from "date-fns";
 import { router } from "expo-router";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
+import Animated, { SlideInLeft, SlideInRight } from "react-native-reanimated";
 import { withUniwind } from "uniwind";
 
-import { Container } from "@/components/container";
 import { TransactionFormSheet } from "@/components/transactions/transaction-form-sheet";
 import {
   AppBar,
+  CalendarScrubber,
   Card,
   Chip,
   ConfirmDialog,
@@ -167,6 +169,9 @@ export default function TransactionsScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("ALL");
   const [formOpen, setFormOpen] = useState(false);
+  // The day the calendar scrubber has selected; the list filters to it. Defaults
+  // to today (parsed off the frozen wall-clock now, like the rest of the screen).
+  const [selectedDay, setSelectedDay] = useState<Date>(() => parseIso(nowIso()));
 
   // Bulk-selection (ADR-0008 soft-delete).
   const [selectMode, setSelectMode] = useState(false);
@@ -180,27 +185,48 @@ export default function TransactionsScreen() {
   );
   const accountRowById = useMemo(() => new Map((accounts ?? []).map((a) => [a.id, a])), [accounts]);
 
-  // Current-month window for the summary bar + the #hashtag ranking.
-  // Recomputed each render (not memoized on mount) so the window rolls over when
-  // the app is left open across a month boundary. It's a cheap string; thisMonth's
-  // memo keys on its value, so an unchanged month still skips the filter.
+  // Current-month window for the #hashtag ranking (the chips stay month-scoped so
+  // they remain useful even on a sparse day). Recomputed each render (not memoized
+  // on mount) so it rolls over across a month boundary; thisMonth's memo keys on
+  // the cheap string value, so an unchanged month still skips the filter.
   const monthStart = startOfPeriod(nowIso(), "MONTHLY");
   const thisMonth = useMemo(
     () => (txns ?? []).filter((t) => t.dateTime >= monthStart),
     [txns, monthStart],
   );
 
+  // The selected day drives the list + summary. activeDays marks which days have
+  // any transaction so the scrubber can dot them.
+  const selectedKey = format(selectedDay, "yyyy-MM-dd");
+  const activeDays = useMemo(
+    () => new Set((txns ?? []).map((t) => t.dateTime.slice(0, 10))),
+    [txns],
+  );
+  const dayTxns = useMemo(
+    () => (txns ?? []).filter((t) => t.dateTime.slice(0, 10) === selectedKey),
+    [txns, selectedKey],
+  );
+
   const { spent, received } = useMemo(() => {
     let s = "0";
     let r = "0";
-    for (const t of thisMonth) {
+    for (const t of dayTxns) {
       if (t.transactionType === "INCOME") r = money.add(r, t.amount);
       else if (SPEND_TYPES.has(t.transactionType)) s = money.add(s, t.amount);
     }
     return { spent: money.format(s, "INR"), received: money.format(r, "INR") };
-  }, [thisMonth]);
+  }, [dayTxns]);
 
-  const monthLabel = formatDisplay(nowIso(), "MMMM");
+  const dayLabelText = format(selectedDay, "d MMM").toUpperCase();
+
+  // Select a day, recording the direction so the list can slide in accordingly.
+  const navDir = useRef(0);
+  const handleSelect = useCallback((d: Date) => {
+    setSelectedDay((prev) => {
+      navDir.current = d >= prev ? 1 : -1;
+      return d;
+    });
+  }, []);
 
   // Top categories this month → #hashtag chips (by row count, max 3). Skip any
   // whose name collides with a semantic chip (e.g. a category literally named
@@ -219,6 +245,7 @@ export default function TransactionsScreen() {
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return (txns ?? []).filter((t) => {
+      if (t.dateTime.slice(0, 10) !== selectedKey) return false;
       if (filter === "SPENDS" && !SPEND_TYPES.has(t.transactionType)) return false;
       if (filter === "INCOME" && t.transactionType !== "INCOME") return false;
       if (filter.startsWith("cat:") && t.categoryId !== Number(filter.slice(4))) return false;
@@ -227,7 +254,7 @@ export default function TransactionsScreen() {
       const categoryName = (categoryById.get(t.categoryId) ?? "").toLowerCase();
       return merchantName.includes(needle) || categoryName.includes(needle);
     });
-  }, [txns, search, filter, categoryById]);
+  }, [txns, search, filter, categoryById, selectedKey]);
 
   // Flatten filtered rows into [header, ...rows, header, ...rows] preserving the
   // query's dateTime-desc order, so LegendList keeps virtualizing.
@@ -333,9 +360,11 @@ export default function TransactionsScreen() {
 
   const header = (
     <View>
-      <Text className="mb-4 text-[13px] text-muted">{filtered.length} transactions</Text>
+      <Text className="mb-4 text-[13px] text-muted">
+        {filtered.length} transaction{filtered.length === 1 ? "" : "s"}
+      </Text>
 
-      <SummaryBar monthLabel={monthLabel} spent={spent} received={received} />
+      <SummaryBar monthLabel={dayLabelText} spent={spent} received={received} />
 
       {searchOpen && (
         <View className="mb-3">
@@ -408,8 +437,12 @@ export default function TransactionsScreen() {
     <Text className="text-[13px] text-muted">Loading…</Text>
   ) : filtersActive ? (
     <Text className="text-[13px] text-muted">No transactions match your filters.</Text>
-  ) : (
+  ) : activeDays.size === 0 ? (
     <EmptyState onAddManually={() => setFormOpen(true)} />
+  ) : (
+    <Text className="text-[13px] text-muted">
+      Nothing on {format(selectedDay, "EEE, d MMM")}. Pick another day above.
+    </Text>
   );
 
   return (
@@ -437,21 +470,30 @@ export default function TransactionsScreen() {
         }
       />
 
-      <Container isScrollable={false}>
-        <LegendList
-          data={items}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          extraData={extraData}
-          recycleItems
-          estimatedItemSize={64}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 96 }}
-          ListHeaderComponent={header}
-          ListEmptyComponent={empty}
-        />
-      </Container>
+      {/* The calendar wraps the list so the month grid expands over it. Summary +
+          filters stay fixed and reflect the selected day. */}
+      <CalendarScrubber selected={selectedDay} onSelect={handleSelect} activeDays={activeDays}>
+        <View className="px-5 pt-3">{header}</View>
+        {/* The rows slide in (direction follows the day change) on every selection. */}
+        <Animated.View
+          key={selectedKey}
+          entering={(navDir.current >= 0 ? SlideInRight : SlideInLeft).duration(200)}
+          className="flex-1"
+        >
+          <LegendList
+            data={items}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            extraData={extraData}
+            recycleItems
+            estimatedItemSize={64}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 96 }}
+            ListEmptyComponent={empty}
+          />
+        </Animated.View>
+      </CalendarScrubber>
 
       {/* Floating + FAB → add-transaction sheet */}
       <Pressable
