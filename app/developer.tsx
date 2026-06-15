@@ -15,15 +15,13 @@ import {
   transactionCollection,
 } from "@/db/collections/finance";
 import { seedDemoData } from "@/db/services/demo-seed";
+import { APP_VERSION, BUILD_NUMBER } from "@/lib/app-meta";
 import { getHistoricalSmsCount } from "@/lib/android-sms-adapter";
+import { useAccent } from "@/lib/appearance/use-accent";
 import { sendTestNotification } from "@/lib/notifications";
 import { clearParseCache, smsScanTask } from "@/lib/scan";
 
 const StyledIonicons = withUniwind(Ionicons);
-
-// Matches the About screen's version chip.
-const APP_VERSION = "1.4.0";
-const BUILD_NUMBER = "412";
 
 /** Lightweight transient feedback — Android toast, Alert fallback elsewhere. */
 function toast(message: string) {
@@ -104,6 +102,7 @@ function ActionRow({
 
 export default function DeveloperScreen() {
   const router = useRouter();
+  const accent = useAccent();
 
   // Debug flags are ephemeral dev-only state (no persistence needed).
   const [flags, setFlags] = useState<Record<string, boolean>>({});
@@ -229,7 +228,7 @@ export default function DeveloperScreen() {
         onBack={() => (router.canGoBack() ? router.back() : router.replace("/settings"))}
         right={
           <Pressable
-            onPress={() => router.push("/extensions")}
+            onPress={() => router.push("/sms-console")}
             accessibilityLabel="SMS console"
             className="h-9 w-9 items-center justify-center rounded-[6px] border-[1.5px] border-foreground active:opacity-70"
           >
@@ -314,10 +313,12 @@ export default function DeveloperScreen() {
           <Text className="font-mono text-[11px] uppercase tracking-wider text-background/50">
             Build
           </Text>
-          <Text className="font-mono text-[13px] text-accent">
+          <Text className="font-mono text-[13px]" style={{ color: accent }}>
             {APP_VERSION} ({BUILD_NUMBER}) · {__DEV__ ? "debug" : "release"}
           </Text>
-          <Text className="font-mono text-[13px] text-accent">{runtimeBuildLine()}</Text>
+          <Text className="font-mono text-[13px]" style={{ color: accent }}>
+            {runtimeBuildLine()}
+          </Text>
         </Card>
 
         <View className="h-8" />

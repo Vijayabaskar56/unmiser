@@ -1,8 +1,19 @@
 ---
-status: accepted
+status: superseded
+superseded-by: the UI sprite (assets/icons/ui-sprite.sprite)
 ---
 
 # Icons: `iconName` is the source of truth, rendered via nano-icons (SVG) with a WebP brand-logo fallback
+
+> **Superseded (2026-06-15).** `iconName` remains the source of truth, but the rendering engine
+> changed: entity icons are now drawn from the bundled **UI sprite**
+> (`assets/icons/ui-sprite.sprite`, ~1,177 Untitled-UI glyphs) via `components/ui/sprite-icon.tsx`
+> (`<SpriteIcon>`) + `lib/icons/sprite.ts` / `sprite-extract.ts`. The nano-icons engine + WebP
+> brand-logo fallback described below was **not** kept: the dead modules
+> (`components/icon.tsx`, `lib/icon-registry`, `lib/icon-render`, `lib/icons/{nano-icon,brand-map,
+category-glyphmap}`) were deleted in the Phase-4 cleanup (see `docs/phase-4-ui-backlog.md` §3).
+> Lifestyle/brand glyphs the sprite lacks (food, pets, merchant logos) are an open follow-up
+> (backlog §1), not the nano-icons/WebP path. The original decision is retained below for context.
 
 The Drizzle schema carries both `iconResId` (Android `R.drawable` int) and `iconName` (string) on
 categories/subcategories/accounts. Android already treats `iconName` as primary (it seeds

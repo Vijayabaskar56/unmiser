@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useRouter } from "expo-router";
 import { BottomSheet } from "heroui-native";
+import { SheetOverlay } from "@/components/ui/sheet-overlay";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, TextInput, useWindowDimensions, View } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
@@ -250,7 +251,7 @@ export default function ProfileScreen() {
       {/* Archetype picker */}
       <BottomSheet isOpen={sheet === "archetype"} onOpenChange={(o) => !o && setSheet(null)}>
         <BottomSheet.Portal>
-          <BottomSheet.Overlay />
+          <SheetOverlay />
           <BottomSheet.Content>
             <BottomSheet.Title>Choose your archetype</BottomSheet.Title>
             <BottomSheet.Description>
@@ -302,7 +303,7 @@ export default function ProfileScreen() {
       {/* Banner picker */}
       <BottomSheet isOpen={sheet === "banner"} onOpenChange={(o) => !o && setSheet(null)}>
         <BottomSheet.Portal>
-          <BottomSheet.Overlay />
+          <SheetOverlay />
           <BottomSheet.Content>
             <BottomSheet.Title>Choose a banner</BottomSheet.Title>
             <View className="flex-row flex-wrap gap-3 pt-3">

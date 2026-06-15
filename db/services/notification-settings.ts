@@ -1,8 +1,10 @@
 import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 
+import { APP_SETTING_KEYS } from "@/db/schema";
 import { getSetting, setSetting } from "@/db/services/app-settings";
 import {
   type NotificationPrefs,
+  type NotificationToggleField,
   NOTIFICATION_FIELDS,
   notificationPrefsFromMap,
   serializeBool,
@@ -31,8 +33,19 @@ export async function getNotificationPrefs(db: Db): Promise<NotificationPrefs> {
 /** Upsert a single notification preference (stored as "true"/"false"). */
 export async function setNotificationPref(
   db: Db,
-  field: keyof NotificationPrefs,
+  field: NotificationToggleField,
   value: boolean,
 ): Promise<void> {
   await setSetting(db, settingKeyFor(field), serializeBool(value));
+}
+
+/** Persist the quiet-hours window (local hours 0–23; start === end = off). */
+export async function setQuietHours(db: Db, startHour: number, endHour: number): Promise<void> {
+  await setSetting(db, APP_SETTING_KEYS.notifyQuietStart, String(startHour));
+  await setSetting(db, APP_SETTING_KEYS.notifyQuietEnd, String(endHour));
+}
+
+/** Persist the large-transaction alert threshold (major currency units). */
+export async function setLargeThreshold(db: Db, value: number): Promise<void> {
+  await setSetting(db, APP_SETTING_KEYS.notifyLargeThreshold, String(value));
 }

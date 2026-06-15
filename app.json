@@ -8,14 +8,21 @@
     },
     "name": "Unmiser",
     "slug": "unmiser",
-    "plugins": ["expo-font", "expo-splash-screen", "expo-notifications"],
+    "version": "1.4.0",
+    "plugins": [
+      "expo-font",
+      "expo-splash-screen",
+      "expo-notifications",
+      ["expo-local-authentication", { "faceIDPermission": "Unlock Unmiser with Face ID." }]
+    ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "android": {
       "package": "com.vijayabaskar56.unmiser",
-      "predictiveBackGestureEnabled": true
+      "predictiveBackGestureEnabled": true,
+      "versionCode": 412
     }
   }
 }

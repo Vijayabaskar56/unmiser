@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import { APP_SETTING_KEYS } from "@/db/schema";
 import {
   NOTIFICATION_DEFAULTS,
+  formatTime,
   isWithinQuietHours,
   notificationPrefsFromMap,
-  QUIET_HOURS,
+  quietHoursLabel,
   serializeBool,
   settingKeyFor,
 } from "@/lib/notifications/prefs";
@@ -50,21 +51,39 @@ describe("settingKeyFor / serializeBool", () => {
 });
 
 describe("isWithinQuietHours", () => {
+  const DEFAULT_WINDOW = { startMin: 22 * 60, endMin: 8 * 60 }; // 10pm–8am
+
   it("treats the default 10pm–8am window as wrapping midnight", () => {
-    expect(isWithinQuietHours(new Date("2026-06-14T23:30:00"))).toBe(true); // 11:30pm
-    expect(isWithinQuietHours(new Date("2026-06-14T07:00:00"))).toBe(true); // 7am
-    expect(isWithinQuietHours(new Date("2026-06-14T22:00:00"))).toBe(true); // 10pm edge (inclusive)
-    expect(isWithinQuietHours(new Date("2026-06-14T08:00:00"))).toBe(false); // 8am edge (exclusive)
-    expect(isWithinQuietHours(new Date("2026-06-14T13:00:00"))).toBe(false); // 1pm
+    expect(isWithinQuietHours(new Date("2026-06-14T23:30:00"), DEFAULT_WINDOW)).toBe(true);
+    expect(isWithinQuietHours(new Date("2026-06-14T07:00:00"), DEFAULT_WINDOW)).toBe(true);
+    expect(isWithinQuietHours(new Date("2026-06-14T22:00:00"), DEFAULT_WINDOW)).toBe(true); // inclusive start
+    expect(isWithinQuietHours(new Date("2026-06-14T08:00:00"), DEFAULT_WINDOW)).toBe(false); // exclusive end
+    expect(isWithinQuietHours(new Date("2026-06-14T13:00:00"), DEFAULT_WINDOW)).toBe(false);
   });
 
   it("handles a same-day window that does not wrap", () => {
-    const window = { startHour: 9, endHour: 17 };
+    const window = { startMin: 9 * 60, endMin: 17 * 60 };
     expect(isWithinQuietHours(new Date("2026-06-14T12:00:00"), window)).toBe(true);
     expect(isWithinQuietHours(new Date("2026-06-14T18:00:00"), window)).toBe(false);
   });
 
-  it("exposes the design window constant", () => {
-    expect(QUIET_HOURS).toEqual({ startHour: 22, endHour: 8 });
+  it("treats an empty window (start === end) as off", () => {
+    const window = { startMin: 480, endMin: 480 };
+    expect(isWithinQuietHours(new Date("2026-06-14T08:00:00"), window)).toBe(false);
+    expect(isWithinQuietHours(new Date("2026-06-14T23:00:00"), window)).toBe(false);
+  });
+});
+
+describe("formatTime / quietHoursLabel", () => {
+  it("formats minute-of-day on a 12-hour clock", () => {
+    expect(formatTime(22 * 60)).toBe("10:00 pm");
+    expect(formatTime(8 * 60 + 30)).toBe("8:30 am");
+    expect(formatTime(0)).toBe("12:00 am");
+    expect(formatTime(12 * 60)).toBe("12:00 pm");
+  });
+
+  it("labels the window, or 'Off' when empty", () => {
+    expect(quietHoursLabel(22 * 60, 8 * 60)).toBe("10:00 pm – 8:00 am");
+    expect(quietHoursLabel(480, 480)).toBe("Off");
   });
 });

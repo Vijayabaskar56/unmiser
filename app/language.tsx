@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useRouter } from "expo-router";
 import { SearchField } from "heroui-native";
 import { useMemo, useState } from "react";
@@ -7,41 +8,36 @@ import { withUniwind } from "uniwind";
 
 import { Container } from "@/components/container";
 import { AppBar, Card, SpriteIcon, Text } from "@/components/ui";
+import { appSettingsCollection } from "@/db/collections";
+import { appDb } from "@/db/app-db";
+import { APP_SETTING_KEYS } from "@/db/schema";
+import { setAppLanguage, useT } from "@/lib/i18n/use-i18n";
+import {
+  DEFAULT_LOCALE,
+  isSupportedLocale,
+  LANGUAGES,
+  type LocaleCode,
+} from "@/lib/i18n/translations";
 
 const StyledIonicons = withUniwind(Ionicons);
 
-interface Language {
-  /** BCP-47-ish code, used as the selection key. */
-  code: string;
-  /** Native (endonym) name — the bold primary line. */
-  native: string;
-  /** English name — the muted secondary line. */
-  english: string;
-}
-
-// UI-only catalogue (no i18n runtime yet). English is the default; selecting
-// another locale just moves the checkmark — nothing is persisted.
-const LANGUAGES: Language[] = [
-  { code: "en", native: "English", english: "Default" },
-  { code: "hi", native: "हिन्दी", english: "Hindi" },
-  { code: "ta", native: "தமிழ்", english: "Tamil" },
-  { code: "te", native: "తెలుగు", english: "Telugu" },
-  { code: "bn", native: "বাংলা", english: "Bengali" },
-  { code: "kn", native: "ಕನ್ನಡ", english: "Kannada" },
-  { code: "ml", native: "മലയാളം", english: "Malayalam" },
-  { code: "mr", native: "मराठी", english: "Marathi" },
-  { code: "gu", native: "ગુજરાતી", english: "Gujarati" },
-  { code: "pa", native: "ਪੰਜਾਬੀ", english: "Punjabi" },
-  { code: "or", native: "ଓଡ଼ିଆ", english: "Odia" },
-  { code: "ur", native: "اردو", english: "Urdu" },
-  { code: "as", native: "অসমীয়া", english: "Assamese" },
-  { code: "es", native: "Español", english: "Spanish" },
-];
-
 export default function LanguageScreen() {
   const router = useRouter();
+  const t = useT();
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState("en");
+
+  // Selected language is persisted in app_settings and read reactively, so the
+  // checkmark + the whole app update the instant it changes.
+  const { data: langRows } = useLiveQuery((q) =>
+    q.from({ s: appSettingsCollection }).where(({ s }) => eq(s.key, APP_SETTING_KEYS.appLanguage)),
+  );
+  const stored = langRows?.[0]?.value;
+  const selected: LocaleCode = isSupportedLocale(stored) ? stored : DEFAULT_LOCALE;
+
+  const onSelect = async (code: LocaleCode) => {
+    await setAppLanguage(appDb, code);
+    await appSettingsCollection.utils.refetch();
+  };
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -54,25 +50,25 @@ export default function LanguageScreen() {
   return (
     <View className="flex-1 bg-background">
       <AppBar
-        title="Language"
+        title={t("language.title")}
         onBack={() => (router.canGoBack() ? router.back() : router.replace("/settings"))}
       />
       <Container className="px-4">
         <SearchField value={query} onChange={setQuery} className="my-3">
           <SearchField.Group>
             <SearchField.SearchIcon />
-            <SearchField.Input placeholder={`Search ${LANGUAGES.length} languages…`} />
+            <SearchField.Input placeholder={t("language.search", { count: LANGUAGES.length })} />
             <SearchField.ClearButton />
           </SearchField.Group>
         </SearchField>
 
         <Text variant="caption" className="mb-2 ml-1">
-          App Language
+          {t("language.heading")}
         </Text>
 
         {rows.length === 0 ? (
           <Text variant="body" className="pt-2">
-            No languages match “{query.trim()}”.
+            {t("language.empty", { query: query.trim() })}
           </Text>
         ) : (
           <Card variant="soft" className="gap-0 p-0">
@@ -81,7 +77,7 @@ export default function LanguageScreen() {
               return (
                 <Pressable
                   key={lang.code}
-                  onPress={() => setSelected(lang.code)}
+                  onPress={() => void onSelect(lang.code)}
                   className="active:opacity-70"
                   accessibilityRole="radio"
                   accessibilityState={{ selected: isSelected }}
@@ -111,7 +107,7 @@ export default function LanguageScreen() {
         <View className="mt-4 flex-row items-start gap-2.5 rounded-[3px] bg-surface-secondary px-3.5 py-3">
           <SpriteIcon name="info-circle" size={18} />
           <Text variant="body" className="flex-1 text-[13px]">
-            SMS parsing always reads English bank senders, whatever the app language.
+            {t("language.note")}
           </Text>
         </View>
 

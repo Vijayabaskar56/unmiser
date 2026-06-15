@@ -190,6 +190,18 @@ export async function setExtensionEnabled(
 }
 
 /**
+ * Remove an installed extension: drops the `plugins` identity row and all of
+ * its retained `plugin_assets` payloads. Transactions/accounts already created
+ * from this parser are user data and are intentionally left untouched — only
+ * the parser is removed. A bundled extension can be reinstalled from Discover
+ * (or the SMS-setup wizard). Idempotent: removing an absent plugin is a no-op.
+ */
+export async function uninstallExtension(db: Db, pluginId: string): Promise<void> {
+  await db.delete(pluginAssets).where(eq(pluginAssets.pluginId, pluginId));
+  await db.delete(plugins).where(eq(plugins.pluginId, pluginId));
+}
+
+/**
  * Point a plugin at an already-downloaded version (rollback / roll-forward
  * without re-fetching). Throws if no `plugin_assets` row exists for the
  * target `(pluginId, version)` — the pointer must never dangle.
@@ -244,6 +256,35 @@ export async function prunePluginAssets(db: Db, pluginId: string): Promise<numbe
     .delete(pluginAssets)
     .where(and(eq(pluginAssets.pluginId, pluginId), notInArray(pluginAssets.id, keepIds)));
   return stale.length;
+}
+
+/**
+ * Load one installed extension's active-version bundle (manifest + fixtures)
+ * for the detail screen. Returns null when the plugin isn't installed or its
+ * asset row is missing. Joins `plugin_assets` to the plugin's active `version`
+ * pointer so we never preview a stale retained version.
+ */
+export async function loadPluginBundle(
+  db: Db,
+  pluginId: string,
+): Promise<ManifestWithFixtures | null> {
+  const rows = await db
+    .select({
+      manifestJson: pluginAssets.manifestJson,
+      fixturesJson: pluginAssets.fixturesJson,
+    })
+    .from(pluginAssets)
+    .innerJoin(
+      plugins,
+      and(eq(pluginAssets.pluginId, plugins.pluginId), eq(pluginAssets.version, plugins.version)),
+    )
+    .where(eq(plugins.pluginId, pluginId))
+    .limit(1);
+  if (rows.length === 0) return null;
+  return {
+    manifest: smsParserManifestSchema.parse(JSON.parse(rows[0].manifestJson)),
+    fixtures: JSON.parse(rows[0].fixturesJson) as ManifestWithFixtures["fixtures"],
+  };
 }
 
 /**

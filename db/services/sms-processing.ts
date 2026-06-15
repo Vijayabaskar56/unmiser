@@ -14,6 +14,7 @@ import { upsertFromMandate } from "@/db/services/subscription-ops";
 import { resolveAccount } from "@/lib/account-resolver";
 import { nowIso, parseIso, toIso } from "@/lib/dates";
 import { parseSmsWithManifests } from "@/lib/parser";
+import { derivePaymentMethod } from "@/lib/payment-method";
 import { shouldCaptureUnrecognizedSms } from "@/lib/parser/sms-filter";
 import type { ParserResult, SmsInput, SmsParserManifest } from "@/lib/parser/types";
 
@@ -149,10 +150,16 @@ export async function processSms(
     merchantName: result.fields.merchant ?? "Transfer",
     categoryId,
     transactionType: result.fields.transactionType!,
+    // Redesign surfaces these: a confident parse is HIGH, and the rail is
+    // derived from the SMS text (falling back to the parser's card flag).
+    parseConfidence: "HIGH",
+    paymentMethod: derivePaymentMethod(input.body, result.fields.isFromCard),
     dateTime,
     isCreditCard,
     smsSender: input.sender,
-    smsBody: null,
+    // Persist the raw SMS so the detail screen's "RAW SMS" card can show it
+    // (dedup uses the explicit transactionHash below, not a body-derived one).
+    smsBody: input.body,
     balanceAfter: result.fields.balance ?? null,
     transactionHash: result.fields.transactionHash,
     sourceType: "SMS",

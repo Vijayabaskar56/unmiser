@@ -114,7 +114,10 @@ export async function notifyForSmsOutcome(db: Db, outcome: SmsProcessOutcome): P
     if (!content) return;
 
     // Instant alerts are suppressed during quiet hours (scheduled ones aren't).
-    if (isWithinQuietHours(new Date())) return;
+    if (
+      isWithinQuietHours(new Date(), { startMin: prefs.quietStartMin, endMin: prefs.quietEndMin })
+    )
+      return;
 
     await ensureNotificationPermission();
     await presentNow(content);

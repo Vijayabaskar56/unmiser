@@ -16,7 +16,7 @@ import * as Notifications from "expo-notifications";
 import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
 import { HeroUINativeProvider } from "heroui-native";
 import { useEffect } from "react";
-import { ActivityIndicator, Platform, Text, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -24,7 +24,13 @@ SplashScreen.preventAutoHideAsync();
 
 import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { ThemeApplier } from "@/components/theme-applier";
+import { AppLockScreen } from "@/components/app-lock-screen";
 import { AccentProvider } from "@/lib/appearance/use-accent";
+import { BackgroundBlurProvider } from "@/lib/appearance/use-background-blur";
+import { DensityProvider } from "@/lib/appearance/use-density";
+import { TextScaleProvider } from "@/lib/appearance/use-text-scale";
+import { I18nProvider } from "@/lib/i18n/use-i18n";
+import { AppLockProvider, useAppLock } from "@/lib/security/use-app-lock";
 import { expoDb } from "@/db";
 import { appDb } from "@/db/app-db";
 import { appSettingsCollection } from "@/db/collections";
@@ -68,17 +74,31 @@ function StackLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen
-          name="modal"
-          options={{ title: "Modal", presentation: "modal", headerShown: true }}
-        />
-        <Stack.Screen
           name="transaction/[id]"
-          options={{ title: "Transaction", presentation: "modal", headerShown: true }}
+          // Renders its own AppBar; keep the modal presentation but hide the
+          // native Stack header so they don't double up.
+          options={{ title: "Transaction", presentation: "modal", headerShown: false }}
         />
       </Stack>
       <SmsOnboardingGate />
+      <AppLockGate />
       <ThemeApplier />
     </>
+  );
+}
+
+/**
+ * Renders the full-screen lock overlay above everything when App-lock is
+ * enabled and the session is locked. An overlay (not a route) so it covers the
+ * tabs and every stack screen uniformly and can't be navigated around.
+ */
+function AppLockGate() {
+  const { locked, biometric, unlock } = useAppLock();
+  if (!locked) return null;
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <AppLockScreen biometricEnabled={biometric} onUnlock={unlock} />
+    </View>
   );
 }
 
@@ -148,7 +168,17 @@ export default function Layout() {
         <AppThemeProvider>
           <HeroUINativeProvider config={{ devInfo: { stylingPrinciples: false } }}>
             <AccentProvider>
-              <StackLayout />
+              <TextScaleProvider>
+                <DensityProvider>
+                  <BackgroundBlurProvider>
+                    <I18nProvider>
+                      <AppLockProvider>
+                        <StackLayout />
+                      </AppLockProvider>
+                    </I18nProvider>
+                  </BackgroundBlurProvider>
+                </DensityProvider>
+              </TextScaleProvider>
             </AccentProvider>
           </HeroUINativeProvider>
         </AppThemeProvider>

@@ -3,7 +3,7 @@ import { integer, sqliteTable, text, uniqueIndex, index } from "drizzle-orm/sqli
 import { nowIso } from "../utils";
 import { accounts } from "./accounts";
 import { categories, subcategories } from "./categories";
-import { TRANSACTION_SOURCES, TRANSACTION_TYPES } from "./enums";
+import { PARSE_CONFIDENCE, PAYMENT_METHODS, TRANSACTION_SOURCES, TRANSACTION_TYPES } from "./enums";
 import { subscriptions } from "./subscriptions";
 
 export const transactions = sqliteTable(
@@ -19,6 +19,11 @@ export const transactions = sqliteTable(
     categoryName: text(), // denormalized cache of categories.name (SMS matching)
     subcategoryName: text(), // denormalized cache of subcategories.name
     transactionType: text({ enum: TRANSACTION_TYPES }).notNull(),
+    // Payment rail + parse confidence shown in the redesigned list/detail.
+    // Nullable: filled from the SMS at parse time (or the manual-add picker);
+    // older/manual rows stay null and the UI hides the segment/badge.
+    paymentMethod: text({ enum: PAYMENT_METHODS }),
+    parseConfidence: text({ enum: PARSE_CONFIDENCE }),
     dateTime: text().notNull(),
     description: text(),
     smsBody: text(),

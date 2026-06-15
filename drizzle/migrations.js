@@ -9,6 +9,7 @@ import m0005 from "./20260609150104_gigantic_fixer/migration.sql";
 import m0006 from "./20260612100323_huge_patriot/migration.sql";
 import m0007 from "./20260614105749_dry_mongoose/migration.sql";
 import m0008 from "./20260614144721_rainy_lorna_dane/migration.sql";
+import m0009 from "./20260615124915_public_firebrand/migration.sql";
 
 export default {
   migrations: {
@@ -21,5 +22,6 @@ export default {
     "20260612100323_huge_patriot": m0006,
     "20260614105749_dry_mongoose": m0007,
     "20260614144721_rainy_lorna_dane": m0008,
+    "20260615124915_public_firebrand": m0009,
   },
 };

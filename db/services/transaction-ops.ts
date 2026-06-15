@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { transactions } from "@/db/schema";
-import type { TransactionSource } from "@/db/schema/enums";
+import type { ParseConfidence, PaymentMethod, TransactionSource } from "@/db/schema/enums";
 import type { TxnType } from "@/lib/balance-service";
 import { transactionHash } from "@/lib/dedup-hash";
 import { applyTransactionBalance } from "@/db/services/balance-persistence";
@@ -38,6 +38,9 @@ export interface AddTransactionInput {
   transactionType: TxnType;
   dateTime: string;
   isCreditCard: boolean;
+  /** Payment rail + parse confidence shown in the redesigned list/detail. */
+  paymentMethod?: PaymentMethod | null;
+  parseConfidence?: ParseConfidence | null;
   /** Sender + body feed the dedup hash. Empty strings are fine for pure-manual rows. */
   smsSender?: string | null;
   smsBody?: string | null;
@@ -105,6 +108,8 @@ export async function addTransaction(db: Db, input: AddTransactionInput): Promis
       categoryId: input.categoryId,
       subcategoryId: input.subcategoryId ?? null,
       transactionType: input.transactionType,
+      paymentMethod: input.paymentMethod ?? null,
+      parseConfidence: input.parseConfidence ?? null,
       dateTime: input.dateTime,
       description: input.description ?? null,
       smsSender: input.smsSender ?? null,
@@ -225,6 +230,7 @@ export interface EditTransactionChanges {
   dateTime?: string;
   description?: string | null;
   balanceAfter?: string | null;
+  paymentMethod?: PaymentMethod | null;
 }
 
 /**

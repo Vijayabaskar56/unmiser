@@ -5,6 +5,7 @@ import type {
   FieldChange,
   RuleAction,
   RuleApplicationChange,
+  RuleCondition,
   RuleDefinition,
   RuleEvaluationResult,
   RuleLookupContext,
@@ -93,7 +94,13 @@ function conditionMatches(
 
 function ruleMatches(transaction: RuleTransactionDraft, rule: RuleDefinition): boolean {
   if (rule.conditions.length === 0) return true;
-  return rule.conditions.every((condition) => conditionMatches(transaction, condition));
+  // Rule-level combinator: if ANY condition is tagged "OR" the rule matches when
+  // ANY condition matches; otherwise all must match (AND, the default). This is
+  // a uniform mode, not mixed precedence — the builder sets the same operator on
+  // every condition. Rules with no logicalOperator keep the historical AND.
+  const isOr = rule.conditions.some((condition) => condition.logicalOperator === "OR");
+  const predicate = (condition: RuleCondition) => conditionMatches(transaction, condition);
+  return isOr ? rule.conditions.some(predicate) : rule.conditions.every(predicate);
 }
 
 function readActionField(transaction: RuleTransactionDraft, field: ActionField): string | null {

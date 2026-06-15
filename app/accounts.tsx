@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { BottomSheet } from "heroui-native";
+import { SheetOverlay } from "@/components/ui/sheet-overlay";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
@@ -165,7 +166,7 @@ export default function AccountsScreen() {
       {/* Kind picker */}
       <BottomSheet isOpen={picking} onOpenChange={(o) => !o && setPicking(false)}>
         <BottomSheet.Portal>
-          <BottomSheet.Overlay />
+          <SheetOverlay />
           <BottomSheet.Content>
             <BottomSheet.Title>Add a source</BottomSheet.Title>
             <View className="gap-2 pt-3">

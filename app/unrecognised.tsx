@@ -1,6 +1,7 @@
 import { useLiveQuery } from "@tanstack/react-db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { BottomSheet } from "heroui-native";
+import { SheetOverlay } from "@/components/ui/sheet-overlay";
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 
@@ -105,7 +106,7 @@ export default function UnrecognisedScreen() {
       {/* Account picker for "Add sender" */}
       <BottomSheet isOpen={senderFor !== null} onOpenChange={(o) => !o && setSenderFor(null)}>
         <BottomSheet.Portal>
-          <BottomSheet.Overlay />
+          <SheetOverlay />
           <BottomSheet.Content>
             <BottomSheet.Title>File {senderFor?.sender} to…</BottomSheet.Title>
             <Text variant="body" className="pt-1 text-[13px]">

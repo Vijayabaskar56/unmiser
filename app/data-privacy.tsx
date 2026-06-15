@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Defs, Line, Pattern, Rect, Svg } from "react-native-svg";
 import { withUniwind } from "uniwind";
@@ -9,6 +10,7 @@ import { Container } from "@/components/container";
 import { AppBar, Card, ConfirmDialog, SpriteIcon, Text } from "@/components/ui";
 import { accountBalanceCollection, accountCollection } from "@/db/collections/finance";
 import {
+  appSettingsCollection,
   categoryCollection,
   merchantMappingCollection,
   subcategoryCollection,
@@ -16,6 +18,7 @@ import {
 import { subscriptionCollection, transactionCollection } from "@/db/collections";
 import { db } from "@/db/index";
 import { deleteAllData } from "@/db/services/data-ops";
+import { parseAppLockPrefs } from "@/lib/security/app-lock";
 
 const StyledIonicons = withUniwind(Ionicons);
 
@@ -31,19 +34,20 @@ const ACTIONS: ActionRow[] = [
   { key: "export", icon: "upload-01", title: "Export data", description: "CSV · JSON · encrypted" },
   { key: "import", icon: "file-02", title: "Import from PDF", description: "bank statements" },
   { key: "webhooks", icon: "dataflow-03", title: "Webhooks", description: "local automation" },
-  {
-    key: "applock",
-    icon: "lock-01",
-    title: "App lock",
-    description: "PIN · biometric",
-    value: "Off",
-  },
+  { key: "applock", icon: "lock-01", title: "App lock", description: "PIN · biometric" },
 ];
 
 export default function DataPrivacyScreen() {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [wiping, setWiping] = useState(false);
+
+  const { data: settingRows } = useLiveQuery((q) => q.from({ setting: appSettingsCollection }));
+  const appLockEnabled = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    for (const row of settingRows ?? []) map[row.key] = row.value ?? null;
+    return parseAppLockPrefs(map).enabled;
+  }, [settingRows]);
 
   const onWipe = useCallback(async () => {
     setWiping(true);
@@ -98,34 +102,42 @@ export default function DataPrivacyScreen() {
 
         {/* Actions */}
         <Card variant="soft" className="mt-4 gap-0 p-0">
-          {ACTIONS.map((row, i) => (
-            <Pressable
-              key={row.key}
-              onPress={() => Alert.alert(row.title, "Coming soon — not built yet.")}
-              className="active:opacity-70"
-            >
-              {i > 0 ? <View className="mx-4 h-px bg-separator" /> : null}
-              <View className="flex-row items-center gap-3.5 px-4 py-4">
-                <View className="h-12 w-12 items-center justify-center rounded-full border-[1.5px] border-foreground">
-                  <SpriteIcon name={row.icon} size={22} />
+          {ACTIONS.map((row, i) => {
+            const isAppLock = row.key === "applock";
+            const value = isAppLock ? (appLockEnabled ? "On" : "Off") : row.value;
+            return (
+              <Pressable
+                key={row.key}
+                onPress={() =>
+                  isAppLock
+                    ? router.push("/app-lock")
+                    : Alert.alert(row.title, "Coming soon — not built yet.")
+                }
+                className="active:opacity-70"
+              >
+                {i > 0 ? <View className="mx-4 h-px bg-separator" /> : null}
+                <View className="flex-row items-center gap-3.5 px-4 py-4">
+                  <View className="h-12 w-12 items-center justify-center rounded-full border-[1.5px] border-foreground">
+                    <SpriteIcon name={row.icon} size={22} />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text variant="heading" className="text-[17px]">
+                      {row.title}
+                    </Text>
+                    <Text variant="body" className="text-[13px]">
+                      {row.description}
+                    </Text>
+                  </View>
+                  {value ? (
+                    <Text variant="heading" className="text-[15px]">
+                      {value}
+                    </Text>
+                  ) : null}
+                  <StyledIonicons name="chevron-forward" size={18} className="text-muted" />
                 </View>
-                <View className="min-w-0 flex-1">
-                  <Text variant="heading" className="text-[17px]">
-                    {row.title}
-                  </Text>
-                  <Text variant="body" className="text-[13px]">
-                    {row.description}
-                  </Text>
-                </View>
-                {row.value ? (
-                  <Text variant="heading" className="text-[15px]">
-                    {row.value}
-                  </Text>
-                ) : null}
-                <StyledIonicons name="chevron-forward" size={18} className="text-muted" />
-              </View>
-            </Pressable>
-          ))}
+              </Pressable>
+            );
+          })}
         </Card>
 
         {/* Delete all data */}

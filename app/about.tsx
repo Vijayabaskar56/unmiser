@@ -1,16 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useRef } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, Share, View } from "react-native";
 import { withUniwind } from "uniwind";
 
 import { Container } from "@/components/container";
 import { AppBar, Card, SpriteIcon, Text } from "@/components/ui";
+import { APP_VERSION, BUILD_NUMBER } from "@/lib/app-meta";
+import { useAccent } from "@/lib/appearance/use-accent";
+import { LEGAL_URLS, SHARE_MESSAGE, openExternal } from "@/lib/legal";
 
 const StyledIonicons = withUniwind(Ionicons);
-
-const APP_VERSION = "1.4.0";
-const BUILD_NUMBER = "412";
 
 interface AboutRow {
   key: string;
@@ -52,6 +52,7 @@ function AboutRowItem({ row, first }: { row: AboutRow; first: boolean }) {
 
 export default function AboutScreen() {
   const router = useRouter();
+  const accent = useAccent();
 
   // Developer options are hidden behind 7 taps on the version number.
   const versionTaps = useRef(0);
@@ -63,31 +64,47 @@ export default function AboutScreen() {
     }
   };
 
-  // UI-only — these screens don't exist yet, so the rows are inert.
-  const noop = () => {};
+  const onShare = () => {
+    void Share.share({ message: SHARE_MESSAGE }).catch(() => {});
+  };
 
   const primary: AboutRow[] = [
     {
       key: "whats-new",
       icon: "stars-01",
       title: "What's new",
-      description: "v1.4 · subscriptions & webhooks",
-      onPress: noop,
+      description: `v${APP_VERSION} · release notes`,
+      onPress: () => openExternal(LEGAL_URLS.whatsNew),
     },
     {
       key: "rate",
       icon: "star-01",
       title: "Rate unmiser",
-      description: "App Store & Play Store",
-      onPress: noop,
+      description: "on the Play Store",
+      onPress: () => openExternal(LEGAL_URLS.rate),
     },
-    { key: "share", icon: "share-01", title: "Tell a friend", onPress: noop },
+    { key: "share", icon: "share-01", title: "Tell a friend", onPress: onShare },
   ];
 
   const legal: AboutRow[] = [
-    { key: "licenses", icon: "file-02", title: "Open-source licenses", onPress: noop },
-    { key: "privacy", icon: "shield-tick", title: "Privacy policy", onPress: noop },
-    { key: "terms", icon: "receipt", title: "Terms of use", onPress: noop },
+    {
+      key: "licenses",
+      icon: "file-02",
+      title: "Open-source licenses",
+      onPress: () => router.push("/licenses"),
+    },
+    {
+      key: "privacy",
+      icon: "shield-tick",
+      title: "Privacy policy",
+      onPress: () => openExternal(LEGAL_URLS.privacy),
+    },
+    {
+      key: "terms",
+      icon: "receipt",
+      title: "Terms of use",
+      onPress: () => openExternal(LEGAL_URLS.terms),
+    },
   ];
 
   return (
@@ -103,7 +120,7 @@ export default function AboutScreen() {
             <Text variant="title" className="text-[30px]">
               unmiser
             </Text>
-            <View className="h-3.5 w-3.5 rounded-full bg-accent" />
+            <View className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: accent }} />
           </View>
           <Text variant="body" className="mt-1.5 text-[14px]">
             Money that never leaves your phone.

@@ -110,6 +110,7 @@ export default function RuleDetailScreen() {
   }
 
   const conditions = parseConditions(rule.conditions);
+  const condJoin = conditions.some((c) => c.logicalOperator === "OR") ? "OR" : "AND";
   const actions = parseActions(rule.actions);
   const lastRun = ruleApps[0]?.appliedAt ?? null;
 
@@ -152,13 +153,22 @@ export default function RuleDetailScreen() {
         title="Rule"
         onBack={() => router.back()}
         right={
-          <Pressable
-            onPress={() => setConfirmOpen(true)}
-            accessibilityLabel="Delete rule"
-            className="h-9 w-9 items-center justify-center rounded-[6px] border-[1.5px] border-foreground active:opacity-70"
-          >
-            <StyledIonicons name="trash-outline" size={18} className="text-danger" />
-          </Pressable>
+          <View className="flex-row gap-2">
+            <Pressable
+              onPress={() => router.push({ pathname: "/rule/new", params: { edit: id } })}
+              accessibilityLabel="Edit rule"
+              className="h-9 w-9 items-center justify-center rounded-[6px] border-[1.5px] border-foreground active:opacity-70"
+            >
+              <StyledIonicons name="pencil" size={17} className="text-foreground" />
+            </Pressable>
+            <Pressable
+              onPress={() => setConfirmOpen(true)}
+              accessibilityLabel="Delete rule"
+              className="h-9 w-9 items-center justify-center rounded-[6px] border-[1.5px] border-foreground active:opacity-70"
+            >
+              <StyledIonicons name="trash-outline" size={18} className="text-danger" />
+            </Pressable>
+          </View>
         }
       />
       <Container className="px-4">
@@ -170,7 +180,7 @@ export default function RuleDetailScreen() {
                 const d = describeCondition(c);
                 return (
                   <View key={i} className="flex-row flex-wrap items-center gap-2">
-                    <Badge variant="gray">IF</Badge>
+                    <Badge variant="gray">{i === 0 ? "IF" : condJoin}</Badge>
                     <Text className="text-[15px] text-foreground">{d.label}</Text>
                     <ValueChip>{d.value}</ValueChip>
                   </View>

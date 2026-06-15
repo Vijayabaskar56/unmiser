@@ -167,24 +167,24 @@ Per-screen status detail lives in `docs/phase-4-ui-backlog.md` §0.
 
 ## 3. Gap analysis
 
-### Routes we already have (parity or new)  — verified 2026-06-15
+### Routes we already have (parity or new) — verified 2026-06-15
 
-| Area                     | Cashiro                          | Unmiser                          | Notes                                                 |
-| ------------------------ | -------------------------------- | -------------------------------- | ----------------------------------------------------- |
-| Transactions list        | ✅                               | ✅                               | ours inline-add vs their FAB/AddScreen                |
-| Transaction detail       | ✅                               | ✅ `/transaction/[id]`           | ours inline-edit; missing their sheets                |
-| Subscriptions            | ✅                               | ✅ list **+ detail/edit**        | `subscription/[id]` (edit/hide/delete) now built      |
-| Categories               | ✅                               | ✅ list **+ detail**             | `category/[id]`; still no icon-picker / migration sheet |
-| Accounts (manage)        | ✅                               | ✅ list **+ detail**             | `account/[id]` drill-in; no merge / balance-history   |
-| Rules                    | ✅ Settings›Rules + CreateRule   | ✅ list + `rule/new` + `rule/[id]` | dedicated builder + detail; no **edit** yet (backlog §4) |
-| SMS settings / review    | ✅ SmsSettings + UnrecognizedSms | ✅ extensions + `/unrecognised`  | review folded into extensions; `/unrecognised` is its own screen |
-| Profile                  | ✅ (sheet)                       | ✅ `/profile`                    | banner/archetype/name/overview/stats                  |
-| Appearance               | ✅                               | ✅ `/appearance`                 | theme/accent/text-scale/toggles (follow-ups backlog §8) |
-| Notifications            | ✅ NotificationSettings          | ✅ `/notifications`              | toggles + scheduled sync (follow-ups backlog §5)      |
-| DeveloperOptions         | ✅                               | ✅ `/developer`                  | 7-tap gate on About version                           |
-| Onboarding               | ✅ single screen                 | ✅ 5-step SMS wizard             | ours is richer                                        |
-| **Extensions (plugins)** | ✗                                | ✅ **new**                       | our USP — plugin layer                                |
-| **Store (marketplace)**  | ✗                                | ✅ **new**                       | our USP — 99-extension store                          |
+| Area                     | Cashiro                          | Unmiser                            | Notes                                                            |
+| ------------------------ | -------------------------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| Transactions list        | ✅                               | ✅                                 | ours inline-add vs their FAB/AddScreen                           |
+| Transaction detail       | ✅                               | ✅ `/transaction/[id]`             | ours inline-edit; missing their sheets                           |
+| Subscriptions            | ✅                               | ✅ list **+ detail/edit**          | `subscription/[id]` (edit/hide/delete) now built                 |
+| Categories               | ✅                               | ✅ list **+ detail**               | `category/[id]`; still no icon-picker / migration sheet          |
+| Accounts (manage)        | ✅                               | ✅ list **+ detail**               | `account/[id]` drill-in; no merge / balance-history              |
+| Rules                    | ✅ Settings›Rules + CreateRule   | ✅ list + `rule/new` + `rule/[id]` | dedicated builder + detail; no **edit** yet (backlog §4)         |
+| SMS settings / review    | ✅ SmsSettings + UnrecognizedSms | ✅ extensions + `/unrecognised`    | review folded into extensions; `/unrecognised` is its own screen |
+| Profile                  | ✅ (sheet)                       | ✅ `/profile`                      | banner/archetype/name/overview/stats                             |
+| Appearance               | ✅                               | ✅ `/appearance`                   | theme/accent/text-scale/toggles (follow-ups backlog §8)          |
+| Notifications            | ✅ NotificationSettings          | ✅ `/notifications`                | toggles + scheduled sync (follow-ups backlog §5)                 |
+| DeveloperOptions         | ✅                               | ✅ `/developer`                    | 7-tap gate on About version                                      |
+| Onboarding               | ✅ single screen                 | ✅ 5-step SMS wizard               | ours is richer                                                   |
+| **Extensions (plugins)** | ✗                                | ✅ **new**                         | our USP — plugin layer                                           |
+| **Store (marketplace)**  | ✗                                | ✅ **new**                         | our USP — 99-extension store                                     |
 
 ### Partial — shell built, sub-flows noop or phase-blocked
 
@@ -238,7 +238,7 @@ dependency but unused. Reaching UX parity implies building a shared sheet kit:
 - Color picker, Icon picker
 - Confirm/delete dialog primitive (we use `Alert.alert` ad hoc today)
 
-### Suggested priority order  (updated 2026-06-15 — ✅ = now done)
+### Suggested priority order (updated 2026-06-15 — ✅ = now done)
 
 1. **Dashboard/Home** + **Grow/Analytics** (the stub tabs — biggest visible gap) → P5/6.
 2. **Budgets** pillar (new schema + 3 screens) → P5.

@@ -1,4 +1,5 @@
 import { BottomSheet } from "heroui-native";
+import { SheetOverlay } from "@/components/ui/sheet-overlay";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, ScrollView, View } from "react-native";
 
@@ -92,7 +93,7 @@ export function SubscriptionFormSheet({ mode, categories, onClose, onSaved }: Pr
   return (
     <BottomSheet isOpen={mode !== null} onOpenChange={(o) => !o && onClose()}>
       <BottomSheet.Portal>
-        <BottomSheet.Overlay />
+        <SheetOverlay />
         <BottomSheet.Content keyboardBehavior="interactive">
           <BottomSheet.Title>{title}</BottomSheet.Title>
           <View className="gap-4 pt-3">

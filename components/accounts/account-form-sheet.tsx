@@ -1,4 +1,5 @@
 import { BottomSheet } from "heroui-native";
+import { SheetOverlay } from "@/components/ui/sheet-overlay";
 import { useEffect, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 
@@ -121,7 +122,7 @@ export function AccountFormSheet({ mode, onClose, onSaved }: Props) {
   return (
     <BottomSheet isOpen={mode !== null} onOpenChange={(o) => !o && onClose()}>
       <BottomSheet.Portal>
-        <BottomSheet.Overlay />
+        <SheetOverlay />
         <BottomSheet.Content keyboardBehavior="interactive">
           <BottomSheet.Title>{title}</BottomSheet.Title>
           <View className="gap-3 pt-3">

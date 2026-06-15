@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { BottomSheet } from "heroui-native";
+import { SheetOverlay } from "@/components/ui/sheet-overlay";
 import { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
@@ -184,7 +185,7 @@ export default function AccountDetailScreen() {
       {/* … menu */}
       <BottomSheet isOpen={menuOpen} onOpenChange={(o) => !o && setMenuOpen(false)}>
         <BottomSheet.Portal>
-          <BottomSheet.Overlay />
+          <SheetOverlay />
           <BottomSheet.Content>
             <BottomSheet.Title>{account.bankName}</BottomSheet.Title>
             <View className="gap-1 pt-2">

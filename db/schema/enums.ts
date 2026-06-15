@@ -7,6 +7,17 @@ export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 export const TRANSACTION_SOURCES = ["MANUAL", "SMS", "IMPORT", "API_SOURCE"] as const;
 export type TransactionSource = (typeof TRANSACTION_SOURCES)[number];
 
+// Payment rail surfaced on the transaction row/detail ("UPI · NEFT · card").
+// Nullable on the row: derived from the SMS at parse time, or optionally chosen
+// when adding manually. Existing/manual rows without it simply hide the segment.
+export const PAYMENT_METHODS = ["UPI", "NEFT", "IMPS", "CARD", "CASH", "ATM", "OTHER"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+// Parser confidence shown as the detail-card badge ("HIGH"). Set HIGH on a
+// successful SMS parse, left null for manual entries (badge hidden when null).
+export const PARSE_CONFIDENCE = ["HIGH", "MEDIUM", "LOW"] as const;
+export type ParseConfidence = (typeof PARSE_CONFIDENCE)[number];
+
 export const EXTENSION_TYPES = ["sms-parser", "rule"] as const;
 export type ExtensionType = (typeof EXTENSION_TYPES)[number];
 

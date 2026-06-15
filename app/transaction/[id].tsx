@@ -1,12 +1,24 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useLiveQuery } from "@tanstack/react-db";
 import { eq } from "drizzle-orm";
 import { router, useLocalSearchParams } from "expo-router";
 import { useThemeColor } from "heroui-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
+import { withUniwind } from "uniwind";
 
 import { Container } from "@/components/container";
-import { ConfirmDialog } from "@/components/ui";
+import {
+  AppBar,
+  Badge,
+  BottomBar,
+  Button,
+  Card,
+  ConfirmDialog,
+  SpriteIcon,
+  Tag,
+  Text,
+} from "@/components/ui";
 import {
   accountBalanceCollection,
   accountCollection,
@@ -28,31 +40,31 @@ import type { Transaction } from "@/db/schema";
 import type { TxnType } from "@/lib/balance-service";
 import { formatDisplay, nowIso } from "@/lib/dates";
 import * as money from "@/lib/money";
+import { paymentMethodLabel } from "@/lib/payment-method";
+
+const StyledIonicons = withUniwind(Ionicons);
 
 const TXN_TYPES: TxnType[] = ["EXPENSE", "INCOME", "INVESTMENT", "CREDIT", "TRANSFER"];
 
+const TYPE_LABEL: Record<string, string> = {
+  EXPENSE: "Spend",
+  INCOME: "Income",
+  INVESTMENT: "Invest",
+  CREDIT: "Credit",
+  TRANSFER: "Transfer",
+};
+
 /**
- * Transaction detail + inline edit/delete (modal route).
- *
- * Reads the row from the live transactions collection (filtered to non-deleted),
- * snapshotting it into local state on first load so the screen keeps rendering
- * after a soft-delete removes it from the collection — that snapshot powers the
- * Undo affordance.
+ * Transaction detail (redesign) — an ink hero card (source label + confidence
+ * badge, big amount, merchant, account/category/date/type rows), a RAW SMS card,
+ * and a pinned bottom bar (Split — deferred/disabled — + Edit/Save).
  *
  * WRITES go through the services layer (editTransaction / softDeleteTransaction /
  * undoDelete), never the collection's optimistic path, so the balance cascade
- * stays single-sourced. accountId is read off the transaction row (ADR-0006);
- * isCreditCard is looked up from the owning account. After every write we refetch
- * the transactions AND account-balances collections so the list + Accounts screen
- * reflect the change.
- *
- * DEVICE-GATED QA (cannot run under vitest):
- *  - Open a row -> all fields shown; Edit toggles inline fields; Save persists and
- *    the list row updates (amount/merchant/category/type/date).
- *  - Delete removes the row from the list and shows an Undo banner; Undo restores
- *    it and its balance delta.
- *  - dateTime is edited as a raw ISO string ("yyyy-MM-ddTHH:mm:ss"); a proper
- *    date picker is a later presentation change.
+ * stays single-sourced. The row is snapshotted on first load so the screen
+ * survives a soft-delete (which drops it from the live collection) and can offer
+ * Undo. After every write the transactions + account-balances + subscriptions
+ * collections are refetched.
  */
 export default function TransactionDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -66,15 +78,13 @@ export default function TransactionDetailScreen() {
   );
 
   const mutedColor = useThemeColor("muted");
+  const foreground = useThemeColor("foreground");
 
-  // Snapshot the row so the screen survives the soft-delete (which drops it from
-  // the live collection) and can still offer Undo.
   const [snapshot, setSnapshot] = useState<Transaction | null>(null);
   const live = useMemo(() => (txns ?? []).find((t) => t.id === txnId) ?? null, [txns, txnId]);
   useEffect(() => {
     if (live) setSnapshot(live);
   }, [live]);
-
   const txn = live ?? snapshot;
 
   const [editing, setEditing] = useState(false);
@@ -83,7 +93,7 @@ export default function TransactionDetailScreen() {
   const [message, setMessage] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // Edit-form state, seeded from the row when entering edit mode.
+  // Edit-form state, seeded when entering edit mode.
   const [amount, setAmount] = useState("");
   const [merchant, setMerchant] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -241,246 +251,279 @@ export default function TransactionDetailScreen() {
 
   if (!txn) {
     return (
-      <Container className="px-4 pt-6 pb-4">
-        <Text className="text-muted text-sm">Transaction not found.</Text>
-      </Container>
+      <View className="flex-1 bg-background">
+        <AppBar title="Transaction" sm onBack={() => router.back()} />
+        <Container className="px-5 pt-4">
+          <Text className="text-[13px] text-muted">Transaction not found.</Text>
+        </Container>
+      </View>
     );
   }
 
   const account = txn.accountId !== null ? (accountById.get(txn.accountId) ?? null) : null;
-  const isCredit = txn.transactionType === "INCOME";
+  const isIn = txn.transactionType === "INCOME";
+  const methodLabel = paymentMethodLabel(txn.paymentMethod);
 
-  const deleteDescription = `${txn.merchantName || "—"} · ${isCredit ? "+" : "−"}${money.format(
+  const deleteDescription = `${txn.merchantName || "—"} · ${isIn ? "+" : "−"}${money.format(
     txn.amount,
     txn.currency,
   )} · ${formatDisplay(txn.dateTime, "d MMM")}. It stays out of your totals — you can re-import it from SMS later.`;
 
   if (deleted) {
     return (
-      <Container className="px-4 pt-6 pb-4">
-        <Text className="text-3xl font-semibold text-foreground tracking-tight mb-2">Deleted</Text>
-        <Text className="text-muted text-sm mb-6">This transaction was deleted.</Text>
-        <Pressable
-          onPress={() => void onUndo()}
-          disabled={busy}
-          className="rounded-xl bg-foreground px-4 py-3 items-center active:opacity-70 mb-3"
-        >
-          <Text className="text-background font-medium">{busy ? "…" : "Undo delete"}</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => router.back()}
-          className="rounded-xl border border-border px-4 py-3 items-center active:opacity-70"
-        >
-          <Text className="text-foreground font-medium">Close</Text>
-        </Pressable>
-      </Container>
+      <View className="flex-1 bg-background">
+        <AppBar title="Transaction" sm onBack={() => router.back()} />
+        <Container className="px-5 pt-6">
+          <Text className="mb-2 text-[28px] font-extrabold tracking-tight text-foreground">
+            Deleted
+          </Text>
+          <Text className="mb-6 text-[13px] text-muted">This transaction was deleted.</Text>
+          <Button onPress={() => void onUndo()} disabled={busy} className="mb-3">
+            {busy ? "…" : "Undo delete"}
+          </Button>
+          <Button variant="outline" onPress={() => router.back()}>
+            Close
+          </Button>
+        </Container>
+      </View>
     );
   }
 
+  // Source caps label: "PARSED · HDFC MANIFEST" / "MANUAL".
+  const sourceLabel = [
+    txn.sourceType === "SMS" ? "PARSED" : "MANUAL",
+    txn.bankName ? `· ${txn.bankName.toUpperCase()}${txn.sourcePluginId ? " MANIFEST" : ""}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <Container className="px-4 pt-6 pb-4">
-      <View className="flex-row items-center justify-between mb-4">
-        <Text
-          className={
-            isCredit
-              ? "text-success text-3xl font-semibold tracking-tight"
-              : "text-foreground text-3xl font-semibold tracking-tight"
-          }
+    <View className="flex-1 bg-background">
+      <AppBar
+        title="Transaction"
+        sm
+        onBack={() => router.back()}
+        right={
+          <>
+            <Pressable
+              onPress={editing ? () => setEditing(false) : beginEdit}
+              accessibilityLabel={editing ? "Stop editing" : "Edit"}
+              className={
+                editing
+                  ? "h-9 w-9 items-center justify-center rounded-[6px] border-[1.5px] border-foreground bg-foreground active:opacity-70"
+                  : "h-9 w-9 items-center justify-center rounded-[6px] border-[1.5px] border-foreground active:opacity-70"
+              }
+            >
+              <StyledIonicons
+                name="create-outline"
+                size={18}
+                className={editing ? "text-background" : "text-foreground"}
+              />
+            </Pressable>
+            <Pressable
+              onPress={() => setConfirmOpen(true)}
+              accessibilityLabel="Delete"
+              className="h-9 w-9 items-center justify-center rounded-[6px] border-[1.5px] border-foreground active:opacity-70"
+            >
+              <StyledIonicons name="trash-outline" size={18} className="text-foreground" />
+            </Pressable>
+          </>
+        }
+      />
+
+      <Container isScrollable={false} className="px-5">
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 16 }}
         >
-          {isCredit ? "+" : "-"}
-          {money.format(txn.amount, txn.currency)}
-        </Text>
-        {!editing && (
-          <Pressable
-            onPress={beginEdit}
-            className="rounded-xl border border-border px-4 py-2 active:opacity-70"
-          >
-            <Text className="text-foreground font-medium">Edit</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {editing ? (
-        <View className="gap-4">
-          <View>
-            <Text className="text-muted text-xs mb-1">Amount</Text>
-            <TextInput
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="0.00"
-              placeholderTextColor={mutedColor}
-              keyboardType="decimal-pad"
-              className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
-            />
-          </View>
-
-          <View>
-            <Text className="text-muted text-xs mb-1">Merchant</Text>
-            <TextInput
-              value={merchant}
-              onChangeText={setMerchant}
-              placeholder="Optional"
-              placeholderTextColor={mutedColor}
-              className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
-            />
-          </View>
-
-          <View>
-            <Text className="text-muted text-xs mb-2">Category</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
-              <View className="flex-row gap-2 px-1">
-                {categoryList.map((c) => {
-                  const active = c.id === categoryId;
-                  return (
-                    <Pressable
-                      key={c.id}
-                      onPress={() => onSelectCategory(c.id)}
-                      className={
-                        active
-                          ? "rounded-full bg-foreground px-3 py-2"
-                          : "rounded-full border border-border px-3 py-2"
-                      }
-                    >
-                      <Text
-                        className={active ? "text-background text-xs" : "text-foreground text-xs"}
-                      >
-                        {c.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+          {/* Hero card */}
+          <Card variant="ink" className="mt-2 p-4">
+            <View className="flex-row items-center gap-2.5">
+              <View
+                className={`h-9 w-9 items-center justify-center rounded-full border-[1.3px] ${isIn ? "border-foreground" : "border-border"}`}
+              >
+                <SpriteIcon
+                  name={isIn ? "arrow-down" : "arrow-up"}
+                  size={17}
+                  color={isIn ? foreground : mutedColor}
+                />
               </View>
-            </ScrollView>
-          </View>
+              <Text
+                numberOfLines={1}
+                className="flex-1 text-[11px] font-bold uppercase tracking-[1.5px] text-muted"
+              >
+                {sourceLabel}
+              </Text>
+              {txn.parseConfidence ? (
+                <Badge variant={txn.parseConfidence === "HIGH" ? "accent" : "gray"}>
+                  {txn.parseConfidence}
+                </Badge>
+              ) : null}
+            </View>
 
-          {categoryId !== null && subcategoryList.length > 0 && (
-            <View>
-              <Text className="text-muted text-xs mb-2">Subcategory</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
-                <View className="flex-row gap-2 px-1">
-                  {subcategoryList.map((s) => {
-                    const active = s.id === subcategoryId;
-                    return (
-                      <Pressable
-                        key={s.id}
-                        onPress={() => setSubcategoryId(active ? null : s.id)}
-                        className={
-                          active
-                            ? "rounded-full bg-foreground px-3 py-2"
-                            : "rounded-full border border-border px-3 py-2"
-                        }
-                      >
-                        <Text
-                          className={active ? "text-background text-xs" : "text-foreground text-xs"}
-                        >
-                          {s.name}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </ScrollView>
+            <Text
+              className={`mt-3 text-[34px] font-extrabold tracking-tight ${isIn ? "text-success" : "text-foreground"}`}
+              style={{ fontVariant: ["tabular-nums"] }}
+            >
+              {isIn ? "+" : "−"}
+              {money.format(txn.amount, txn.currency)}
+            </Text>
+
+            {editing ? (
+              <TextInput
+                value={merchant}
+                onChangeText={setMerchant}
+                placeholder="Merchant"
+                placeholderTextColor={mutedColor}
+                className="mt-1 rounded-[3px] border border-border bg-surface px-3 py-2 text-[18px] font-bold text-foreground"
+              />
+            ) : (
+              <Text className="mt-1 text-[19px] font-bold text-foreground">
+                {txn.merchantName || "—"}
+              </Text>
+            )}
+
+            <View className="my-3.5 h-px bg-separator" />
+
+            {/* Read-only rows */}
+            <DetailRow
+              label="Account"
+              value={account ? `${account.bankName} ··${account.accountLast4}` : "—"}
+            />
+
+            <View className="flex-row items-center justify-between py-2">
+              <Text className="text-[14px] text-muted">Category</Text>
+              <View className="flex-row items-center gap-1.5">
+                <Tag variant="on">{categoryById.get(txn.categoryId) ?? "—"}</Tag>
+                {txn.subcategoryId !== null && subcategoryById.get(txn.subcategoryId) ? (
+                  <Tag>{subcategoryById.get(txn.subcategoryId)!}</Tag>
+                ) : null}
+              </View>
+            </View>
+
+            <DetailRow
+              label="Date · time"
+              value={`${formatDisplay(txn.dateTime, "d MMM")} · ${formatDisplay(txn.dateTime, "HH:mm")}`}
+            />
+            <DetailRow
+              label="Type"
+              value={`${TYPE_LABEL[txn.transactionType] ?? txn.transactionType}${methodLabel ? ` · ${methodLabel}` : ""}`}
+            />
+          </Card>
+
+          {/* Edit pickers (category / subcategory / type) */}
+          {editing && (
+            <View className="mt-4 gap-4">
+              <View>
+                <Text variant="caption" className="mb-1">
+                  Amount
+                </Text>
+                <TextInput
+                  value={amount}
+                  onChangeText={setAmount}
+                  keyboardType="decimal-pad"
+                  placeholder="0.00"
+                  placeholderTextColor={mutedColor}
+                  className="rounded-[3px] border border-border bg-surface px-3.5 py-3 text-[15px] text-foreground"
+                />
+              </View>
+
+              <PickerRow label="Category">
+                {categoryList.map((c) => (
+                  <PickerChip
+                    key={c.id}
+                    label={c.name}
+                    active={c.id === categoryId}
+                    onPress={() => onSelectCategory(c.id)}
+                  />
+                ))}
+              </PickerRow>
+
+              {categoryId !== null && subcategoryList.length > 0 && (
+                <PickerRow label="Subcategory">
+                  {subcategoryList.map((s) => (
+                    <PickerChip
+                      key={s.id}
+                      label={s.name}
+                      active={s.id === subcategoryId}
+                      onPress={() => setSubcategoryId(s.id === subcategoryId ? null : s.id)}
+                    />
+                  ))}
+                </PickerRow>
+              )}
+
+              <PickerRow label="Type">
+                {TXN_TYPES.map((t) => (
+                  <PickerChip key={t} label={t} active={t === type} onPress={() => setType(t)} />
+                ))}
+              </PickerRow>
+
+              <View>
+                <Text variant="caption" className="mb-1">
+                  Date/time (ISO)
+                </Text>
+                <TextInput
+                  value={dateTime}
+                  onChangeText={setDateTime}
+                  autoCapitalize="none"
+                  placeholder={nowIso()}
+                  placeholderTextColor={mutedColor}
+                  className="rounded-[3px] border border-border bg-surface px-3.5 py-3 text-[15px] text-foreground"
+                />
+              </View>
             </View>
           )}
 
-          <View>
-            <Text className="text-muted text-xs mb-2">Type</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {TXN_TYPES.map((t) => {
-                const active = t === type;
-                return (
-                  <Pressable
-                    key={t}
-                    onPress={() => setType(t)}
-                    className={
-                      active
-                        ? "rounded-full bg-foreground px-3 py-2"
-                        : "rounded-full border border-border px-3 py-2"
-                    }
-                  >
-                    <Text
-                      className={active ? "text-background text-xs" : "text-foreground text-xs"}
-                    >
-                      {t}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <View>
-            <Text className="text-muted text-xs mb-1">Date/time (ISO)</Text>
-            <TextInput
-              value={dateTime}
-              onChangeText={setDateTime}
-              placeholder={nowIso()}
-              placeholderTextColor={mutedColor}
-              autoCapitalize="none"
-              className="rounded-xl border border-border bg-secondary px-4 py-3 text-foreground"
-            />
-          </View>
-
-          <Pressable
-            onPress={() => void onSave()}
-            disabled={!canSave}
-            className={
-              canSave
-                ? "rounded-xl bg-foreground px-4 py-3 items-center active:opacity-70"
-                : "rounded-xl bg-secondary px-4 py-3 items-center"
-            }
-          >
-            <Text className={canSave ? "text-background font-medium" : "text-muted font-medium"}>
-              {busy ? "Saving…" : "Save changes"}
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setEditing(false)}
-            disabled={busy}
-            className="rounded-xl border border-border px-4 py-3 items-center active:opacity-70"
-          >
-            <Text className="text-foreground font-medium">Cancel</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <View className="gap-3">
-          <DetailRow label="Merchant" value={txn.merchantName || "—"} />
-          <DetailRow label="Category" value={categoryById.get(txn.categoryId) ?? "—"} />
-          <DetailRow
-            label="Subcategory"
-            value={
-              txn.subcategoryId !== null ? (subcategoryById.get(txn.subcategoryId) ?? "—") : "—"
-            }
-          />
-          <DetailRow label="Account" value={account ? account.bankName : "—"} />
-          <DetailRow label="Type" value={txn.transactionType} />
-          <DetailRow label="Date" value={formatDisplay(txn.dateTime, "MMM d, yyyy · HH:mm")} />
-          <DetailRow label="Currency" value={txn.currency} />
-          {txn.description ? <DetailRow label="Note" value={txn.description} /> : null}
-          {txn.subscriptionId ? (
-            <DetailRow label="Subscription" value={`#${txn.subscriptionId}`} />
+          {/* RAW SMS */}
+          {!editing && txn.smsBody ? (
+            <Card variant="soft" className="mt-3.5">
+              <Text className="text-[10px] font-bold uppercase tracking-[1.5px] text-muted">
+                Raw SMS
+              </Text>
+              <Text className="font-mono text-[12px] leading-5 text-foreground/80">
+                {txn.smsBody}
+              </Text>
+            </Card>
           ) : null}
-          {message ? <Text className="text-muted text-sm">{message}</Text> : null}
 
-          <Pressable
-            onPress={() => void onMarkRecurring()}
-            disabled={busy}
-            className="mt-2 rounded-xl border border-border px-4 py-3 items-center active:opacity-70"
-          >
-            <Text className="text-foreground font-medium">
-              {txn.subscriptionId ? "Update recurring link" : "Mark as recurring"}
-            </Text>
-          </Pressable>
+          {/* Recurring + status */}
+          {!editing && (
+            <Pressable
+              onPress={() => void onMarkRecurring()}
+              disabled={busy}
+              className="mt-3.5 items-center rounded-[3px] border border-border px-4 py-3 active:opacity-70"
+            >
+              <Text className="font-semibold text-foreground">
+                {txn.subscriptionId ? "Update recurring link" : "Mark as recurring"}
+              </Text>
+            </Pressable>
+          )}
+          {message ? <Text className="mt-2 text-[13px] text-muted">{message}</Text> : null}
+        </ScrollView>
+      </Container>
 
-          <Pressable
-            onPress={() => setConfirmOpen(true)}
-            disabled={busy}
-            className="mt-4 rounded-xl border border-danger px-4 py-3 items-center active:opacity-70"
-          >
-            <Text className="text-danger font-medium">{busy ? "…" : "Delete transaction"}</Text>
-          </Pressable>
-        </View>
-      )}
+      {/* Pinned bottom bar — Split (deferred) + Edit/Save */}
+      <BottomBar className="flex-row gap-3">
+        {editing ? (
+          <>
+            <Button variant="outline" className="flex-1" onPress={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <Button className="flex-1" disabled={!canSave} onPress={() => void onSave()}>
+              {busy ? "Saving…" : "Save"}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="outline" className="flex-1" disabled>
+              Split
+            </Button>
+            <Button className="flex-1" onPress={beginEdit}>
+              Edit
+            </Button>
+          </>
+        )}
+      </BottomBar>
 
       <ConfirmDialog
         isOpen={confirmOpen}
@@ -490,17 +533,58 @@ export default function TransactionDetailScreen() {
         busy={busy}
         onConfirm={() => void onDelete()}
       />
-    </Container>
+    </View>
   );
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-row items-center justify-between rounded-xl border border-border p-3">
-      <Text className="text-muted text-sm">{label}</Text>
-      <Text className="text-foreground font-medium flex-1 text-right ml-3" numberOfLines={2}>
+    <View className="flex-row items-center justify-between py-2">
+      <Text className="text-[14px] text-muted">{label}</Text>
+      <Text
+        className="ml-3 flex-1 text-right text-[14px] font-bold text-foreground"
+        numberOfLines={1}
+      >
         {value}
       </Text>
+    </View>
+  );
+}
+
+function PickerChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className={
+        active
+          ? "rounded-[3px] border-[1.3px] border-foreground bg-foreground px-3 py-2"
+          : "rounded-[3px] border-[1.3px] border-border px-3 py-2"
+      }
+    >
+      <Text className={active ? "text-[12px] text-background" : "text-[12px] text-foreground"}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function PickerRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View>
+      <Text variant="caption" className="mb-1.5">
+        {label}
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-1">
+        <View className="flex-row gap-2 px-1">{children}</View>
+      </ScrollView>
     </View>
   );
 }

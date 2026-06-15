@@ -1,7 +1,7 @@
 import type { SmsProcessOutcome } from "@/db/services/sms-processing";
 import * as money from "@/lib/money";
 
-import { LARGE_TRANSACTION_THRESHOLD, type NotificationPrefs } from "./prefs";
+import { type NotificationPrefs } from "./prefs";
 
 /** A ready-to-present local notification (content only — no trigger/timing). */
 export interface NotificationContent {
@@ -31,7 +31,7 @@ export function smsOutcomeNotification(
   if (outcome.kind === "saved") {
     const fields = outcome.result.fields;
     const amount = fields?.amount;
-    const isLarge = amount != null && Number(amount) >= LARGE_TRANSACTION_THRESHOLD;
+    const isLarge = amount != null && Number(amount) >= prefs.largeThreshold;
 
     const wantEvery = prefs.everyTransaction;
     const wantLarge = isLarge && prefs.largeTransaction;

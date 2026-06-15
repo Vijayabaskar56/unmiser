@@ -64,12 +64,48 @@ const SAMPLE_ACCOUNTS = [
 // merchant / amount / type — categoryId is resolved at insert time to the first
 // seeded category so the fixture survives without hard-coding ids.
 const SAMPLE_TXNS = [
-  { merchant: "Swiggy", amount: "452.00", type: "EXPENSE" as const, daysAgo: 1 },
-  { merchant: "Uber", amount: "189.50", type: "EXPENSE" as const, daysAgo: 2 },
-  { merchant: "Amazon", amount: "1299.00", type: "EXPENSE" as const, daysAgo: 3 },
-  { merchant: "BigBasket", amount: "876.25", type: "EXPENSE" as const, daysAgo: 5 },
-  { merchant: "Acme Payroll", amount: "65000.00", type: "INCOME" as const, daysAgo: 7 },
-  { merchant: "Netflix", amount: "499.00", type: "EXPENSE" as const, daysAgo: 9 },
+  {
+    merchant: "Swiggy",
+    amount: "452.00",
+    type: "EXPENSE" as const,
+    daysAgo: 1,
+    method: "UPI" as const,
+  },
+  {
+    merchant: "Uber",
+    amount: "189.50",
+    type: "EXPENSE" as const,
+    daysAgo: 2,
+    method: "UPI" as const,
+  },
+  {
+    merchant: "Amazon",
+    amount: "1299.00",
+    type: "EXPENSE" as const,
+    daysAgo: 3,
+    method: "CARD" as const,
+  },
+  {
+    merchant: "BigBasket",
+    amount: "876.25",
+    type: "EXPENSE" as const,
+    daysAgo: 5,
+    method: "UPI" as const,
+  },
+  {
+    merchant: "Acme Payroll",
+    amount: "65000.00",
+    type: "INCOME" as const,
+    daysAgo: 7,
+    method: "NEFT" as const,
+  },
+  {
+    merchant: "Netflix",
+    amount: "499.00",
+    type: "EXPENSE" as const,
+    daysAgo: 9,
+    method: "CARD" as const,
+  },
 ] as const;
 
 /**
@@ -135,6 +171,8 @@ export async function loadSampleData(db: Db): Promise<void> {
       merchantName: t.merchant,
       categoryId,
       transactionType: t.type,
+      paymentMethod: t.method,
+      parseConfidence: "HIGH",
       dateTime,
       currency: "INR",
       transactionHash: hash,

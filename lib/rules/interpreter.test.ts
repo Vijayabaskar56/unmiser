@@ -62,12 +62,42 @@ describe("evaluateRules", () => {
     expect(result.applications.length > 0).toBe(matches);
   });
 
-  it("ANDs conditions like Cashiro even when logicalOperator says OR", () => {
+  it("ANDs conditions by default — all must match", () => {
     const result = evaluateRules(
       [
         rule({
           conditions: [
-            { field: "MERCHANT", operator: "CONTAINS", value: "swiggy" },
+            { field: "MERCHANT", operator: "CONTAINS", value: "swiggy" }, // matches
+            { field: "BANK_NAME", operator: "CONTAINS", value: "sbi" }, // does not (HDFC)
+          ],
+        }),
+      ],
+      txn(),
+    );
+    expect(result.applications).toHaveLength(0);
+  });
+
+  it("ORs conditions when any is tagged logicalOperator OR — one match suffices", () => {
+    const result = evaluateRules(
+      [
+        rule({
+          conditions: [
+            { field: "MERCHANT", operator: "CONTAINS", value: "swiggy", logicalOperator: "OR" }, // matches
+            { field: "BANK_NAME", operator: "CONTAINS", value: "sbi", logicalOperator: "OR" }, // does not
+          ],
+        }),
+      ],
+      txn(),
+    );
+    expect(result.applications.length).toBeGreaterThan(0);
+  });
+
+  it("OR still requires at least one condition to match", () => {
+    const result = evaluateRules(
+      [
+        rule({
+          conditions: [
+            { field: "MERCHANT", operator: "CONTAINS", value: "amazon", logicalOperator: "OR" },
             { field: "BANK_NAME", operator: "CONTAINS", value: "sbi", logicalOperator: "OR" },
           ],
         }),

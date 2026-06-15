@@ -9,6 +9,8 @@ import { withUniwind } from "uniwind";
 import { Container } from "@/components/container";
 import { Card, SpriteIcon, Text } from "@/components/ui";
 import { transactionCollection } from "@/db/collections";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { LANGUAGES } from "@/lib/i18n/translations";
 
 const StyledIonicons = withUniwind(Ionicons);
 
@@ -24,7 +26,8 @@ interface SettingsRow {
 }
 
 interface SettingsSection {
-  label: string;
+  /** Section key → `settings.sections.<key>` translation. */
+  key: "money" | "app" | "data" | "about";
   rows: SettingsRow[];
 }
 
@@ -36,7 +39,7 @@ interface SettingsSection {
  */
 const SECTIONS: SettingsSection[] = [
   {
-    label: "Money",
+    key: "money",
     rows: [
       {
         key: "accounts",
@@ -76,7 +79,7 @@ const SECTIONS: SettingsSection[] = [
     ],
   },
   {
-    label: "App",
+    key: "app",
     rows: [
       {
         key: "appearance",
@@ -104,20 +107,13 @@ const SECTIONS: SettingsSection[] = [
         key: "extensions",
         icon: "puzzle-piece-01",
         title: "Extensions",
-        description: "SMS parsers & sources",
+        description: "browse · install · manage",
         href: "/extensions",
-      },
-      {
-        key: "store",
-        icon: "building-05",
-        title: "Store",
-        description: "browse & install",
-        href: "/store",
       },
     ],
   },
   {
-    label: "Data",
+    key: "data",
     rows: [
       {
         key: "data-privacy",
@@ -129,7 +125,7 @@ const SECTIONS: SettingsSection[] = [
     ],
   },
   {
-    label: "About",
+    key: "about",
     rows: [
       {
         key: "about",
@@ -150,19 +146,31 @@ function RowIcon({ name }: { name: string }) {
   );
 }
 
-function SettingsRowItem({ row, onPress }: { row: SettingsRow; onPress: () => void }) {
+function SettingsRowItem({
+  icon,
+  title,
+  description,
+  value,
+  onPress,
+}: {
+  icon: string;
+  title: string;
+  description: string;
+  value?: string;
+  onPress: () => void;
+}) {
   return (
     <ListGroup.Item onPress={onPress} className="px-3 py-3">
       <ListGroup.ItemPrefix>
-        <RowIcon name={row.icon} />
+        <RowIcon name={icon} />
       </ListGroup.ItemPrefix>
       <ListGroup.ItemContent className="ml-3">
-        <Text className="text-[15px] font-bold text-foreground">{row.title}</Text>
-        <Text className="text-[12px] text-muted">{row.description}</Text>
+        <Text className="text-[15px] font-bold text-foreground">{title}</Text>
+        <Text className="text-[12px] text-muted">{description}</Text>
       </ListGroup.ItemContent>
       <ListGroup.ItemSuffix>
         <View className="flex-row items-center gap-1">
-          {row.value ? <Text className="text-[13px] text-muted">{row.value}</Text> : null}
+          {value ? <Text className="text-[13px] text-muted">{value}</Text> : null}
           <StyledIonicons name="chevron-forward" size={16} className="text-muted" />
         </View>
       </ListGroup.ItemSuffix>
@@ -173,14 +181,16 @@ function SettingsRowItem({ row, onPress }: { row: SettingsRow; onPress: () => vo
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t, locale } = useI18n();
   const { data } = useLiveQuery((q) => q.from({ txn: transactionCollection }));
-  const txnCount = (data ?? []).filter((t) => !t.isDeleted).length;
+  const txnCount = (data ?? []).filter((tx) => !tx.isDeleted).length;
+  const currentLanguageName = LANGUAGES.find((l) => l.code === locale)?.native ?? "English";
 
   return (
     <View className="flex-1 bg-background">
       {/* Page title (root tab — no back chevron) */}
       <View style={{ paddingTop: insets.top }} className="px-5 pb-3 pt-2">
-        <Text variant="title">Settings</Text>
+        <Text variant="title">{t("settings.title")}</Text>
       </View>
 
       <Container className="px-5">
@@ -207,15 +217,21 @@ export default function SettingsScreen() {
 
         {/* Grouped sections */}
         {SECTIONS.map((section) => (
-          <View key={section.label} className="mt-5">
+          <View key={section.key} className="mt-5">
             <Text variant="caption" className="mb-2 ml-1">
-              {section.label}
+              {t(`settings.sections.${section.key}`)}
             </Text>
             <ListGroup variant="transparent" className="rounded-[3px] border border-border">
               {section.rows.map((row, i) => (
                 <View key={row.key}>
                   {i > 0 ? <Separator className="mx-3" /> : null}
-                  <SettingsRowItem row={row} onPress={() => router.push(row.href)} />
+                  <SettingsRowItem
+                    icon={row.icon}
+                    title={t(`settings.rows.${row.key}.title`)}
+                    description={t(`settings.rows.${row.key}.desc`)}
+                    value={row.key === "language" ? currentLanguageName : undefined}
+                    onPress={() => router.push(row.href)}
+                  />
                 </View>
               ))}
             </ListGroup>
