@@ -181,7 +181,10 @@ export default function TransactionsScreen() {
   const accountRowById = useMemo(() => new Map((accounts ?? []).map((a) => [a.id, a])), [accounts]);
 
   // Current-month window for the summary bar + the #hashtag ranking.
-  const monthStart = useMemo(() => startOfPeriod(nowIso(), "MONTHLY"), []);
+  // Recomputed each render (not memoized on mount) so the window rolls over when
+  // the app is left open across a month boundary. It's a cheap string; thisMonth's
+  // memo keys on its value, so an unchanged month still skips the filter.
+  const monthStart = startOfPeriod(nowIso(), "MONTHLY");
   const thisMonth = useMemo(
     () => (txns ?? []).filter((t) => t.dateTime >= monthStart),
     [txns, monthStart],
@@ -197,7 +200,7 @@ export default function TransactionsScreen() {
     return { spent: money.format(s, "INR"), received: money.format(r, "INR") };
   }, [thisMonth]);
 
-  const monthLabel = useMemo(() => formatDisplay(nowIso(), "MMMM"), []);
+  const monthLabel = formatDisplay(nowIso(), "MMMM");
 
   // Top categories this month → #hashtag chips (by row count, max 3). Skip any
   // whose name collides with a semantic chip (e.g. a category literally named
