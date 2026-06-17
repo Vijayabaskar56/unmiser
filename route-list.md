@@ -152,8 +152,9 @@ Root Stack  (app/_layout.tsx — fonts/splash; SmsOnboardingGate redirects first
 ├─ design-system     ▸DEV (app/design-system.tsx) — primitive preview (/design-system)
 ├─ modal ▸DEV (leftover template demo, never linked — safe to delete) · +not-found
 │
-└─ (onboarding)  (app/(onboarding)/_layout.tsx) — SMS-setup wizard at /sms-setup
-    ├─ index → providers → account → permissions (↳ PasteSmsSheet) → scan → finish → /(tabs)
+└─ (onboarding)  (app/(onboarding)/_layout.tsx) — 5-step product onboarding at /sms-setup
+    └─ index (Welcome) → archetype → country → permissions → done → /(tabs)
+       (provider install + historical scan moved to /extensions)
 ```
 
 **Reality vs. the old tree:** the Settings hub now links **13** screens (Money · App · Data · About +
@@ -182,7 +183,7 @@ Per-screen status detail lives in `docs/phase-4-ui-backlog.md` §0.
 | Appearance               | ✅                               | ✅ `/appearance`                   | theme/accent/text-scale/toggles (follow-ups backlog §8)          |
 | Notifications            | ✅ NotificationSettings          | ✅ `/notifications`                | toggles + scheduled sync (follow-ups backlog §5)                 |
 | DeveloperOptions         | ✅                               | ✅ `/developer`                    | 7-tap gate on About version                                      |
-| Onboarding               | ✅ single screen                 | ✅ 5-step SMS wizard               | ours is richer                                                   |
+| Onboarding               | ✅ single screen                 | ✅ 5-step product wizard           | Welcome→Archetype→Country→SMS→Done (Minna-Bank style)           |
 | **Extensions (plugins)** | ✗                                | ✅ **new**                         | our USP — plugin layer                                           |
 | **Store (marketplace)**  | ✗                                | ✅ **new**                         | our USP — 99-extension store                                     |
 

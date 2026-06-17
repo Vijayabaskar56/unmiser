@@ -1,9 +1,15 @@
+import { cn } from "heroui-native";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
-import { Container } from "@/components/container";
-import { PasteSmsSheet } from "@/components/paste-sms-sheet";
+import { SmsIllo } from "@/components/onboarding/illustrations";
+import {
+  CopyBlock,
+  OnboardingButton,
+  OnboardingScreen,
+  ProgressDots,
+} from "@/components/onboarding/onboarding-shell";
 import {
   hasSmsPermissions,
   isAndroidSmsAdapterAvailable,
@@ -11,123 +17,108 @@ import {
   type SmsPermissionState,
 } from "@/lib/android-sms-adapter";
 
-function PermissionRow({
-  label,
-  detail,
-  granted,
-}: {
-  label: string;
-  detail: string;
-  granted: boolean;
-}) {
-  return (
-    <View className="flex-row items-center justify-between gap-3 rounded-xl border border-border p-4">
-      <View className="flex-1">
-        <Text className="text-foreground font-medium">{label}</Text>
-        <Text className="text-muted text-xs">{detail}</Text>
-      </View>
-      <Text className={granted ? "text-foreground text-xs font-medium" : "text-muted text-xs"}>
-        {granted ? "Granted" : "Not granted"}
-      </Text>
-    </View>
-  );
-}
-
 /**
- * Wizard step 4 of 5: SMS permission. READ_SMS (historical scan) and
- * RECEIVE_SMS (realtime) degrade independently, and denial is never a dead
- * end — the paste sheet is the fallback path and Continue is always enabled.
+ * Onboarding step 3 of 4 — SMS access. READ_SMS (historical scan) and
+ * RECEIVE_SMS (realtime) are requested together via the Android system dialog
+ * but degrade independently, so the two rows reflect their real granted state.
+ * Denial is never a dead end: Continue is always enabled, and provider install
+ * + paste-SMS live on the Extensions tab.
  */
-export default function SmsSetupPermissionsScreen() {
+export default function OnboardingSmsScreen() {
   const [permissions, setPermissions] = useState<SmsPermissionState>({
     read: false,
     receive: false,
   });
-  const [requested, setRequested] = useState(false);
-  const [pasteVisible, setPasteVisible] = useState(false);
+  const adapterAvailable = isAndroidSmsAdapterAvailable();
 
   useEffect(() => {
     void hasSmsPermissions().then(setPermissions);
   }, []);
 
   const onRequest = async () => {
-    const next = await requestSmsPermissions();
-    setPermissions(next);
-    setRequested(true);
+    setPermissions(await requestSmsPermissions());
   };
 
-  const anyDenied = !permissions.read || !permissions.receive;
-  const adapterAvailable = isAndroidSmsAdapterAvailable();
+  const granted = permissions.read || permissions.receive;
 
   return (
-    <Container isScrollable={false} className="px-4 pt-14">
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="pb-16">
-        <View className="gap-5">
-          <View className="gap-1">
-            <Text className="text-muted text-xs">Step 4 of 5</Text>
-            <Text className="text-3xl font-semibold text-foreground tracking-tight">
-              Allow SMS access
-            </Text>
-            <Text className="text-muted text-sm">
-              Your messages are read on this device only — nothing leaves your phone. Each
-              permission works on its own; you can grant one, both, or neither.
-            </Text>
-          </View>
-
-          {!adapterAvailable && (
-            <Text className="text-muted text-xs">
-              SMS access isn't available in this runtime (non-Android or Expo Go). You can still
-              continue and use paste.
-            </Text>
-          )}
-
-          <PermissionRow
-            label="Read existing SMS"
-            detail="READ_SMS — lets the next step scan your inbox history."
-            granted={permissions.read}
-          />
-          <PermissionRow
-            label="Receive new SMS"
-            detail="RECEIVE_SMS — saves new transactions automatically as texts arrive."
-            granted={permissions.receive}
-          />
-
-          <Pressable
-            onPress={() => void onRequest()}
-            className="rounded-xl bg-foreground px-4 py-3 items-center active:opacity-70"
-          >
-            <Text className="text-background font-medium">
-              {anyDenied ? "Grant SMS access" : "Permissions granted"}
-            </Text>
-          </Pressable>
-
-          {requested && anyDenied && (
-            <View className="rounded-xl border border-border p-4 gap-2">
-              <Text className="text-foreground font-medium">No problem — you can paste</Text>
-              <Text className="text-muted text-sm">
-                Without SMS access, Unmiser can't read messages automatically, but you can paste any
-                bank SMS and it will be parsed the same way. You can grant access later from system
-                settings.
-              </Text>
-              <Pressable
-                onPress={() => setPasteVisible(true)}
-                className="rounded-xl border border-foreground px-4 py-2 items-center"
-              >
-                <Text className="text-foreground text-sm font-medium">Try the paste sheet</Text>
-              </Pressable>
-            </View>
-          )}
-
-          <Pressable
-            onPress={() => router.push("/sms-setup/scan")}
-            className="rounded-xl border border-border px-4 py-3 items-center active:opacity-70"
-          >
-            <Text className="text-foreground font-medium">Continue</Text>
-          </Pressable>
+    <OnboardingScreen>
+      <ProgressDots total={4} current={2} />
+      <View className="px-[18px] pt-[4px]">
+        <View className="h-[165px] w-full">
+          <SmsIllo />
         </View>
-      </ScrollView>
+      </View>
+      <CopyBlock
+        label="Step 3 of 4"
+        title={"Allow SMS\naccess"}
+        subtitle="Messages stay on this device only — nothing leaves your phone. Grant one, both, or neither."
+        className="pb-[8px]"
+      />
+      <View className="flex-1 px-[18px] pt-[10px]">
+        {!adapterAvailable && (
+          <Text className="mb-2 text-muted text-xs">
+            SMS access isn't available in this runtime (non-Android or Expo Go). You can still
+            continue — paste and manual tracking work everywhere.
+          </Text>
+        )}
+        <View className="gap-[8px]">
+          <PermissionRow
+            title="Read existing SMS"
+            detail="READ_SMS — scan your inbox history"
+            granted={permissions.read}
+            onPress={() => void onRequest()}
+          />
+          <PermissionRow
+            title="Receive new SMS"
+            detail="RECEIVE_SMS — auto-log incoming"
+            granted={permissions.receive}
+            onPress={() => void onRequest()}
+          />
+        </View>
+      </View>
+      <View className="px-[18px] pb-[18px] gap-[8px]">
+        <OnboardingButton
+          onPress={() => (granted ? router.push("/sms-setup/done") : void onRequest())}
+        >
+          {granted ? "Continue →" : "Grant SMS access"}
+        </OnboardingButton>
+        {!granted && (
+          <OnboardingButton variant="ghost" onPress={() => router.push("/sms-setup/done")}>
+            Skip for now
+          </OnboardingButton>
+        )}
+        <OnboardingButton variant="ghost" onPress={() => router.back()}>
+          ← Back
+        </OnboardingButton>
+      </View>
+    </OnboardingScreen>
+  );
+}
 
-      <PasteSmsSheet visible={pasteVisible} onClose={() => setPasteVisible(false)} />
-    </Container>
+function PermissionRow({
+  title,
+  detail,
+  granted,
+  onPress,
+}: {
+  title: string;
+  detail: string;
+  granted: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-start justify-between gap-3 rounded-[3px] border-[1.5px] border-border p-[12px] active:opacity-70"
+    >
+      <View className="flex-1">
+        <Text className="mb-[3px] text-[13px] font-bold text-foreground">{title}</Text>
+        <Text className="font-mono text-[10px] leading-[1.4] text-muted">{detail}</Text>
+      </View>
+      <Text className={cn("text-[11.5px] font-bold", granted ? "text-success" : "text-muted")}>
+        {granted ? "✓ Granted" : "Tap to grant"}
+      </Text>
+    </Pressable>
   );
 }
