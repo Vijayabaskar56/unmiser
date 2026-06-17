@@ -81,10 +81,11 @@ function PickerRow({ label, children }: { label: string; children: React.ReactNo
  * successful save the transactions + account-balances collections are refetched.
  */
 export function TransactionFormSheet({ isOpen, onClose, onSaved }: Props) {
-  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }));
-  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }));
-  const { data: subcategories } = useLiveQuery((q) =>
-    q.from({ subcategory: subcategoryCollection }),
+  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }), []);
+  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }), []);
+  const { data: subcategories } = useLiveQuery(
+    (q) => q.from({ subcategory: subcategoryCollection }),
+    [],
   );
 
   const [amount, setAmount] = useState("");

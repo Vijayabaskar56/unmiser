@@ -30,8 +30,9 @@ const AppLockContext = createContext<AppLockContextValue | null>(null);
  * background→foreground grace within a running session.
  */
 export function AppLockProvider({ children }: { children: ReactNode }) {
-  const { data: settings, isReady } = useLiveQuery((q) =>
-    q.from({ setting: appSettingsCollection }),
+  const { data: settings, isReady } = useLiveQuery(
+    (q) => q.from({ setting: appSettingsCollection }),
+    [],
   );
 
   const prefs = useMemo<AppLockPrefs>(() => {

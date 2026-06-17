@@ -19,7 +19,7 @@ type SetupPhase = "set" | "confirm";
 export default function AppLockSettingsScreen() {
   const router = useRouter();
 
-  const { data: settingRows } = useLiveQuery((q) => q.from({ setting: appSettingsCollection }));
+  const { data: settingRows } = useLiveQuery((q) => q.from({ setting: appSettingsCollection }), []);
   const prefs = useMemo(() => {
     const map: Record<string, string | null> = {};
     for (const row of settingRows ?? []) map[row.key] = row.value ?? null;

@@ -47,11 +47,15 @@ function ValueChip({ children, accent }: { children: string; accent?: boolean })
 export default function RulesScreen() {
   const router = useRouter();
 
-  const { data: rules } = useLiveQuery((q) =>
-    q.from({ rule: transactionRuleCollection }).orderBy(({ rule }) => rule.priority, "asc"),
+  const { data: rules } = useLiveQuery(
+    (q) => q.from({ rule: transactionRuleCollection }).orderBy(({ rule }) => rule.priority, "asc"),
+    [],
   );
-  const { data: applications } = useLiveQuery((q) => q.from({ app: ruleApplicationCollection }));
-  const { data: review } = useLiveQuery((q) => q.from({ r: smsReviewCollection }));
+  const { data: applications } = useLiveQuery(
+    (q) => q.from({ app: ruleApplicationCollection }),
+    [],
+  );
+  const { data: review } = useLiveQuery((q) => q.from({ r: smsReviewCollection }), []);
 
   const refetch = useCallback(
     () =>

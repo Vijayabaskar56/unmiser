@@ -80,9 +80,9 @@ export default function NewRuleScreen() {
   const { edit } = useLocalSearchParams<{ edit?: string }>();
   const editId = typeof edit === "string" && edit.length > 0 ? edit : undefined;
 
-  const { data: categories } = useLiveQuery((q) => q.from({ c: categoryCollection }));
-  const { data: accounts } = useLiveQuery((q) => q.from({ a: accountCollection }));
-  const { data: rules } = useLiveQuery((q) => q.from({ rule: transactionRuleCollection }));
+  const { data: categories } = useLiveQuery((q) => q.from({ c: categoryCollection }), []);
+  const { data: accounts } = useLiveQuery((q) => q.from({ a: accountCollection }), []);
+  const { data: rules } = useLiveQuery((q) => q.from({ rule: transactionRuleCollection }), []);
 
   const [conditions, setConditions] = useState<CondDraft[]>([{ ...EMPTY_COND }]);
   const [matchMode, setMatchMode] = useState<LogicalOperator>("AND");

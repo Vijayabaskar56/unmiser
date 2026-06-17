@@ -50,10 +50,12 @@ export const unstable_settings = {
  */
 function SmsOnboardingGate() {
   const segments = useSegments();
-  const { data: settings, isReady } = useLiveQuery((q) =>
-    q
-      .from({ setting: appSettingsCollection })
-      .where(({ setting }) => eq(setting.key, SMS_SETUP_COMPLETED_AT_KEY)),
+  const { data: settings, isReady } = useLiveQuery(
+    (q) =>
+      q
+        .from({ setting: appSettingsCollection })
+        .where(({ setting }) => eq(setting.key, SMS_SETUP_COMPLETED_AT_KEY)),
+    [],
   );
   const redirect = shouldShowSmsOnboarding({
     platform: Platform.OS,

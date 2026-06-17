@@ -24,10 +24,12 @@ export default function TabLayout() {
   const accent = useAccent();
   const ink = isDark ? "#f1f0e8" : "#15140f";
   // Tab-bar labels are an Appearance preference (default on).
-  const { data: labelPref } = useLiveQuery((q) =>
-    q
-      .from({ s: appSettingsCollection })
-      .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceTabBarLabels)),
+  const { data: labelPref } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: appSettingsCollection })
+        .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceTabBarLabels)),
+    [],
   );
   const showLabels = parseTabBarLabels(labelPref?.[0]?.value);
 

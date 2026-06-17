@@ -106,18 +106,23 @@ export default function SmsConsoleScreen() {
   // Ordering, the newest-25 cap, and the review count all live in the live
   // queries so they are maintained incrementally (d2ts) instead of re-sorting
   // full arrays on the JS thread every render.
-  const { data: plugins } = useLiveQuery((q) =>
-    q.from({ plugin: pluginCollection }).orderBy(({ plugin }) => plugin.name, "asc"),
+  const { data: plugins } = useLiveQuery(
+    (q) => q.from({ plugin: pluginCollection }).orderBy(({ plugin }) => plugin.name, "asc"),
+    [],
   );
-  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }));
-  const { data: reviewItems } = useLiveQuery((q) =>
-    q
-      .from({ review: smsReviewCollection })
-      .orderBy(({ review }) => review.createdAt, "desc")
-      .limit(REVIEW_RENDER_LIMIT),
+  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }), []);
+  const { data: reviewItems } = useLiveQuery(
+    (q) =>
+      q
+        .from({ review: smsReviewCollection })
+        .orderBy(({ review }) => review.createdAt, "desc")
+        .limit(REVIEW_RENDER_LIMIT),
+    [],
   );
-  const { data: reviewCounts } = useLiveQuery((q) =>
-    q.from({ review: smsReviewCollection }).select(({ review }) => ({ total: count(review.id) })),
+  const { data: reviewCounts } = useLiveQuery(
+    (q) =>
+      q.from({ review: smsReviewCollection }).select(({ review }) => ({ total: count(review.id) })),
+    [],
   );
 
   const [selectedPluginId, setSelectedPluginId] = useState("in.hdfc.bank");

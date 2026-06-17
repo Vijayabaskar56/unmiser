@@ -16,10 +16,12 @@ import { accentHex } from "@/lib/appearance/prefs";
 const AccentContext = createContext<string>(accentHex(null));
 
 export function AccentProvider({ children }: { children: ReactNode }) {
-  const { data } = useLiveQuery((q) =>
-    q
-      .from({ s: appSettingsCollection })
-      .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceAccent)),
+  const { data } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: appSettingsCollection })
+        .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceAccent)),
+    [],
   );
   const accent = accentHex(data?.[0]?.value);
   return <AccentContext.Provider value={accent}>{children}</AccentContext.Provider>;

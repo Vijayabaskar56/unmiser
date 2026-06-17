@@ -63,9 +63,9 @@ export default function ExtensionDetailScreen() {
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [removing, setRemoving] = useState(false);
 
-  const { data: plugins } = useLiveQuery((q) => q.from({ plugin: pluginCollection }));
-  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }));
-  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }));
+  const { data: plugins } = useLiveQuery((q) => q.from({ plugin: pluginCollection }), []);
+  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }), []);
+  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }), []);
 
   const plugin = (plugins ?? []).find((p) => p.pluginId === pluginId) ?? null;
   const installed = plugin != null;

@@ -182,7 +182,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t, locale } = useI18n();
-  const { data } = useLiveQuery((q) => q.from({ txn: transactionCollection }));
+  const { data } = useLiveQuery((q) => q.from({ txn: transactionCollection }), []);
   const txnCount = (data ?? []).filter((tx) => !tx.isDeleted).length;
   const currentLanguageName = LANGUAGES.find((l) => l.code === locale)?.native ?? "English";
 

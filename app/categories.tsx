@@ -25,12 +25,14 @@ export default function CategoriesScreen() {
   const [tab, setTab] = useState("Expense");
   const [formMode, setFormMode] = useState<CategoryFormMode | null>(null);
 
-  const { data: categories, isLoading } = useLiveQuery((q) =>
-    q
-      .from({ category: categoryCollection })
-      .orderBy(({ category }) => category.displayOrder, "asc"),
+  const { data: categories, isLoading } = useLiveQuery(
+    (q) =>
+      q
+        .from({ category: categoryCollection })
+        .orderBy(({ category }) => category.displayOrder, "asc"),
+    [],
   );
-  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }));
+  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }), []);
 
   const refetch = useCallback(
     () => Promise.all([categoryCollection.utils.refetch(), transactionCollection.utils.refetch()]),

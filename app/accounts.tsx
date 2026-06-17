@@ -41,11 +41,12 @@ function accountSubLabel(account: Account): string {
 export default function AccountsScreen() {
   const router = useRouter();
 
-  const { data: accounts, isLoading } = useLiveQuery((q) =>
-    q.from({ account: accountCollection }).orderBy(({ account }) => account.bankName, "asc"),
+  const { data: accounts, isLoading } = useLiveQuery(
+    (q) => q.from({ account: accountCollection }).orderBy(({ account }) => account.bankName, "asc"),
+    [],
   );
-  const { data: balances } = useLiveQuery((q) => q.from({ balance: accountBalanceCollection }));
-  const { data: reviews } = useLiveQuery((q) => q.from({ review: smsReviewCollection }));
+  const { data: balances } = useLiveQuery((q) => q.from({ balance: accountBalanceCollection }), []);
+  const { data: reviews } = useLiveQuery((q) => q.from({ review: smsReviewCollection }), []);
 
   const [picking, setPicking] = useState(false);
   const [formMode, setFormMode] = useState<FormMode | null>(null);

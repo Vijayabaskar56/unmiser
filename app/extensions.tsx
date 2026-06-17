@@ -50,11 +50,12 @@ export default function ExtensionsScreen() {
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState("");
 
-  const { data: plugins } = useLiveQuery((q) =>
-    q.from({ plugin: pluginCollection }).orderBy(({ plugin }) => plugin.name, "asc"),
+  const { data: plugins } = useLiveQuery(
+    (q) => q.from({ plugin: pluginCollection }).orderBy(({ plugin }) => plugin.name, "asc"),
+    [],
   );
-  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }));
-  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }));
+  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }), []);
+  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }), []);
 
   const installedPlugins = plugins ?? [];
   const installed = installedPlugins.map((p) => ({ pluginId: p.pluginId, version: p.version }));

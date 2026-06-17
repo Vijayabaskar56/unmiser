@@ -48,7 +48,7 @@ function ToggleRow({
 
 export default function AppearanceScreen() {
   const router = useRouter();
-  const { data: settingRows } = useLiveQuery((q) => q.from({ s: appSettingsCollection }));
+  const { data: settingRows } = useLiveQuery((q) => q.from({ s: appSettingsCollection }), []);
   const prefs = useMemo(() => {
     const map: Record<string, string | null> = {};
     for (const row of settingRows ?? []) map[row.key] = row.value;

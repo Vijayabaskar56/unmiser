@@ -29,10 +29,11 @@ export default function CategoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const categoryId = Number(id);
 
-  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }));
-  const { data: subcategories } = useLiveQuery((q) => q.from({ sub: subcategoryCollection }));
-  const { data: txns } = useLiveQuery((q) =>
-    q.from({ txn: transactionCollection }).orderBy(({ txn }) => txn.dateTime, "desc"),
+  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }), []);
+  const { data: subcategories } = useLiveQuery((q) => q.from({ sub: subcategoryCollection }), []);
+  const { data: txns } = useLiveQuery(
+    (q) => q.from({ txn: transactionCollection }).orderBy(({ txn }) => txn.dateTime, "desc"),
+    [],
   );
 
   const [menuOpen, setMenuOpen] = useState(false);

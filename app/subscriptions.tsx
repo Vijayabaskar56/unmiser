@@ -29,12 +29,14 @@ export default function SubscriptionsScreen() {
   const router = useRouter();
   const [formMode, setFormMode] = useState<SubscriptionFormMode | null>(null);
 
-  const { data: subs, isLoading } = useLiveQuery((q) =>
-    q
-      .from({ subscription: subscriptionCollection })
-      .orderBy(({ subscription }) => subscription.nextPaymentDate, "asc"),
+  const { data: subs, isLoading } = useLiveQuery(
+    (q) =>
+      q
+        .from({ subscription: subscriptionCollection })
+        .orderBy(({ subscription }) => subscription.nextPaymentDate, "asc"),
+    [],
   );
-  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }));
+  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }), []);
 
   const refetch = useCallback(() => subscriptionCollection.utils.refetch(), []);
   useFocusEffect(

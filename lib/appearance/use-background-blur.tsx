@@ -15,10 +15,12 @@ import { APPEARANCE_DEFAULTS, parseBool } from "@/lib/appearance/prefs";
 const BackgroundBlurContext = createContext<boolean>(APPEARANCE_DEFAULTS.backgroundBlur);
 
 export function BackgroundBlurProvider({ children }: { children: ReactNode }) {
-  const { data } = useLiveQuery((q) =>
-    q
-      .from({ s: appSettingsCollection })
-      .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceBackgroundBlur)),
+  const { data } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: appSettingsCollection })
+        .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceBackgroundBlur)),
+    [],
   );
   const blur = parseBool(data?.[0]?.value, APPEARANCE_DEFAULTS.backgroundBlur);
   return <BackgroundBlurContext.Provider value={blur}>{children}</BackgroundBlurContext.Provider>;

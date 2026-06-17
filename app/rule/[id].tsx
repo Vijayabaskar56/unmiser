@@ -62,11 +62,12 @@ export default function RuleDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data: rules } = useLiveQuery((q) => q.from({ rule: transactionRuleCollection }));
-  const { data: applications } = useLiveQuery((q) =>
-    q.from({ app: ruleApplicationCollection }).orderBy(({ app }) => app.appliedAt, "desc"),
+  const { data: rules } = useLiveQuery((q) => q.from({ rule: transactionRuleCollection }), []);
+  const { data: applications } = useLiveQuery(
+    (q) => q.from({ app: ruleApplicationCollection }).orderBy(({ app }) => app.appliedAt, "desc"),
+    [],
   );
-  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }));
+  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }), []);
 
   const [running, setRunning] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);

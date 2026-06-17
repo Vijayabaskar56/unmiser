@@ -50,7 +50,7 @@ export default function ProfileScreen() {
   const { width } = useWindowDimensions();
 
   // --- profile prefs (reactive) ---
-  const { data: settingRows } = useLiveQuery((q) => q.from({ setting: appSettingsCollection }));
+  const { data: settingRows } = useLiveQuery((q) => q.from({ setting: appSettingsCollection }), []);
   const settings = useMemo(() => {
     const map: Record<string, string | null> = {};
     for (const row of settingRows ?? []) map[row.key] = row.value;
@@ -100,10 +100,10 @@ export default function ProfileScreen() {
   };
 
   // --- financial overview (reactive) ---
-  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }));
-  const { data: balances } = useLiveQuery((q) => q.from({ balance: accountBalanceCollection }));
-  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }));
-  const { data: subs } = useLiveQuery((q) => q.from({ subscription: subscriptionCollection }));
+  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }), []);
+  const { data: balances } = useLiveQuery((q) => q.from({ balance: accountBalanceCollection }), []);
+  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }), []);
+  const { data: subs } = useLiveQuery((q) => q.from({ subscription: subscriptionCollection }), []);
 
   const overview = useMemo(() => {
     const now = new Date();

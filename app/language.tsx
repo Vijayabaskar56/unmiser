@@ -28,8 +28,12 @@ export default function LanguageScreen() {
 
   // Selected language is persisted in app_settings and read reactively, so the
   // checkmark + the whole app update the instant it changes.
-  const { data: langRows } = useLiveQuery((q) =>
-    q.from({ s: appSettingsCollection }).where(({ s }) => eq(s.key, APP_SETTING_KEYS.appLanguage)),
+  const { data: langRows } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: appSettingsCollection })
+        .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appLanguage)),
+    [],
   );
   const stored = langRows?.[0]?.value;
   const selected: LocaleCode = isSupportedLocale(stored) ? stored : DEFAULT_LOCALE;

@@ -112,7 +112,7 @@ export default function NotificationsScreen() {
   // Preferences are persisted in app_settings and read reactively here, like the
   // rest of the app (profile/appearance). Writes go through the service and then
   // refetch the collection so the live query re-renders.
-  const { data: settingRows } = useLiveQuery((q) => q.from({ setting: appSettingsCollection }));
+  const { data: settingRows } = useLiveQuery((q) => q.from({ setting: appSettingsCollection }), []);
   const prefs = useMemo(() => {
     const map: Record<string, string | null> = {};
     for (const row of settingRows ?? []) map[row.key] = row.value;

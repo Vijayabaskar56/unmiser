@@ -159,11 +159,12 @@ function dayLabel(iso: string, todayKey: string, yesterdayKey: string): string {
  * maintained incrementally by d2ts); grouping/filtering is client-side.
  */
 export default function TransactionsScreen() {
-  const { data: txns, isLoading } = useLiveQuery((q) =>
-    q.from({ txn: transactionCollection }).orderBy(({ txn }) => txn.dateTime, "desc"),
+  const { data: txns, isLoading } = useLiveQuery(
+    (q) => q.from({ txn: transactionCollection }).orderBy(({ txn }) => txn.dateTime, "desc"),
+    [],
   );
-  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }));
-  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }));
+  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }), []);
+  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }), []);
 
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);

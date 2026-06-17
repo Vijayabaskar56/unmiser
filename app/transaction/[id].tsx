@@ -70,11 +70,12 @@ export default function TransactionDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const txnId = Number(params.id);
 
-  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }));
-  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }));
-  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }));
-  const { data: subcategories } = useLiveQuery((q) =>
-    q.from({ subcategory: subcategoryCollection }),
+  const { data: txns } = useLiveQuery((q) => q.from({ txn: transactionCollection }), []);
+  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }), []);
+  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }), []);
+  const { data: subcategories } = useLiveQuery(
+    (q) => q.from({ subcategory: subcategoryCollection }),
+    [],
   );
 
   const mutedColor = useThemeColor("muted");

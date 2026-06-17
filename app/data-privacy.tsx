@@ -42,7 +42,7 @@ export default function DataPrivacyScreen() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [wiping, setWiping] = useState(false);
 
-  const { data: settingRows } = useLiveQuery((q) => q.from({ setting: appSettingsCollection }));
+  const { data: settingRows } = useLiveQuery((q) => q.from({ setting: appSettingsCollection }), []);
   const appLockEnabled = useMemo(() => {
     const map: Record<string, string | null> = {};
     for (const row of settingRows ?? []) map[row.key] = row.value ?? null;

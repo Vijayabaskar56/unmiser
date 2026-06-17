@@ -29,8 +29,8 @@ export default function SubscriptionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const subscriptionId = Number(id);
 
-  const { data: subs } = useLiveQuery((q) => q.from({ subscription: subscriptionCollection }));
-  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }));
+  const { data: subs } = useLiveQuery((q) => q.from({ subscription: subscriptionCollection }), []);
+  const { data: categories } = useLiveQuery((q) => q.from({ category: categoryCollection }), []);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [formMode, setFormMode] = useState<SubscriptionFormMode | null>(null);

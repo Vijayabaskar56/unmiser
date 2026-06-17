@@ -14,10 +14,12 @@ import { APPEARANCE_DEFAULTS, clampTextScale } from "@/lib/appearance/prefs";
 const TextScaleContext = createContext<number>(APPEARANCE_DEFAULTS.textScale);
 
 export function TextScaleProvider({ children }: { children: ReactNode }) {
-  const { data } = useLiveQuery((q) =>
-    q
-      .from({ s: appSettingsCollection })
-      .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceTextStep)),
+  const { data } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: appSettingsCollection })
+        .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceTextStep)),
+    [],
   );
   const raw = data?.[0]?.value;
   const scale = raw == null ? APPEARANCE_DEFAULTS.textScale : clampTextScale(Number(raw));

@@ -14,10 +14,11 @@ import { dismissUnrecognized, resolveWithSenderRule } from "@/db/services/sms-re
 
 export default function UnrecognisedScreen() {
   const router = useRouter();
-  const { data: review } = useLiveQuery((q) =>
-    q.from({ r: smsReviewCollection }).orderBy(({ r }) => r.createdAt, "desc"),
+  const { data: review } = useLiveQuery(
+    (q) => q.from({ r: smsReviewCollection }).orderBy(({ r }) => r.createdAt, "desc"),
+    [],
   );
-  const { data: accounts } = useLiveQuery((q) => q.from({ a: accountCollection }));
+  const { data: accounts } = useLiveQuery((q) => q.from({ a: accountCollection }), []);
 
   // The unrecognised row whose "Add sender" picker is open.
   const [senderFor, setSenderFor] = useState<{ id: number; sender: string } | null>(null);

@@ -17,10 +17,12 @@ import { APP_SETTING_KEYS } from "@/db/schema";
  * the accent-aware components consume instead.
  */
 export function ThemeApplier() {
-  const { data } = useLiveQuery((q) =>
-    q
-      .from({ s: appSettingsCollection })
-      .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceTheme)),
+  const { data } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: appSettingsCollection })
+        .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appearanceTheme)),
+    [],
   );
   const mode = data?.[0]?.value ?? "auto";
 

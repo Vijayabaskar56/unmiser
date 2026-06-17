@@ -25,8 +25,12 @@ const I18nContext = createContext<I18nContextValue>({
  * re-renders every `useT()` consumer immediately — no reload.
  */
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const { data } = useLiveQuery((q) =>
-    q.from({ s: appSettingsCollection }).where(({ s }) => eq(s.key, APP_SETTING_KEYS.appLanguage)),
+  const { data } = useLiveQuery(
+    (q) =>
+      q
+        .from({ s: appSettingsCollection })
+        .where(({ s }) => eq(s.key, APP_SETTING_KEYS.appLanguage)),
+    [],
   );
   const raw = data?.[0]?.value;
   const locale: LocaleCode = isSupportedLocale(raw) ? raw : DEFAULT_LOCALE;

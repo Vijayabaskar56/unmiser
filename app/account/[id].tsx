@@ -33,10 +33,11 @@ export default function AccountDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const accountId = Number(id);
 
-  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }));
-  const { data: balances } = useLiveQuery((q) => q.from({ balance: accountBalanceCollection }));
-  const { data: txns } = useLiveQuery((q) =>
-    q.from({ txn: transactionCollection }).orderBy(({ txn }) => txn.dateTime, "desc"),
+  const { data: accounts } = useLiveQuery((q) => q.from({ account: accountCollection }), []);
+  const { data: balances } = useLiveQuery((q) => q.from({ balance: accountBalanceCollection }), []);
+  const { data: txns } = useLiveQuery(
+    (q) => q.from({ txn: transactionCollection }).orderBy(({ txn }) => txn.dateTime, "desc"),
+    [],
   );
 
   const [tab, setTab] = useState("Activity");
