@@ -24,6 +24,10 @@ internal object WebhookSchedulerStore {
   private const val KEY_SETTINGS_JSON = "settings_json"
   private const val KEY_ARMED_IDS_JSON = "armed_ids_json"
   private const val KEY_PENDING_TRIGGERS_JSON = "pending_triggers_json"
+  private const val KEY_REQUEST_CODES_JSON = "request_codes_json"
+  // PendingIntent request codes start above 0 so a code is never confused with a
+  // default/empty value.
+  private const val REQUEST_CODE_BASE = 1000
 
   fun saveSettings(context: Context, settingsJson: String) {
     prefs(context).edit().putString(KEY_SETTINGS_JSON, settingsJson).apply()
@@ -81,6 +85,28 @@ internal object WebhookSchedulerStore {
     val pending = prefs.getString(KEY_PENDING_TRIGGERS_JSON, "[]") ?: "[]"
     prefs.edit().putString(KEY_PENDING_TRIGGERS_JSON, "[]").commit()
     return pending
+  }
+
+  /**
+   * Stable, collision-free PendingIntent request code for a schedule id. Allocated
+   * once per id and persisted, so arming and cancelling always agree and two
+   * distinct ids can never share a code (unlike `id.hashCode()`, which collides).
+   */
+  @Synchronized
+  fun requestCodeFor(context: Context, id: String): Int {
+    val prefs = prefs(context)
+    val map = runCatching { JSONObject(prefs.getString(KEY_REQUEST_CODES_JSON, "{}") ?: "{}") }
+      .getOrDefault(JSONObject())
+    if (map.has(id)) return map.getInt(id)
+    var next = REQUEST_CODE_BASE
+    val keys = map.keys()
+    while (keys.hasNext()) {
+      val code = map.getInt(keys.next())
+      if (code >= next) next = code + 1
+    }
+    map.put(id, next)
+    prefs.edit().putString(KEY_REQUEST_CODES_JSON, map.toString()).commit()
+    return next
   }
 
   fun parseSettings(settingsJson: String): WebhookScheduleSettings {
