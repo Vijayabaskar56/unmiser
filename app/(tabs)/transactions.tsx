@@ -8,7 +8,6 @@ import { Pressable, View } from "react-native";
 import Animated, { SlideInLeft, SlideInRight } from "react-native-reanimated";
 import { withUniwind } from "uniwind";
 
-import { TransactionFormSheet } from "@/components/transactions/transaction-form-sheet";
 import {
   AppBar,
   CalendarScrubber,
@@ -154,7 +153,7 @@ function dayLabel(iso: string, todayKey: string, yesterdayKey: string): string {
 /**
  * Transactions list (redesign) — AppBar + black month-summary bar, semantic +
  * #hashtag filter chips, date-grouped TxnRows, a floating + FAB that opens the
- * TransactionFormSheet, and an empty state. Bulk soft-delete (ADR-0008) is kept
+ * add-transaction screen, and an empty state. Bulk soft-delete (ADR-0008) is kept
  * behind long-press → select mode. The list is a live query (newest-first,
  * maintained incrementally by d2ts); grouping/filtering is client-side.
  */
@@ -169,7 +168,6 @@ export default function TransactionsScreen() {
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("ALL");
-  const [formOpen, setFormOpen] = useState(false);
   // The day the calendar scrubber has selected; the list filters to it. Defaults
   // to today (parsed off the frozen wall-clock now, like the rest of the screen).
   const [selectedDay, setSelectedDay] = useState<Date>(() => parseIso(nowIso()));
@@ -439,7 +437,7 @@ export default function TransactionsScreen() {
   ) : filtersActive ? (
     <Text className="text-[13px] text-muted">No transactions match your filters.</Text>
   ) : activeDays.size === 0 ? (
-    <EmptyState onAddManually={() => setFormOpen(true)} />
+    <EmptyState onAddManually={() => router.navigate("/add")} />
   ) : (
     <Text className="text-[13px] text-muted">
       Nothing on {format(selectedDay, "EEE, d MMM")}. Pick another day above.
@@ -496,9 +494,9 @@ export default function TransactionsScreen() {
         </Animated.View>
       </CalendarScrubber>
 
-      {/* Floating + FAB → add-transaction sheet */}
+      {/* Floating + FAB → add-transaction screen (the centre "+" tab) */}
       <Pressable
-        onPress={() => setFormOpen(true)}
+        onPress={() => router.navigate("/add")}
         accessibilityRole="button"
         accessibilityLabel="Add transaction"
         className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-foreground active:opacity-80"
@@ -506,8 +504,6 @@ export default function TransactionsScreen() {
       >
         <StyledIonicons name="add" size={28} className="text-background" />
       </Pressable>
-
-      <TransactionFormSheet isOpen={formOpen} onClose={() => setFormOpen(false)} />
 
       <ConfirmDialog
         isOpen={confirmOpen}

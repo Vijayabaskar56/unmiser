@@ -1,7 +1,7 @@
 {
   "$schema": "../manifest.schema.json",
   "notes": [
-    "Patterns ported from the original Cashiro CredParser.kt (parser-core/src/main/kotlin/com/ritesh/parser/core/bank/CredParser.kt). CRED is a credit card bill-payment app; its confirmations represent transfers from the user's bank account to a credit card account, so the original parser hardcodes TransactionType.TRANSFER. The Kotlin isTransactionMessage requires BOTH \"payment of\" AND \"credited towards your\"; the manifest filter only supports any-of, so we gate on the more specific \"credited towards your\" phrase (every real CRED confirmation carries both)."
+    "Patterns ported from the original Cashiro CredParser.kt (parser-core/src/main/kotlin/com/ritesh/parser/core/bank/CredParser.kt). CRED is a credit card bill-payment app; its confirmations represent transfers from the user's bank account to a credit card account, so the original parser hardcodes TransactionType.TRANSFER. The Kotlin isTransactionMessage requires BOTH \"payment of\" AND \"credited towards your\". The manifest filter (requireAnyKeyword) only supports any-of, so the filter gates on the more specific \"credited towards your\" phrase, and a pipeline rejectWhen step (notContainsAny: \"payment of\") downgrades any message missing \"payment of\" — approximating the Kotlin dual-gate. Filter-level FILTER_REJECTED stays REJECTED; the pipeline guard yields REVIEW + PIPELINE_REJECTED (the engine has no pipeline path to hard-REJECTED), which still prevents a silent clean-TRANSFER false positive for promo/statement SMS that lack \"payment of\"."
   ],
   "manifest": {
     "schemaVersion": "1.0",
@@ -32,6 +32,13 @@
       ]
     },
     "pipeline": [
+      {
+        "kind": "rejectWhen",
+        "when": {
+          "notContainsAny": ["payment of"]
+        },
+        "reason": "PIPELINE_REJECTED"
+      },
       {
         "kind": "fallbackField",
         "field": "transactionType",
@@ -144,6 +151,16 @@
       "expected": {
         "confidence": "REJECTED",
         "reasons": ["FILTER_REJECTED"]
+      }
+    },
+    {
+      "name": "promo/reminder with 'credited towards your' but no 'payment of' is pipeline-rejected",
+      "sender": "JK-CREDIN-S",
+      "receivedAt": "2026-06-01T10:35:00.000Z",
+      "body": "Reward points worth Rs.500 will be credited towards your ICICI Bank Credit Card when you pay your bill on CRED.",
+      "expected": {
+        "confidence": "REVIEW",
+        "reasons": ["PIPELINE_REJECTED"]
       }
     }
   ]

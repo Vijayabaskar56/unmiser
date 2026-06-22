@@ -93,7 +93,13 @@ const checkpointStore = createKvScanCheckpointStore({
 export const smsScanTask = createScanTask({
   getTotalCount: () => getHistoricalSmsCount(),
   fetchPage: async (offset, limit) => {
-    const page = await getHistoricalSmsPage(offset, limit, true);
+    // preScreen=false: let the manifest engine decide which messages are
+    // transactions. The native coarse keyword gate (SmsPreScreen) was dropping
+    // ~79% of real txns before they crossed the bridge — notably the dominant
+    // HDFC "Sent Rs… From HDFC Bank A/C… To…" UPI debit, whose body contains
+    // none of the gate's keywords. Persistence is still gated downstream
+    // (shouldCaptureUnrecognizedSms), so non-bank noise is dropped after parse.
+    const page = await getHistoricalSmsPage(offset, limit, false);
     return { records: page.records, scanned: page.scanned };
   },
   loadManifests: async () => {

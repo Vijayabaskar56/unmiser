@@ -11,7 +11,7 @@
     "trust": "bundled",
     "dispatch": {
       "senders": ["SBI", "SBIBK", "SBICRD", "ATMSBI"],
-      "dltPatterns": ["^[A-Z]{2}-SBIBK.*$", "^[A-Z]{2}-SBI.*$", ".*CBSSBI.*"]
+      "dltPatterns": ["^[A-Z]{2}-SBIBK.*$", "^[A-Z]{2}-SBI.*$", ".*CBSSBI.*", ".*SBIPSG.*"]
     },
     "filter": {
       "excludeKeywords": ["otp", "one time password", "offer", "minimum amount due"],
@@ -23,7 +23,13 @@
           "re": "has\\s+credit\\s+for\\s+[^.\\n]+?\\s+of\\s+(?:Rs\\.?|INR)\\s*(?<value>[0-9,]+(?:\\.\\d{1,2})?)"
         },
         {
+          "re": "has\\s+a\\s+credit\\s+by\\s+[^.\\n]+?\\s+of\\s+(?:Rs\\.?|INR)\\s*(?<value>[0-9,]+(?:\\.\\d{1,2})?)"
+        },
+        {
           "re": "has\\s+a\\s+debit\\s+by\\s+transfer\\s+of\\s+(?:Rs\\.?|INR)\\s*(?<value>[0-9,]+(?:\\.\\d{1,2})?)"
+        },
+        {
+          "re": "Credited\\s+(?:Rs\\.?|INR)\\s*(?<value>[0-9,]+(?:\\.\\d{1,2})?)"
         },
         {
           "re": "(?:Rs\\.?|INR)\\s*(?<value>[0-9,]+(?:\\.\\d{1,2})?)\\s+spent"
@@ -38,6 +44,12 @@
         },
         {
           "re": "has\\s+credit\\s+for\\s+(?<value>[^.\\n]+?)\\s+of"
+        },
+        {
+          "re": "has\\s+a\\s+credit\\s+by\\s+(?<value>[^.\\n]+?)\\s+of"
+        },
+        {
+          "re": "on\\s+\\d{2}/\\d{2}/\\d{2,4}\\s*-\\s*(?<value>[^.\\n]+)"
         },
         {
           "re": "trf\\s+to\\s+(?<value>[^.\\n]+?)(?:\\s+Ref|$)"
@@ -58,11 +70,11 @@
       ],
       "accountLast4": [
         {
-          "re": "A/C\\s+(?:X+|\\*+)?(?<value>\\d+)",
+          "re": "SBI\\s+Debit\\s+Card\\s+(?<value>[\\w-]+)",
           "takeLast4": true
         },
         {
-          "re": "SBI\\s+Debit\\s+Card\\s+(?<value>[\\w-]+)",
+          "re": "A/?C\\s+(?:no\\.?\\s+)?[X*]*(?<value>\\d+)",
           "takeLast4": true
         }
       ]
@@ -73,11 +85,12 @@
         "is debited",
         "withdrawn",
         "transferred",
+        "by sbi debit card",
         "debit",
         "paid to",
         "spent"
       ],
-      "income": ["credited", "has credit for", "received transfer"]
+      "income": ["credited", "has credit for", "has a credit by", "credit by", "received transfer"]
     },
     "cardRules": {
       "includeKeywords": ["sbi debit card", "credit card", "card ending"],
@@ -135,6 +148,81 @@
           "accountLast4": "0000",
           "transactionType": "EXPENSE",
           "isFromCard": true
+        }
+      }
+    },
+    {
+      "name": "credit by Cheque",
+      "sender": "AD-CBSSBI",
+      "receivedAt": "2026-06-09T10:14:00.000Z",
+      "body": "Dear Customer, Your A/C XXXXX314567 has a credit by Cheque of Rs 12,07,000.00 on 07/10/22. Avl Bal Rs 18,06,500.00.-SBI",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "1207000.00",
+          "merchant": "Cheque",
+          "accountLast4": "4567",
+          "transactionType": "INCOME",
+          "balance": "1806500.00"
+        }
+      }
+    },
+    {
+      "name": "credited INR with reverse ATM suffix",
+      "sender": "AD-CBSSBI",
+      "receivedAt": "2026-06-09T10:16:00.000Z",
+      "body": "Your AC XXXXX314567 Credited INR 9,000.00 on 22/05/22 -REVERSE ATM WDL. Avl Bal INR 13,08,900.00.-SBI",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "9000.00",
+          "merchant": "REVERSE ATM WDL",
+          "accountLast4": "4567",
+          "transactionType": "INCOME",
+          "balance": "1308900.00"
+        }
+      }
+    },
+    {
+      "name": "debit by transfer",
+      "sender": "AD-CBSSBI-S",
+      "receivedAt": "2026-06-09T10:18:00.000Z",
+      "body": "Dear Customer, Your A/C XXXXX901234 has a debit by transfer of Rs 230.00 on 18/09/25. Avl Bal Rs 6,500.00.-SBI",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "230.00",
+          "accountLast4": "1234",
+          "transactionType": "EXPENSE",
+          "balance": "6500.00"
+        }
+      }
+    },
+    {
+      "name": "issue #35 debit with credited destination (a/c no. form)",
+      "sender": "VA-SBIPSG-T",
+      "receivedAt": "2026-06-09T10:20:00.000Z",
+      "body": "Dear Customer, Your a/c no. XXXXXXXX5045 is debited for Rs.500.00 on 31-03-26 and a/c XXXXXXX418 credited (IMPS Ref no ---------------). -SBI",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "500.00",
+          "accountLast4": "5045",
+          "transactionType": "EXPENSE"
+        }
+      }
+    },
+    {
+      "name": "terse debited from a/c",
+      "sender": "ATMSBI",
+      "receivedAt": "2026-06-09T10:22:00.000Z",
+      "body": "Rs.500 debited from A/c X1234 on 13Sep25. Avl Bal Rs.999999999",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "500",
+          "accountLast4": "1234",
+          "transactionType": "EXPENSE"
         }
       }
     }

@@ -449,6 +449,56 @@
       }
     },
     {
+      "name": "imps transfer without payer name (IMPS Transfer fallback)",
+      "sender": "VM-BOBTXN-S",
+      "receivedAt": "2024-12-03T12:00:00.000Z",
+      "body": "Rs.3000.00 credited to A/c XX556677 via IMPS/518299887766. AvlBal:Rs30000.00 -Bank of Baroda",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "3000.00",
+          "merchant": "IMPS Transfer",
+          "accountLast4": "6677",
+          "balance": "30000.00",
+          "reference": "518299887766",
+          "transactionType": "INCOME"
+        }
+      }
+    },
+    {
+      "name": "upi credit without vpa (UPI Credit fallback)",
+      "sender": "VM-BOBSMS",
+      "receivedAt": "2024-12-04T12:00:00.000Z",
+      "body": "Your A/c XX778899 is credited Rs.450.00 via UPI on 18-11-2024. AvlBal:Rs9999.00 -Bank of Baroda",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "450.00",
+          "merchant": "UPI Credit",
+          "accountLast4": "8899",
+          "balance": "9999.00",
+          "transactionType": "INCOME"
+        }
+      }
+    },
+    {
+      "name": "upi debit without vpa (UPI Payment fallback)",
+      "sender": "VM-BOBTXN",
+      "receivedAt": "2024-12-05T12:00:00.000Z",
+      "body": "Rs.250.00 Dr. from A/c XX334455 via UPI on 19-11-2024. AvlBal:Rs7500.00. Ref:51020304050 -Bank of Baroda",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "250.00",
+          "merchant": "UPI Payment",
+          "accountLast4": "4455",
+          "balance": "7500.00",
+          "reference": "51020304050",
+          "transactionType": "EXPENSE"
+        }
+      }
+    },
+    {
       "name": "otp message is filter-rejected",
       "sender": "VM-BOBSMS",
       "receivedAt": "2024-12-02T12:00:00.000Z",

@@ -529,6 +529,54 @@
           "transactionType": "EXPENSE"
         }
       }
+    },
+    {
+      "name": "cash deposit via Info BY CASH is income with merchant Cash Deposit",
+      "sender": "VM-ICICIT",
+      "receivedAt": "2025-08-12T10:00:00.000Z",
+      "body": "ICICI Bank Account XX566 credited:Rs. 5,000.00 on 12-Aug-25. Info BY CASH. Available Balance is Rs. 33,076.14.",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "5000.00",
+          "merchant": "Cash Deposit",
+          "accountLast4": "566",
+          "transactionType": "INCOME",
+          "balance": "33076.14"
+        }
+      }
+    },
+    {
+      "name": "ACH NACH dividend credit merchant extraction (no Dividend suffix - engine limitation)",
+      "sender": "VM-ICICIT",
+      "receivedAt": "2025-03-15T10:00:00.000Z",
+      "body": "ICICI Bank Account XX566 credited:Rs. 1,250.00 on 15-Mar-25. Info ACH*RELIANCE INDUSTRIES*DIV123. Available Balance is Rs. 40,000.00.",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "1250.00",
+          "merchant": "RELIANCE INDUSTRIES",
+          "accountLast4": "566",
+          "transactionType": "INCOME",
+          "balance": "40000.00"
+        }
+      }
+    },
+    {
+      "name": "AutoPay debit fallback yields literal AutoPay (no service mapping - engine limitation)",
+      "sender": "AX-ICICIT-S",
+      "receivedAt": "2025-10-04T10:00:00.000Z",
+      "body": "Your account has been debited with Rs 199.00 for AutoPay on Google Play. RRN 421723106999. Avl Bal Rs 5,000.00-ICICI Bank",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "199.00",
+          "merchant": "AutoPay",
+          "transactionType": "EXPENSE",
+          "balance": "5000.00",
+          "reference": "421723106999"
+        }
+      }
     }
   ]
 }

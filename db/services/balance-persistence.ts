@@ -179,7 +179,13 @@ export async function applyTransactionBalance(
 function byTimestamp(a: DbReading, b: DbReading): number {
   if (a.timestamp < b.timestamp) return -1;
   if (a.timestamp > b.timestamp) return 1;
-  return 0;
+  // Stable tiebreak for same-timestamp readings (second-precision SMS): order by
+  // the owning transaction id so the cascade is deterministic and a freshly
+  // added reading (real transactionId) sorts after earlier same-second ones.
+  const at = a.transactionId ?? Number.NEGATIVE_INFINITY;
+  const bt = b.transactionId ?? Number.NEGATIVE_INFINITY;
+  if (at !== bt) return at < bt ? -1 : 1;
+  return (a.id ?? 0) - (b.id ?? 0);
 }
 
 interface DbReading extends Reading {
@@ -211,7 +217,7 @@ async function loadReadings(
     .from(accountBalances)
     .leftJoin(transactions, eq(accountBalances.transactionId, transactions.id))
     .where(eq(accountBalances.accountId, accountId))
-    .orderBy(accountBalances.timestamp);
+    .orderBy(accountBalances.timestamp, accountBalances.transactionId, accountBalances.id);
 
   return rows.map((r: any) => ({
     id: r.id,

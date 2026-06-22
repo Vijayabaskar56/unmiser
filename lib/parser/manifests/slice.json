@@ -10,22 +10,37 @@
     "version": "1",
     "trust": "bundled",
     "dispatch": {
-      "senders": ["SLICE"],
-      "dltPatterns": ["^[A-Z]{2}-SLICE-[A-Z]$"]
+      "senders": ["SLICE", "SLICEIT", "SLCEIT"],
+      "dltPatterns": ["^[A-Z]{2}-(SLICE|SLICEIT|SLCEIT)(?:-[A-Z])?$"]
     },
     "filter": {
       "excludeKeywords": ["otp", "one time password", "offer"],
-      "requireAnyKeyword": ["spent", "debited", "credited"]
+      "requireAnyKeyword": [
+        "spent",
+        "debited",
+        "credited",
+        "sent",
+        "received",
+        "cashback",
+        "refund",
+        "paid",
+        "payment"
+      ]
     },
     "extract": {
       "amount": [
         {
-          "re": "Rs\\.?\\s*(?<value>[0-9,]+(?:\\.\\d{1,2})?)\\s+spent"
+          "re": "(?:Rs|INR)\\.?\\s*(?<value>[0-9,]+(?:\\.\\d{1,2})?)"
         }
       ],
       "merchant": [
         {
           "re": "at\\s+(?<value>[^.\\n]+?)(?:\\s+on|\\.|$)"
+        }
+      ],
+      "reference": [
+        {
+          "re": "(?:UPI\\s+Ref|Ref(?:erence)?(?:\\s+No)?\\.?:?)\\s*(?<value>\\d{6,})"
         }
       ],
       "accountLast4": [
@@ -36,12 +51,53 @@
       ]
     },
     "typeRules": {
-      "expense": ["spent", "debited"],
-      "income": ["credited", "refund"]
+      "expense": ["spent", "debited", "sent", "paid", "payment"],
+      "income": ["credited", "refund", "received", "cashback"]
     },
     "cardRules": {
       "includeKeywords": ["card"]
     },
+    "pipeline": [
+      {
+        "kind": "extractFieldWhen",
+        "when": { "containsAny": ["sent"] },
+        "field": "merchant",
+        "extractors": [
+          {
+            "re": "sent\\s+to\\s+(?<value>[A-Z][A-Z\\s]+?)\\s*\\(",
+            "flags": ""
+          }
+        ]
+      },
+      {
+        "kind": "extractFieldWhen",
+        "when": { "containsAny": ["from"] },
+        "field": "merchant",
+        "extractors": [
+          {
+            "re": "from\\s+(?<value>[A-Z][A-Z0-9\\s]+?)(?:\\s+on|\\s+\\(|$)",
+            "flags": ""
+          }
+        ]
+      },
+      {
+        "kind": "setFieldWhen",
+        "when": { "containsAny": ["paypal"] },
+        "field": "merchant",
+        "value": "PayPal"
+      },
+      {
+        "kind": "setFieldWhen",
+        "when": { "containsAll": ["slice", "credited"], "notContainsAny": ["from", " at "] },
+        "field": "merchant",
+        "value": "Slice Credit"
+      },
+      {
+        "kind": "fallbackField",
+        "field": "merchant",
+        "value": "Slice"
+      }
+    ],
     "cleaning": {
       "stripPatterns": ["\\s+on\\s+\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4}.*$"],
       "minMerchantLength": 2
@@ -60,6 +116,96 @@
           "merchant": "SWIGGY",
           "accountLast4": "1234",
           "transactionType": "EXPENSE",
+          "isFromCard": true
+        }
+      }
+    },
+    {
+      "name": "UPI sent to person (expense)",
+      "sender": "JK-SLICEIT",
+      "receivedAt": "2026-06-09T10:00:00.000Z",
+      "body": "Rs.500 sent to RAHUL KUMAR (rahul@okhdfcbank) from your Slice account on 09/06/26. UPI Ref 412345678901.",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "500",
+          "merchant": "RAHUL KUMAR",
+          "transactionType": "EXPENSE",
+          "reference": "412345678901"
+        }
+      }
+    },
+    {
+      "name": "cashback credited (income)",
+      "sender": "JD-SLCEIT-S",
+      "receivedAt": "2026-06-09T10:00:00.000Z",
+      "body": "You received a cashback of Rs.50 on your Slice card. Enjoy!",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "50",
+          "merchant": "Slice",
+          "transactionType": "INCOME",
+          "isFromCard": true
+        }
+      }
+    },
+    {
+      "name": "amount credited from a source (income)",
+      "sender": "JK-SLICEIT",
+      "receivedAt": "2026-06-09T10:00:00.000Z",
+      "body": "Rs.2000 credited to your Slice account from AMAZON PAY on 09/06/26.",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "2000",
+          "merchant": "AMAZON PAY",
+          "transactionType": "INCOME"
+        }
+      }
+    },
+    {
+      "name": "PayPal special-case merchant",
+      "sender": "JK-SLICEIT",
+      "receivedAt": "2026-06-09T10:00:00.000Z",
+      "body": "Rs.1200 spent via PayPal from your Slice card XX5678 on 09/06/26.",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "1200",
+          "merchant": "PayPal",
+          "accountLast4": "5678",
+          "transactionType": "EXPENSE",
+          "isFromCard": true
+        }
+      }
+    },
+    {
+      "name": "Slice Credit (credited via slice)",
+      "sender": "JD-SLCEIT-S",
+      "receivedAt": "2026-06-09T10:00:00.000Z",
+      "body": "Rs.10000 has been credited to your Slice credit limit.",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "10000",
+          "merchant": "Slice Credit",
+          "transactionType": "INCOME"
+        }
+      }
+    },
+    {
+      "name": "refund (income)",
+      "sender": "JK-SLICEIT",
+      "receivedAt": "2026-06-09T10:00:00.000Z",
+      "body": "Rs.349 refund processed to your Slice card XX1234 for order #889900.",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "349",
+          "merchant": "Slice",
+          "accountLast4": "1234",
+          "transactionType": "INCOME",
           "isFromCard": true
         }
       }

@@ -15,3 +15,4 @@ export { enabledPluginAssetCollection, pluginCollection } from "./extensions";
 export { smsReviewCollection } from "./sms";
 export { ruleApplicationCollection, transactionRuleCollection } from "./rules";
 export { subscriptionCollection } from "./subscriptions";
+export { budgetCategoryLimitCollection, budgetCollection } from "./budgets";

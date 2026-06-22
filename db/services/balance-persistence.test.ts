@@ -107,6 +107,63 @@ describe("applyTransactionBalance", () => {
     sqlite.close();
   });
 
+  it("persists two same-account transactions sharing one second-precision timestamp", async () => {
+    // Regression: account_balances was uniquely keyed on (accountId, timestamp).
+    // SMS timestamps are second-precision, so two transactions in the same second
+    // on one account collided and crashed the scan. The unique key now includes
+    // transactionId, so both readings persist and the running balance cascades.
+    const { db, sqlite } = createTestDb();
+    const accountId = await seedAccount(db);
+    const categoryId = await seedCategory(db);
+    const ts = "2026-01-01T10:00:00Z";
+
+    // Opening anchor so expense deltas are visible (the model floors a normal
+    // account at 0, so without an anchor both readings would read 0.00).
+    await db.insert(accountBalances).values({
+      accountId,
+      balance: "100.00",
+      timestamp: "2026-01-01T09:00:00Z",
+      sourceType: "MANUAL",
+    });
+
+    const txnA = await seedTransaction(db, categoryId, {
+      amount: "30.00",
+      transactionType: "EXPENSE",
+      dateTime: ts,
+    });
+    await applyTransactionBalance(db, {
+      accountId,
+      transactionId: txnA,
+      amount: "30.00",
+      transactionType: "EXPENSE",
+      isCreditCard: false,
+      timestamp: ts,
+    });
+
+    const txnB = await seedTransaction(db, categoryId, {
+      amount: "20.00",
+      transactionType: "EXPENSE",
+      dateTime: ts,
+    });
+    // Must not throw a UNIQUE constraint violation.
+    await applyTransactionBalance(db, {
+      accountId,
+      transactionId: txnB,
+      amount: "20.00",
+      transactionType: "EXPENSE",
+      isCreditCard: false,
+      timestamp: ts,
+    });
+
+    const rows = await readingsFor(db, accountId);
+    expect(rows.filter((r) => r.transactionId != null)).toHaveLength(2);
+    // Cascade off 100: -30 then -20 => latest running balance is 50.00.
+    const latest = rows.find((r) => r.transactionId === txnB);
+    expect(latest?.balance).toBe("50.00");
+
+    sqlite.close();
+  });
+
   it("computes the running balance for a later transaction off the prior reading", async () => {
     const { db, sqlite } = createTestDb();
     const accountId = await seedAccount(db);

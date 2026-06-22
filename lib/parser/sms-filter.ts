@@ -68,6 +68,24 @@ export function isTransactionMessage(message: string): boolean {
     return false;
   }
 
+  // Skip bank SERVICE NOTICES that are not transactions: declined attempts,
+  // fee/limit/feature advisories, KYC / e-mail prompts. These frequently contain
+  // "debit card" / a Rs amount, so they would otherwise pass the keyword gate
+  // below and flood the review queue. A genuine transaction is fully parsed and
+  // never reaches this capture gate, so excluding these markers is safe.
+  if (
+    lower.includes("txn declined") ||
+    lower.includes("transaction declined") ||
+    lower.includes("forex markup") ||
+    lower.includes("limit modified") ||
+    lower.includes("international merchant outlet") ||
+    lower.includes("not enabled") ||
+    lower.includes("kyc consent") ||
+    lower.includes("validating the e-mail")
+  ) {
+    return false;
+  }
+
   // Must contain transaction keywords
   const transactionKeywords = [
     "debited",

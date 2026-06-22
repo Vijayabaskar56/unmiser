@@ -51,7 +51,14 @@ export const accountBalances = sqliteTable(
     createdAt: text().notNull().$defaultFn(nowIso),
   },
   (t) => [
-    uniqueIndex("index_account_balances_account_id_timestamp").on(t.accountId, t.timestamp),
+    // Keyed on the owning transaction, not just (accountId, timestamp): SMS
+    // timestamps are second-precision, so two transactions on the same account
+    // in the same second are legitimate distinct readings and must not collide.
+    uniqueIndex("index_account_balances_account_id_timestamp_txn").on(
+      t.accountId,
+      t.timestamp,
+      t.transactionId,
+    ),
     index("index_account_balances_account_id").on(t.accountId),
     index("index_account_balances_timestamp").on(t.timestamp),
   ],

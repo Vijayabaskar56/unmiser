@@ -71,6 +71,24 @@ object SmsPreScreen {
       return false
     }
 
+    // Skip bank SERVICE NOTICES that are not transactions: declined attempts,
+    // fee/limit/feature advisories, KYC / e-mail prompts. These frequently
+    // contain "debit card" / a Rs amount, so they would otherwise pass the
+    // keyword gate below and flood the review queue. A genuine transaction is
+    // fully parsed and never reaches this capture gate, so this is safe.
+    if (
+      lower.contains("txn declined") ||
+      lower.contains("transaction declined") ||
+      lower.contains("forex markup") ||
+      lower.contains("limit modified") ||
+      lower.contains("international merchant outlet") ||
+      lower.contains("not enabled") ||
+      lower.contains("kyc consent") ||
+      lower.contains("validating the e-mail")
+    ) {
+      return false
+    }
+
     // Must contain transaction keywords
     val transactionKeywords = listOf(
       "debited",

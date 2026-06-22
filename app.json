@@ -13,7 +13,13 @@
       "expo-font",
       "expo-splash-screen",
       "expo-notifications",
-      ["expo-local-authentication", { "faceIDPermission": "Unlock Unmiser with Face ID." }]
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Unlock Unmiser with Face ID."
+        }
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

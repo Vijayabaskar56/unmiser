@@ -200,6 +200,40 @@
         "confidence": "REJECTED",
         "reasons": ["FILTER_REJECTED"]
       }
+    },
+    {
+      "name": "plain 'credited to a/c' income (generic Rs amount, credit type branch)",
+      "sender": "AD-AIRBNK-S",
+      "receivedAt": "2026-06-06T11:20:00.000Z",
+      "body": "Rs.250.00 credited to your Airtel Payments Bank a/c. Txn ID: 561111222333. Bal:1250.00 Call 180023400 for help",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "250.00",
+          "transactionType": "INCOME",
+          "merchant": "Airtel Payments Bank Transaction",
+          "balance": "1250.00",
+          "reference": "561111222333",
+          "accountLast4": "0000"
+        }
+      }
+    },
+    {
+      "name": "debit with 'Balance: Rs.' alternative balance phrasing",
+      "sender": "XX-AIRBNK-T",
+      "receivedAt": "2026-06-07T14:05:00.000Z",
+      "body": "Rs. 75.00 debited from Airtel Payments Bank a/c Txn ID: 562000111222 Balance: Rs. 425.50 Call 180023400 for help",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "75.00",
+          "transactionType": "EXPENSE",
+          "merchant": "Airtel Payments Bank Transaction",
+          "balance": "425.50",
+          "reference": "562000111222",
+          "accountLast4": "0000"
+        }
+      }
     }
   ]
 }

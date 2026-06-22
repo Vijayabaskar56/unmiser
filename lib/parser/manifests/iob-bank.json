@@ -67,6 +67,9 @@
         },
         {
           "re": "from\\s+(?<value>[^-\\n]+?)\\s*-\\S*[@!]"
+        },
+        {
+          "re": "\\[\\s*(?<value>(?!IMPS[/\\]])(?!UPI[/\\]])(?!CHRGS)(?!NEFT-)[^\\]]+?)\\s*\\]"
         }
       ],
       "balance": [
@@ -143,6 +146,11 @@
         },
         "field": "merchant",
         "value": "UPI"
+      },
+      {
+        "kind": "fallbackField",
+        "field": "merchant",
+        "value": "Bank Transfer"
       }
     ]
   },
@@ -249,6 +257,96 @@
       "sender": "VM-IOBCHN-S",
       "receivedAt": "2026-06-01T08:00:00.000Z",
       "body": "UPI AutoPay Alert: 1000.00 will be deducted from IOB account XXXXX42 for ICCL - Mutual Funds - Autopay on 2026-06-01 -IOB",
+      "expected": {
+        "confidence": "REJECTED",
+        "reasons": ["FILTER_REJECTED"]
+      }
+    },
+    {
+      "name": "upi debit for vpa payee uses local-part as merchant",
+      "sender": "VA-IOBCHN-S",
+      "receivedAt": "2026-02-03T10:00:00.000Z",
+      "body": "Your a/c XX1234 debited for payee samplepayee@bank for Rs. 996.00 on 2026-02-03, ref 123456789013.If not you, report to your bank immediately-IOB.",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "996.00",
+          "merchant": "samplepayee",
+          "accountLast4": "1234",
+          "transactionType": "EXPENSE",
+          "reference": "123456789013"
+        }
+      }
+    },
+    {
+      "name": "towards account debit format",
+      "sender": "BZ-IOBCHN-S",
+      "receivedAt": "2025-07-03T10:00:00.000Z",
+      "body": "Your account has been debited towards XXXX1234 for Rs. 4383.00 on 03/07/2025. If not you, contact tollfree 18008904445. -IOB",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "4383.00",
+          "accountLast4": "1234",
+          "transactionType": "EXPENSE",
+          "merchant": "Bank Transfer"
+        }
+      }
+    },
+    {
+      "name": "imps credit detail picks holder account and no reference",
+      "sender": "AD-IOBCHN-S",
+      "receivedAt": "2025-07-07T10:00:00.000Z",
+      "body": "Dear Customer, Your A/C:XXX1234 is credited by Rs. 1.00 on 07/07/2025 from a/c XXX3413 (IMPS Ref id:518809468661)? IOB",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "1.00",
+          "accountLast4": "1234",
+          "transactionType": "INCOME",
+          "merchant": "Bank Transfer"
+        }
+      }
+    },
+    {
+      "name": "pure IMPS bracket is reference not merchant",
+      "sender": "VM-IOBCHN-S",
+      "receivedAt": "2026-01-01T16:11:16.000Z",
+      "body": "Rs.500.00 Debited to SB-xxx1234 AcBal:1000.00 CLRBal: 1000.00 [IMPS/ 123456] SAMPLE-BRANCH on 01-01-2026 16:11:16.IOB.",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "500.00",
+          "accountLast4": "1234",
+          "transactionType": "EXPENSE",
+          "balance": "1000.00",
+          "reference": "123456",
+          "merchant": "Bank Transfer"
+        }
+      }
+    },
+    {
+      "name": "combined UPI IMPS bracket extracts reference",
+      "sender": "VM-IOBCHN-S",
+      "receivedAt": "2026-01-01T16:11:16.000Z",
+      "body": "Rs.250.00 Debited to SB-xxx1234 AcBal:750.00 CLRBal: 750.00 [UPI/IMPS/ 654321] SAMPLE-BRANCH on 01-01-2026 16:11:16.IOB.",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "250.00",
+          "merchant": "UPI",
+          "accountLast4": "1234",
+          "transactionType": "EXPENSE",
+          "balance": "750.00",
+          "reference": "654321"
+        }
+      }
+    },
+    {
+      "name": "disabled card transaction notice is filter-rejected",
+      "sender": "AD-IOBCHN",
+      "receivedAt": "2026-01-01T10:00:00.000Z",
+      "body": "Dear Customer, ECOM txn is not enabled for your Debit Card xx1234. Pls enable Ecom txns using Internet Banking or by visiting your branch - IOB",
       "expected": {
         "confidence": "REJECTED",
         "reasons": ["FILTER_REJECTED"]

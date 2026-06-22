@@ -40,7 +40,15 @@
         "win ",
         "card will be disabled",
         "invalid pin",
-        "not credited"
+        "not credited",
+        "txn declined",
+        "transaction declined",
+        "forex markup",
+        "limit modified",
+        "international merchant outlet",
+        "activated:",
+        "kyc consent",
+        "validating the e-mail"
       ],
       "requireAnyKeyword": [
         "debited",
@@ -68,10 +76,10 @@
       ],
       "merchant": [
         {
-          "re": "\\bTo\\s+(?<value>[^@\\n]+?)@[^\\s]*\\s+On\\s+\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}"
+          "re": "\\bTo\\s+(?<value>[^@\\n]*[A-Za-z][^@\\n]*?)@[^\\s]*\\s+On\\s+\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}"
         },
         {
-          "re": "\\bTo\\s+(?<value>.+?)\\s+On\\s+\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}"
+          "re": "\\bTo\\s+(?<value>[^@\\n]*[A-Za-z][^@\\n]*?)\\s+On\\s+\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}"
         },
         {
           "re": "Info:\\s*(?:UPI/)?(?<value>[^/.\\n]+?)(?:/|\\.|$)"
@@ -160,6 +168,26 @@
         },
         "field": "transactionType",
         "value": "EXPENSE"
+      },
+      {
+        "kind": "setFieldWhen",
+        "when": {
+          "containsAll": ["Sent Rs", "From HDFC Bank", "@"]
+        },
+        "field": "merchant",
+        "value": "UPI Payee"
+      },
+      {
+        "kind": "extractFieldWhen",
+        "when": {
+          "containsAll": ["Sent Rs", "From HDFC Bank", "@"]
+        },
+        "field": "merchant",
+        "extractors": [
+          {
+            "re": "\\bTo\\s+(?<value>[^@\\n]*[A-Za-z][^@\\n]*?)@[^\\s]*\\s+On\\s+\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}"
+          }
+        ]
       },
       {
         "kind": "fallbackField",
@@ -259,6 +287,83 @@
           "transactionType": "EXPENSE",
           "balance": "8935.00"
         }
+      }
+    },
+    {
+      "name": "upi debit from A/c with UPI Ref No in parentheses",
+      "sender": "CP-HDFCBK-S",
+      "receivedAt": "2026-06-09T10:10:00.000Z",
+      "body": "Rs.500.00 debited from A/c XX1234 on 20-Oct-25 to merchant@upi (UPI Ref No 123456789012)",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "500.00",
+          "accountLast4": "1234",
+          "transactionType": "EXPENSE",
+          "reference": "123456789012"
+        }
+      }
+    },
+    {
+      "name": "sent upi to named payee multi-line no @",
+      "sender": "JD-HDFCBK-S",
+      "receivedAt": "2026-06-09T10:11:00.000Z",
+      "body": "Sent Rs.45.00\nFrom HDFC Bank A/C *1234\nTo Sample Friend\nOn 23/05/26\nRef 123456789012\nNot You?\nContact bank support/SMS BLOCK UPI",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "45.00",
+          "merchant": "Sample Friend",
+          "accountLast4": "1234",
+          "transactionType": "EXPENSE",
+          "reference": "123456789012"
+        }
+      }
+    },
+    {
+      "name": "sent upi to numeric vpa yields UPI Payee",
+      "sender": "AD-HDFCBK-S",
+      "receivedAt": "2026-06-09T10:12:00.000Z",
+      "body": "Sent Rs.70.00\nFrom HDFC Bank A/C *1234\nTo 0000000000@bank\nOn 23/05/26\nRef 123456789013\nNot You?\nContact bank support/SMS BLOCK UPI",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "70.00",
+          "merchant": "UPI Payee",
+          "accountLast4": "1234",
+          "transactionType": "EXPENSE",
+          "reference": "123456789013"
+        }
+      }
+    },
+    {
+      "name": "bill alert reminder should not parse",
+      "sender": "CP-HDFCBK-S",
+      "receivedAt": "2026-06-09T10:13:00.000Z",
+      "body": "New Bill Alert:\nYour AUBA00000NAT3Q Bill 8078064625 of Rs.3953.72 is due on 05-Nov-2025. To pay, login to HDFC Bank Net/Mobile Banking>BillPay\nT&C. Ignore if paid",
+      "expected": {
+        "confidence": "REJECTED",
+        "reasons": ["FILTER_REJECTED"]
+      }
+    },
+    {
+      "name": "txn declined notice is filter-rejected",
+      "sender": "VM-HDFCBK-S",
+      "receivedAt": "2025-11-30T20:33:47.000Z",
+      "body": "TXN DECLINED: Rs. 3000.00 on 30-11-25 at 20:33:47 On HDFC Bank Debit Card 7087 Reason: Insufficient limit",
+      "expected": {
+        "confidence": "REJECTED",
+        "reasons": ["FILTER_REJECTED"]
+      }
+    },
+    {
+      "name": "forex markup advisory is filter-rejected",
+      "sender": "AD-HDFCBK-S",
+      "receivedAt": "2025-12-01T09:00:00.000Z",
+      "body": "Notice! Forex Markup fee applies to your HDFC Bank Debit Card International payment. T&C apply.",
+      "expected": {
+        "confidence": "REJECTED",
+        "reasons": ["FILTER_REJECTED"]
       }
     }
   ]

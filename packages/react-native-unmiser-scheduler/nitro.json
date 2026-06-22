@@ -1,0 +1,20 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["unmiserscheduler"],
+  "ios": {
+    "iosModuleName": "NitroUnmiserScheduler"
+  },
+  "android": {
+    "androidNamespace": ["unmiserscheduler"],
+    "androidCxxLibName": "NitroUnmiserScheduler"
+  },
+  "autolinking": {
+    "UnmiserScheduler": {
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "UnmiserScheduler"
+      }
+    }
+  },
+  "ignorePaths": ["**/node_modules"]
+}

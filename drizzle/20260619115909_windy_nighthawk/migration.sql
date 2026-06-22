@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS `index_account_balances_account_id_timestamp`;--> statement-breakpoint
+CREATE UNIQUE INDEX `index_account_balances_account_id_timestamp_txn` ON `account_balances` (`accountId`,`timestamp`,`transactionId`);

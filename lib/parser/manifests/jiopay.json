@@ -24,11 +24,15 @@
         "முடிவடை",
         "will be deducted",
         "offer",
-        "discount"
+        "discount",
+        "data quota",
+        "will expire",
+        "has expired"
       ],
       "requireAnyKeyword": [
         "recharge successful",
         "வெற்றிகரமாக ரீசார்ஜ்",
+        "recharge",
         "payment successful",
         "bill payment",
         "credited",
@@ -106,6 +110,50 @@
       {
         "kind": "setFieldWhen",
         "when": {
+          "containsAll": ["bill payment", "dth"]
+        },
+        "field": "merchant",
+        "value": "DTH Recharge"
+      },
+      {
+        "kind": "setFieldWhen",
+        "when": {
+          "containsAny": ["recharge"],
+          "notContainsAny": ["recharge successful", "வெற்றிகரமாக ரீசார்ஜ்", "bill payment"]
+        },
+        "field": "merchant",
+        "value": "Recharge"
+      },
+      {
+        "kind": "setFieldWhen",
+        "when": {
+          "containsAll": ["recharge", "mobile"],
+          "notContainsAny": ["recharge successful", "வெற்றிகரமாக ரீசார்ஜ்", "bill payment"]
+        },
+        "field": "merchant",
+        "value": "Mobile Recharge"
+      },
+      {
+        "kind": "setFieldWhen",
+        "when": {
+          "containsAll": ["recharge", "dth"],
+          "notContainsAny": ["recharge successful", "வெற்றிகரமாக ரீசார்ஜ்", "bill payment"]
+        },
+        "field": "merchant",
+        "value": "DTH Recharge"
+      },
+      {
+        "kind": "setFieldWhen",
+        "when": {
+          "containsAll": ["recharge", "data"],
+          "notContainsAny": ["recharge successful", "வெற்றிகரமாக ரீசார்ஜ்", "bill payment"]
+        },
+        "field": "merchant",
+        "value": "Data Recharge"
+      },
+      {
+        "kind": "setFieldWhen",
+        "when": {
           "containsAny": ["recharge successful", "வெற்றிகரமாக ரீசார்ஜ்"]
         },
         "field": "merchant",
@@ -160,6 +208,66 @@
       }
     },
     {
+      "name": "merchant payment (payment successful to)",
+      "sender": "JA-JioPay-S",
+      "receivedAt": "2026-06-02T11:00:00.000Z",
+      "body": "Payment Successful to Amazon Pay India for Rs. 500.00 Transaction ID : BR000PAYAMZN1",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "500.00",
+          "merchant": "Amazon Pay India for Rs",
+          "transactionType": "CREDIT",
+          "reference": "BR000PAYAMZN1"
+        }
+      }
+    },
+    {
+      "name": "electricity bill payment",
+      "sender": "JA-JioPay-S",
+      "receivedAt": "2026-06-03T12:00:00.000Z",
+      "body": "Bill Payment of Rs. 1200.00 for Electricity successful. Transaction ID : BR000ELEC1234",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "1200.00",
+          "merchant": "Electricity Bill",
+          "transactionType": "CREDIT",
+          "reference": "BR000ELEC1234"
+        }
+      }
+    },
+    {
+      "name": "DTH bill payment maps to DTH Recharge",
+      "sender": "JA-JioPay-S",
+      "receivedAt": "2026-06-04T13:00:00.000Z",
+      "body": "Bill Payment of Rs. 350.00 for DTH successful. Transaction ID : BR000DTH56789",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "350.00",
+          "merchant": "DTH Recharge",
+          "transactionType": "CREDIT",
+          "reference": "BR000DTH56789"
+        }
+      }
+    },
+    {
+      "name": "plain mobile recharge (no 'successful')",
+      "sender": "JA-JioPay-S",
+      "receivedAt": "2026-06-05T14:00:00.000Z",
+      "body": "Mobile recharge of Rs. 199.00 is being processed. Transaction ID : BR000MOB12345",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "199.00",
+          "merchant": "Mobile Recharge",
+          "transactionType": "CREDIT",
+          "reference": "BR000MOB12345"
+        }
+      }
+    },
+    {
       "name": "tamil plan-expiry reminder is filter-rejected",
       "sender": "JT-JIOPAY",
       "receivedAt": "2026-03-27T21:54:00.000Z",
@@ -174,6 +282,16 @@
       "sender": "JT-JioPay",
       "receivedAt": "2026-05-01T23:15:00.000Z",
       "body": "Data usage Alert!\n50% of your daily data used as of 01-May-26 23:15\nJio Number: 9876543210\nDaily Quota: 2 GB\nFor data saving tips: http://tiny.jio.com/Savingasm",
+      "expected": {
+        "confidence": "REJECTED",
+        "reasons": ["FILTER_REJECTED"]
+      }
+    },
+    {
+      "name": "jio telecom daily data quota notice is filtered out (not a wallet txn)",
+      "sender": "JT-JIOPAY",
+      "receivedAt": "2025-08-09T12:20:00.000Z",
+      "body": "50% Daily Data quota used as on 09-Aug-21 12:20.\nJio Number : 6381793794\nDaily Data quota as per plan : 2 GB. To recharge visit jio.com",
       "expected": {
         "confidence": "REJECTED",
         "reasons": ["FILTER_REJECTED"]

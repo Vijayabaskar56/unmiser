@@ -122,6 +122,41 @@ const CAPTURE_CASES: Array<{ name: string; sender: string; body: string; expecte
     body: "Spend Rs.500 and win exciting prizes, amount debited weekly",
     expected: false,
   },
+  // [K15] declined card attempt (contains "Debit Card") → service notice, dropped
+  {
+    name: "txn declined notice",
+    sender: "VM-HDFCBK-S",
+    body: "TXN DECLINED: Rs. 3000.00 on 30-11-25 on HDFC Bank Debit Card 7087 Reason: Limit",
+    expected: false,
+  },
+  // [K16] forex markup advisory → dropped
+  {
+    name: "forex markup notice",
+    sender: "AD-HDFCBK-S",
+    body: "Notice! Forex Markup fee applies to your HDFC Bank Debit Card International payment",
+    expected: false,
+  },
+  // [K17] feature/limit advisory → dropped
+  {
+    name: "limit modified notice",
+    sender: "VM-HDFCBK-S",
+    body: "Limit modified: International transactions on HDFC Bank Debit Card ending 7087",
+    expected: false,
+  },
+  // [K18] international merchant outlet activation → dropped
+  {
+    name: "international merchant outlet activation",
+    sender: "VM-HDFCBK-S",
+    body: "Activated: International Merchant Outlet transactions on HDFC Bank Debit Card ending 7087",
+    expected: false,
+  },
+  // [K19] ECOM feature not-enabled advisory → dropped
+  {
+    name: "ecom not enabled notice",
+    sender: "JD-IOBCHN-S",
+    body: "Dear Customer, international ECOM txn is not enabled for your Debit Card xx8496",
+    expected: false,
+  },
 ];
 
 describe("native pre-screen TS mirror (Kotlin parity: SmsPreScreen.kt)", () => {

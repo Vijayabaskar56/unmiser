@@ -19,3 +19,4 @@ export * from "./app-switch";
 export * from "./sheet-overlay";
 export * from "./app-slider";
 export * from "./bottom-bar";
+export * from "./progress-bar";

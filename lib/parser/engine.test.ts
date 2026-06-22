@@ -22,10 +22,13 @@ describe("sms parser engine", () => {
   });
 
   it("sends missing merchant parses to review", () => {
+    // PNB is used here (not Slice) because Slice now mirrors Cashiro's
+    // SliceParser default of merchant="Slice"; PNB has no merchant fallback, so
+    // a bare debit alert with no payee still exercises the MISSING_MERCHANT path.
     const result = parseSmsWithManifests(bundledParserManifests, {
-      sender: "JD-SLICE-S",
+      sender: "VM-PNBSMS-S",
       receivedAt: "2026-06-09T10:31:00.000Z",
-      body: "Rs.100.00 spent on your Slice card XX1234.",
+      body: "Ac XX1234 Debited with Rs.5000.00, 20-02-2026 07:47:16. Aval Bal Rs.27000.00 CR.",
     });
 
     expect(result.confidence).toBe("REVIEW");

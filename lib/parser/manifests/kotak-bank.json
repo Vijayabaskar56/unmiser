@@ -23,6 +23,7 @@
         "offer",
         "discount",
         "win ",
+        "earn cashback",
         "has requested",
         "payment request",
         "collect request",
@@ -216,6 +217,22 @@
         },
         "field": "merchant",
         "value": "Freecharge"
+      },
+      {
+        "kind": "setFieldWhen",
+        "when": {
+          "containsAll": ["paytmqr", "@ybl"]
+        },
+        "field": "merchant",
+        "value": "PhonePe"
+      },
+      {
+        "kind": "setFieldWhen",
+        "when": {
+          "containsAny": ["@okhdfcbank"]
+        },
+        "field": "merchant",
+        "value": "HDFC Bank"
       }
     ]
   },
@@ -318,6 +335,58 @@
       "expected": {
         "confidence": "REJECTED",
         "reasons": ["FILTER_REJECTED"]
+      }
+    },
+    {
+      "name": "upi bank-code merchant mapping (generated id -> institution name)",
+      "sender": "JD-KOTAKB-S",
+      "receivedAt": "2025-10-16T11:00:00.000Z",
+      "body": "Sent Rs.300.00 from Kotak Bank AC X2468 to abcdef1234567890ghijkl@okhdfcbank on 16-10-25.UPI Ref 3333333333. Not you, https://kotak.com/KBANKT/Fraud",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "300.00",
+          "merchant": "HDFC Bank",
+          "accountLast4": "2468",
+          "transactionType": "EXPENSE",
+          "reference": "3333333333"
+        }
+      }
+    },
+    {
+      "name": "upi prefix stripping (upiXXX@bank)",
+      "sender": "JD-KOTAKB-S",
+      "receivedAt": "2025-10-16T12:00:00.000Z",
+      "body": "Sent Rs.75.00 from Kotak Bank AC X7777 to upijohncafe@okaxis on 16-10-25.UPI Ref 4444444444. Not you, https://kotak.com/KBANKT/Fraud",
+      "expected": {
+        "confidence": "HIGH",
+        "fields": {
+          "amount": "75.00",
+          "merchant": "johncafe",
+          "accountLast4": "7777",
+          "transactionType": "EXPENSE",
+          "reference": "4444444444"
+        }
+      }
+    },
+    {
+      "name": "dispatch negative: VM-KOTAKB rejected (no -S/-T suffix)",
+      "sender": "VM-KOTAKB",
+      "receivedAt": "2025-10-16T13:00:00.000Z",
+      "body": "Sent Rs.50.00 from Kotak Bank AC X1234 to test@paytm on 14-10-25.UPI Ref 5555555555.",
+      "expected": {
+        "confidence": "REJECTED",
+        "reasons": ["NO_MATCHING_MANIFEST"]
+      }
+    },
+    {
+      "name": "dispatch negative: UNKNOWN sender rejected",
+      "sender": "UNKNOWN",
+      "receivedAt": "2025-10-16T14:00:00.000Z",
+      "body": "Sent Rs.50.00 from Kotak Bank AC X1234 to test@paytm on 14-10-25.UPI Ref 5555555555.",
+      "expected": {
+        "confidence": "REJECTED",
+        "reasons": ["NO_MATCHING_MANIFEST"]
       }
     }
   ]
