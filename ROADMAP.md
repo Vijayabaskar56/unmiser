@@ -1,6 +1,6 @@
 # Unmiser — Product Roadmap
 
-> Status 2026-06-13. Cashiro (Android/Kotlin) audit → sequenced RN-port plan. Two non-negotiable pillars + owner's fixed decisions.
+> Status 2026-06-22. Cashiro (Android/Kotlin) audit → sequenced RN-port plan. Two non-negotiable pillars + owner's fixed decisions.
 >
 > **v1 = Android only. iOS deferred.** Engine is platform-agnostic (`(sender, body)` from any source) → iOS later = ingestion adapter only.
 >
@@ -18,7 +18,7 @@
 
 ## 2. Where We Are Now
 
-Stack: Expo SDK 56, Drizzle ORM 1.0-rc, TanStack DB 0.6.5, React 19, RN 0.85.3, TS 6, Bun. **Phases 0–3 done; 4+ unstarted.**
+Stack: Expo SDK 56, Drizzle ORM 1.0-rc, TanStack DB 0.6.5, React 19, RN 0.85.3, TS 6, Bun. **Phases 0–3 done; Phases 4 (production UI), 5 (budgets) and 8 (export/scheduler) are in progress; 6/7/9 pending.** 477 tests passing.
 
 | Phase                               | State   | One-liner                                                                                                                 | Detail                                                     |
 | ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -26,8 +26,11 @@ Stack: Expo SDK 56, Drizzle ORM 1.0-rc, TanStack DB 0.6.5, React 19, RN 0.85.3, 
 | **Phase 1 — Manual tracker**        | ✅ Done | Categories/accounts/cards/transactions CRUD, transfers, soft-delete+undo, balance time-series, drawer+tabs UI. 152 tests. | §3 Phase 1                                                 |
 | **Phase 2 — SMS-parser USP**        | ✅ Done | Engine, manifests, registry, wizard, off-thread scan. Device-verified 2026-06-12 (~5.3k inbox → 161 saved, 92 review).    | `docs/phase-2-design-record.md`, `docs/phase-2-handoff.md` |
 | **Phase 3 — Rules + subscriptions** | ✅ Done | Rules DSL + automation pipeline, mandates → subscriptions, matching. Device-verified 2026-06-12. 316 tests.               | `docs/phase-3-design-record.md`, `docs/phase-3-handoff.md` |
+| **Phase 4 — Production UI**         | 🟨 In progress | Most wireframe screens shipped: 5-step onboarding, nav shell + tabs, app-lock, SMS console, extension store/detail, settings (quiet hours, privacy/terms), calendar date scrubber, transaction form screen. Home dashboard + final polish pass remain. | §3 Phase 4 |
+| **Phase 5 — Budgets**               | 🟨 In progress | Budget data/service + progress/pacing/detail math, list/detail/history UI + charts, and the Pre-Spend Nudge in the Add form are built; Budget Pacing Alert surfacing + wizard polish remain. | §3 Phase 5 |
+| **Phase 8 — Export + scheduler**    | 🟨 In progress | Export/restore service + file picker/share flow and Android Nitro scheduler bridge are built; webhook profiles/delivery + native-trigger drain still pending. | §3 Phase 8 |
 
-**Not built:** Phase 4+ — production UI, budgets, behavior change, analytics, exchange rates, webhooks/sync/export, `api-source`. **Deferred from P2:** realtime `RECEIVE_SMS` e2e device test (wiring verified), on-device update-apply with real version bump (unit-tested e2e), manifest signing (checksum-only v1; catalog `signature` reserved). **Deferred from P3:** recurring-pattern mining → P6.
+**Not built:** Phase 6 analytics/full behavior-change, Phase 7 exchange rates, webhook profiles/delivery, and Phase 9 `api-source`. **In progress but incomplete:** Phase 4 home dashboard + polish, Phase 5 pacing-alert surfacing. **Deferred from P2:** realtime `RECEIVE_SMS` e2e device test (wiring verified), on-device update-apply with real version bump (unit-tested e2e), manifest signing (checksum-only v1; catalog `signature` reserved). **Deferred from P3:** recurring-pattern mining → P6.
 
 ---
 
@@ -39,11 +42,11 @@ Stack: Expo SDK 56, Drizzle ORM 1.0-rc, TanStack DB 0.6.5, React 19, RN 0.85.3, 
 | **1** | Categories (+seed), accounts/cards, manual transactions | ✅ Done        |
 | **2** | **`sms-parser` plugin engine + ingestion (USP)**        | ✅ Done        |
 | **3** | Rules engine + subscriptions/mandates                   | ✅ Done        |
-| **4** | Production UI from wireframes                           | ⬜ Not started |
-| **5** | Budgets + first behavior-change nudges                  | ⬜ Not started |
+| **4** | Production UI from wireframes                           | 🟨 In progress |
+| **5** | Budgets + first behavior-change nudges                  | 🟨 In progress |
 | **6** | Analytics/reports + full behavior-change pillar         | ⬜ Not started |
 | **7** | Multi-currency exchange rates                           | ⬜ Not started |
-| **8** | Webhooks / sync / export                                | ⬜ Not started |
+| **8** | Webhooks / sync / export                                | 🟨 In progress |
 | **9** | `api-source` plugins (vetted)                           | ⬜ Not started |
 
 Order: foundations → USP early → UI → core features → behavior change → rates + sync → api-source. Two behavior features pulled into P5 so pillar 2 never fully defers.
@@ -70,6 +73,7 @@ Spec + evidence: **`docs/phase-3-design-record.md`**. Plan: `docs/phase-3-plan.m
 
 ### Phase 4 — Production UI from Wireframes
 
+- **STATUS:** In progress. Shipped: 5-step onboarding (Welcome→Archetype→Country→SMS→Done), navigation shell + tabs, app-lock, SMS console, extension store/detail, settings surfaces (quiet hours, privacy/terms), transactions calendar date scrubber, transaction form as a full screen. Remaining: home dashboard, net-worth/account surfaces, and the final polish pass; dev harness stays `__DEV__`-gated.
 - **GOAL:** Replace the dev/utility screens with the real product UI per **`unmiser Wireframes.html`** (repo root — the design source of truth: screen areas + per-screen explorations).
 - **SCOPE:** Implement the wireframes' app structure and screens over the existing data/services layer (Phases 0–3 logic unchanged): navigation shell, onboarding/SMS-permission flow polish, home dashboard, SMS auto-log + transaction review, extension store, account/net-worth surfaces, settings. Theme via existing heroui-native + uniwind system; lists via `@legendapp/list`.
 - **DELIVERABLES:** Wireframe-faithful screens replacing the current tab stubs/dev harnesses (dev harness stays `__DEV__`-gated), updated navigation, UI polish pass on existing flows.
@@ -78,6 +82,7 @@ Spec + evidence: **`docs/phase-3-design-record.md`**. Plan: `docs/phase-3-plan.m
 
 ### Phase 5 — Budgets + First Behavior-Change Nudges
 
+- **STATUS:** In progress. Shipped: budget collection + `budget-ops`, progress/pacing/detail math (`lib/budgets/`), budgets list + detail + history screens with charts, budget form sheet, and the **Pre-Spend Nudge** in the Add form (budget impact before save). Remaining: surfacing **Budget Pacing Alerts** on user-facing screens, account scoping, and wizard polish.
 - **GOAL:** Per-category budgets + earliest proactive signals.
 - **SCOPE:** Budgets — periods (DAILY/WEEKLY/MONTHLY/YEARLY/CUSTOM), expense vs savings, track modes (ALL vs ADDED_ONLY), per-category limits, account scoping, real-time progress + `recommendedDailySpending`, history/trends. Behavior (pillar 2, early): **Budget Pacing Alerts** (loss aversion; `daysRemaining`/`percentUsed`), **Pre-Spend Nudge** (budget impact in Add sheet pre-save).
 - **DELIVERABLES:** Budgets list/detail/wizard, limit tracking, pacing + pre-spend integrations.
@@ -99,8 +104,10 @@ Spec + evidence: **`docs/phase-3-design-record.md`**. Plan: `docs/phase-3-plan.m
 
 ### Phase 8 — Webhooks / Sync / Export
 
-- **SCOPE:** Webhook profiles + data-type selection, cursor/incremental sync (successAt == rangeEnd invariant), 250/batch, retry + redirect handling, interval/scheduled modes, logging; CSV export; ZIP backup/restore (FULL/MASKED/ANONYMOUS) + merge/replace import.
-- **DELIVERABLES:** Sync manager + scheduler, export/backup/import.
+- **STATUS:** In progress. Export/restore and the Android scheduler bridge are built; webhook profile storage, delivery service, logs, and UI remain.
+- **SHIPPED SO FAR:** Export/restore service with FULL/MASKED/ANONYMOUS modes, document picker/share integration, and tests. Android Nitro scheduler package (`react-native-unmiser-scheduler`) with WorkManager interval/manual triggers, AlarmManager scheduled triggers, boot re-apply, and JS wrapper. The native scheduler records pending webhook triggers for JS to drain; it does not yet perform closed-app HTTP delivery.
+- **REMAINING SCOPE:** Webhook profiles + data-type selection, cursor/incremental sync (successAt == rangeEnd invariant), 250/batch, retry + redirect handling, delivery logging, scheduled settings UI, and draining pending native triggers into the JS sync manager.
+- **DELIVERABLES:** Sync manager + webhook profile UI, pending-trigger drain, delivery logs, scheduler wiring, export/backup/import.
 - **DEPS:** P1–6. **WHY NOW:** power-user/portability layer; lower priority than pillars.
 
 ### Phase 9 — `api-source` Plugins (Vetted)
